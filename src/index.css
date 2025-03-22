@@ -1,6 +1,6 @@
 body {
-  background-color: #0d1117;
-  color: #f1f1f1;
+  background-color: #5383E8;
+  /* color: #f1f1f1; */
   font-family: 'Noto Sans', sans-serif;
   margin: 0;
   padding: 40px;
@@ -49,7 +49,7 @@ ul {
 }
 
 li {
-  background-color: #161b22;
+  background-color: white;
   padding: 14px 20px;
   border-radius: 8px;
   margin-bottom: 12px;
@@ -66,5 +66,75 @@ li {
   font-size: 14px;
   color: #8b949e;
   margin-top: 4px;
+}
+
+
+
+.menu-thumbnail.large-thumbnail {
+  width: 160px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-right: 16px;
+}
+
+.menu-card {
+  font-size: 1.2rem; /* 기존보다 살짝 키움 */
+  padding: 20px;
+}
+
+
+
+
+
+.menu-card {
+  background-color: #ffffff;
+  color: #000;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s;
+  min-height: 180px;
+  font-size: 1.1rem; /* 전체 텍스트 크기 약간 키움 */
+}
+
+.menu-card:hover {
+  transform: translateY(-4px);
+}
+
+.menu-content {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+}
+
+.menu-thumbnail {
+  width: 180px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.menu-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.menu-name {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.menu-ingredients,
+.menu-uploader,
+.menu-tip {
+  font-size: 1.05rem;
 }
 
