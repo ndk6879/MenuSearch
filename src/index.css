@@ -168,3 +168,18 @@ li {
 .menu-text {
   flex: 1;
 }
+
+/* 버튼 기본 스타일 */
+.btn {
+  padding: 6px 12px;
+  background-color: #1976d2;
+  border: none;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn:hover {
+  background-color: #115293;
+}

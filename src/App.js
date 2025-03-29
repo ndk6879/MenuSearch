@@ -2,7 +2,8 @@
 import React, { useState } from "react";
 import "./App.css";
 import TagSearch from "./TagSearch";
-import menuData from "./menuData";
+import menuData_kr from "./menuData_kr";
+import menuData_en from "./menuData_en";
 
 function extractYouTubeId(url) {
   const match = url.match(/(?:\?v=|\/embed\/|\.be\/|\/v\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
@@ -10,10 +11,18 @@ function extractYouTubeId(url) {
 }
 
 function App() {
-  const [searchResults, setSearchResults] = useState(menuData);
+  const [language, setLanguage] = useState("en");
+  const [searchResults, setSearchResults] = useState(menuData_en);
+  const [selectedUploader, setSelectedUploader] = useState("all");
+
+  const currentData = language === "en" ? menuData_en : menuData_kr;
 
   const allIngredients = Array.from(
-    new Set(menuData.flatMap((item) => item.ingredients || []))
+    new Set(currentData.flatMap((item) => item.ingredients || []))
+  );
+
+  const allUploaders = Array.from(
+    new Set(currentData.map((item) => item.uploader).filter(Boolean))
   );
 
   const ingredientOptions = allIngredients.map((ing) => ({
@@ -22,29 +31,64 @@ function App() {
   })).sort((a, b) => a.label.localeCompare(b.label));
 
   const handleSearch = (selected) => {
-    if (selected.length === 0) {
-      setSearchResults(menuData);
-      return;
+    let filtered = currentData;
+
+    if (selectedUploader !== "all") {
+      filtered = filtered.filter(item => item.uploader === selectedUploader);
     }
 
-    const selectedValues = selected.map((opt) => opt.value);
-    const matched = menuData.filter((item) =>
-      selectedValues.every((val) => item.ingredients?.includes(val))
-    );
+    if (selected.length > 0) {
+      const selectedValues = selected.map((opt) => opt.value);
+      filtered = filtered.filter((item) =>
+        selectedValues.every((val) => item.ingredients?.includes(val))
+      );
+    }
 
-    setSearchResults(matched);
+    setSearchResults(filtered);
+  };
+
+  const handleToggleLanguage = () => {
+    const newLang = language === "en" ? "kr" : "en";
+    setLanguage(newLang);
+    setSearchResults(newLang === "en" ? menuData_en : menuData_kr);
+    setSelectedUploader("all");
+  };
+
+  const handleUploaderChange = (e) => {
+    const uploader = e.target.value;
+    setSelectedUploader(uploader);
+
+    let filtered = currentData;
+
+    if (uploader !== "all") {
+      filtered = filtered.filter(item => item.uploader === uploader);
+    }
+
+    setSearchResults(filtered);
   };
 
   return (
     <div className="container">
-      <h1 className="title">Menu Search - Check vercel auto-deploy</h1>
+      <h1 className="title">Menu Search</h1>
 
       <div className="search-section">
+        <button onClick={handleToggleLanguage} className="search-button">
+          {language === "en" ? "🇰🇷 KR" : "🇺🇸 EN"}
+        </button>
+
+        
+
         <TagSearch onSearch={handleSearch} options={ingredientOptions} />
+        <select onChange={handleUploaderChange} value={selectedUploader} className="search-button">
+          <option value="all">All Uploaders</option>
+          {allUploaders.map((uploader) => (
+            <option key={uploader} value={uploader}>{uploader}</option>
+          ))}
+        </select>
       </div>
 
       <p className="result-count">
-        {searchResults.length} of {menuData.length} results
+        {searchResults.length} of {currentData.length} results
       </p>
 
       <ul className="menu-list grid-list">
@@ -56,15 +100,15 @@ function App() {
                   <a href={item.url} target="_blank" rel="noopener noreferrer">
                     <img
                       src={`https://img.youtube.com/vi/${extractYouTubeId(item.url)}/0.jpg`}
-                      alt="썸네일"
+                      alt="thumbnail"
                       className="menu-thumbnail large-thumbnail"
                     />
                   </a>
                 )}
                 <div className="menu-text">
-                  <div className="menu-name">🍽️ {item.name || "이름 없음"}</div>
+                  <div className="menu-name">🍽️ {item.name || "No Name"}</div>
                   <div className="menu-ingredients">
-                    🥕 {item.ingredients?.join(", ") || "재료 정보 없음"}
+                    🥕 {item.ingredients?.join(", ") || "No Ingredients Info"}
                   </div>
                 </div>
               </div>
@@ -74,7 +118,6 @@ function App() {
           <p className="no-results">No matching menu found.</p>
         )}
       </ul>
-
     </div>
   );
 }

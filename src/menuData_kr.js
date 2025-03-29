@@ -1,20 +1,5 @@
-const menuData = [
+const menuData_kr = [
     
-    {
-        name: "Pepper Steak",
-        url: "https://www.youtube.com/watch?v=WNiS9a9qTqs",
-        uploader: "Kang Leo",
-        tip: "A dish where the spiciness of pepper enhances the flavor of the steak. The taste may vary depending on the type of pepper used.",
-        ingredients: ["beef tenderloin", "whole black pepper", "olive oil", "salt", "butter"]
-    },
-    
-    {
-        name: "Gordon Ramsay’s Michelin-Starred Fish",
-        url: "https://www.youtube.com/watch?v=7UVXlMM8WzA",
-        uploader: "Masuryoeng",
-        tip: "A dish so delicious, it was meant for a loved one on a special day—but you'll end up wanting it all to yourself. Even your loved one will want it all after a bite.",
-        ingredients: ["red seabream", "potato", "butter", "heavy cream", "shallot", "dill"]
-    },
     
 
     
@@ -32,6 +17,22 @@ const menuData = [
         uploader: "공격수셰프",
         tip: "쉽고 맛있고 플레이팅도 예쁨. 씹레전드..",
         ingredients: ["오징어짬뽕", "짜파게티", "쪽파", "스테이크", "팽이버섯"]
+    },
+
+    {
+        name: "후추 스테이크",
+        url: "https://www.youtube.com/watch?v=WNiS9a9qTqs",
+        uploader: "강레오",
+        tip: "A dish where the spiciness of pepper enhances the flavor of the steak. The taste may vary depending on the type of pepper used.",
+        ingredients: ["소고기", "후추", "올리브유", "소금", "버터"]
+    },
+    
+    {
+        name: "고든렘지 감자 도미요리",
+        url: "https://www.youtube.com/watch?v=7UVXlMM8WzA",
+        uploader: "맛수령",
+        tip: "A dish so delicious, it was meant for a loved one on a special day—but you'll end up wanting it all to yourself. Even your loved one will want it all after a bite.",
+        ingredients: ["도미", "감자", "버터", "크림", "샬롯"]
     },
     
       
@@ -201,7 +202,7 @@ const menuData = [
     {
         name: "프렌치토스트2",
         url: "https://www.youtube.com/shorts/zGijEP_KKdY",
-        uploader: "강레오",
+        uploader: "유지만",
         tip: "프렌치토스트의 다양한 변형 레시피. 다양한 토핑과 함께 즐길 수 있습니다.",
         ingredients: ["식빵", "달걀", "우유", "설탕", "버터", "베리", "메이플 시럽"]
     },
@@ -544,4 +545,4 @@ const menuData = [
         ingredients: ["과일", "탄산수", "술"]
     }
   ];
-  export default menuData;
+  export default menuData_kr;
