@@ -138,3 +138,33 @@ li {
   font-size: 1.05rem;
 }
 
+
+.grid-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.menu-card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  list-style: none;
+}
+
+.menu-content {
+  display: flex;
+  gap: 10px;
+}
+
+.menu-thumbnail {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.menu-text {
+  flex: 1;
+}

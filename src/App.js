@@ -47,7 +47,7 @@ function App() {
         {searchResults.length} of {menuData.length} results
       </p>
 
-      <ul className="menu-list">
+      <ul className="menu-list grid-list">
         {searchResults.length > 0 ? (
           searchResults.map((item, idx) => (
             <li key={idx} className="menu-card">
@@ -66,8 +66,6 @@ function App() {
                   <div className="menu-ingredients">
                     🥕 {item.ingredients?.join(", ") || "재료 정보 없음"}
                   </div>
-                  {item.uploader && <div className="menu-uploader">👨‍🍳 {item.uploader}</div>}
-                  {item.tip && <div className="menu-tip">💡 {item.tip}</div>}
                 </div>
               </div>
             </li>
@@ -76,6 +74,7 @@ function App() {
           <p className="no-results">No matching menu found.</p>
         )}
       </ul>
+
     </div>
   );
 }
