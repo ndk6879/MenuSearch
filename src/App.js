@@ -37,7 +37,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1 className="title">Menu Search</h1>
+      <h1 className="title">Menu Search - Check vercel auto-deploy</h1>
 
       <div className="search-section">
         <TagSearch onSearch={handleSearch} options={ingredientOptions} />
