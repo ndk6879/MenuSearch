@@ -1,8 +1,10 @@
 ## 🍽️ Menu Search Platform
 
+The [MVP](https://menu-search.vercel.app/) is released!  
+
 Interactive platform for discovering recipes using ingredients you already have at home.  
 This is an updated version of the original [Menu-Search-Project](https://github.com/ndk6879/Menu-Search-Project).  
-The MVP (Minimum Viable Product) will be released soon.
+
 <br>
 
 
