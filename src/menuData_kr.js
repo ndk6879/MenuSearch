@@ -100,13 +100,13 @@ const menuData_kr = [
         tip: "새우는 튀김옷을 입혀 튀길 때 꼬리 부분을 잡고 튀기면 모양이 예쁘게 나옵니다. 팽이버섯은 너무 오래 튀기면 질겨지므로 살짝만 튀겨주세요. 소스는 취향에 따라 라임 주스나 마요네즈 양을 조절하시면 됩니다.",
         ingredients: ["새우", "팽이버섯", "감자 전분", "달걀 흰자", "식용유", "소금", "감귤 마멀레이드", "다진 마늘", "마요네즈", "라임 주스", "상추", "라임", "후추"]
     },
-    {
-        name: "감귤 닭스테이크",
-        url: "https://www.youtube.com/watch?v=H4TGm0L_E7",
-        uploader: "강레오",
-        tip: "감귤의 상큼함과 닭고기의 담백함이 조화로운 스테이크. 감귤 소스가 닭고기의 느끼함을 잡아줍니다.",
-        ingredients: ["닭다리살", "감귤", "양파", "마늘", "올리브 오일", "소금", "후추", "로즈마리"]
-    },
+    // {
+    //     name: "감귤 닭스테이크",
+    //     url: "https://www.youtube.com/watch?v=H4TGm0L_E7",
+    //     uploader: "강레오",
+    //     tip: "감귤의 상큼함과 닭고기의 담백함이 조화로운 스테이크. 감귤 소스가 닭고기의 느끼함을 잡아줍니다.",
+    //     ingredients: ["닭다리살", "감귤", "양파", "마늘", "올리브 오일", "소금", "후추", "로즈마리"]
+    // },
     {
         name: "감귤 관자",
         url: "https://www.youtube.com/watch?v=9Pi-qt_9YU0",
@@ -128,13 +128,13 @@ const menuData_kr = [
         tip: "관자와 다양한 버섯의 풍미가 어우러진 요리. 버섯의 종류에 따라 다양한 맛을 즐길 수 있습니다.",
         ingredients: ["관자", "새송이버섯", "표고버섯", "양송이버섯", "마늘", "올리브 오일", "소금", "후추", "화이트 와인"]
     },
-    {
-        name: "항정살 라면",
-        url: "https://www.youtube.com/watch?v=JnD9ZAYIFZ",
-        uploader: "밥김국",
-        tip: "항정살의 쫄깃함과 라면의 매콤함이 조화로운 요리. 항정살을 굽고 라면에 넣어 풍부한 맛을 더합니다.",
-        ingredients: ["라면", "항정살", "양파", "대파", "청양고추", "마늘", "고춧가루", "간장", "설탕"]
-    },
+    // {
+    //     name: "항정살 라면",
+    //     url: "https://www.youtube.com/watch?v=JnD9ZAYIFZ",
+    //     uploader: "밥김국",
+    //     tip: "항정살의 쫄깃함과 라면의 매콤함이 조화로운 요리. 항정살을 굽고 라면에 넣어 풍부한 맛을 더합니다.",
+    //     ingredients: ["라면", "항정살", "양파", "대파", "청양고추", "마늘", "고춧가루", "간장", "설탕"]
+    // },
     {
         name: "토마토스프",
         url: "https://www.youtube.com/watch?v=qDF_6HLIY6o&t=316s",
@@ -241,20 +241,20 @@ const menuData_kr = [
         tip: "매콤한 맛이 특징인 일본식 라멘. 땅콩 소스와 고기 다짐육을 얹어 먹습니다.",
         ingredients: ["라면", "땅콩 소스", "고기 다짐육", "파", "숙주", "시금치", "깨", "참기름"]
     },
-    {
-        name: "라따뚜이",
-        url: "https://www.youtube.com/watch?v=FdbU7-kSQ2A&t=16s",
-        uploader: "강레오",
-        tip: "프랑스식 야채 스튜. 다양한 채소를 넣어 만들 수 있습니다.",
-        ingredients: ["토마토", "가지", "애호박", "양파", "마늘", "올리브 오일", "소금", "후추", "허브"]
-    },
-    {
-        name: "오리고기 + 버섯",
-        url: "https://www.youtube.com/watch?v=SqJx9EgG_kQ",
-        uploader: "강레오",
-        tip: "오리고기와 버섯의 조화로운 맛을 즐길 수 있는 요리. 버섯의 종류에 따라 다양한 맛을 즐길 수 있습니다.",
-        ingredients: ["오리고기", "버섯", "양파", "마늘", "올리브 오일", "소금", "후추", "로즈마리"]
-    },
+    // {
+    //     name: "라따뚜이",
+    //     url: "https://www.youtube.com/watch?v=FdbU7-kSQ2A&t=16s",
+    //     uploader: "강레오",
+    //     tip: "프랑스식 야채 스튜. 다양한 채소를 넣어 만들 수 있습니다.",
+    //     ingredients: ["토마토", "가지", "애호박", "양파", "마늘", "올리브 오일", "소금", "후추", "허브"]
+    // },
+    // {
+    //     name: "오리고기 + 버섯",
+    //     url: "https://www.youtube.com/watch?v=SqJx9EgG_kQ",
+    //     uploader: "강레오",
+    //     tip: "오리고기와 버섯의 조화로운 맛을 즐길 수 있는 요리. 버섯의 종류에 따라 다양한 맛을 즐길 수 있습니다.",
+    //     ingredients: ["오리고기", "버섯", "양파", "마늘", "올리브 오일", "소금", "후추", "로즈마리"]
+    // },
     {
         name: "광어튀김",
         url: "https://www.youtube.com/watch?v=KzUTBj0kK0Q",
@@ -262,27 +262,27 @@ const menuData_kr = [
         tip: "바삭하고 촉촉한 광어튀김. 튀김옷의 비율이 중요합니다.",
         ingredients: ["광어", "밀가루", "녹말", "달걀", "맥주", "소금", "후추"]
     },
-    {
-        name: "독돔구이 + 토마토 살사",
-        url: "https://www.youtube.com/watch?v=pK6aVCb4X3c",
-        uploader: "강레오",
-        tip: "독특한 맛과 식감을 가진 독돔구이. 토마토 살사와 함께 즐기면 더욱 맛있습니다.",
-        ingredients: ["독돔", "토마토", "양파", "마늘", "고추", "올리브 오일", "소금", "후추", "레몬즙"]
-    },
-    {
-        name: "토마토 계란 부추 제육볶음",
-        url: "https://www.youtube.com/watch?v=LOW4oXLYu64",
-        uploader: "강레오",
-        tip: "매콤하고 칼칼한 맛이 일품인 제육볶음. 밥과 함께 먹으면 더욱 맛있습니다.",
-        ingredients: ["돼지고기", "양파", "대파", "부추", "고추장", "간장", "마늘", "설탕", "참기름"]
-    },
-    {
-        name: "지중해식 생선구이",
-        url: "https://www.youtube.com/watch?v=umLY_6nOuOE",
-        uploader: "강레오",
-        tip: "신선한 해산물과 다양한 채소를 곁들인 지중해식 생선구이. 건강하고 맛있는 식사입니다.",
-        ingredients: ["연어", "새우", "오징어", "가지", "애호박", "양파", "마늘", "올리브 오일", "소금", "후추", "레몬즙"]
-    },
+    // {
+    //     name: "독돔구이 + 토마토 살사",
+    //     url: "https://www.youtube.com/watch?v=pK6aVCb4X3c",
+    //     uploader: "강레오",
+    //     tip: "독특한 맛과 식감을 가진 독돔구이. 토마토 살사와 함께 즐기면 더욱 맛있습니다.",
+    //     ingredients: ["독돔", "토마토", "양파", "마늘", "고추", "올리브 오일", "소금", "후추", "레몬즙"]
+    // },
+    // {
+    //     name: "토마토 계란 부추 제육볶음",
+    //     url: "https://www.youtube.com/watch?v=LOW4oXLYu64",
+    //     uploader: "강레오",
+    //     tip: "매콤하고 칼칼한 맛이 일품인 제육볶음. 밥과 함께 먹으면 더욱 맛있습니다.",
+    //     ingredients: ["돼지고기", "양파", "대파", "부추", "고추장", "간장", "마늘", "설탕", "참기름"]
+    // },
+    // {
+    //     name: "지중해식 생선구이",
+    //     url: "https://www.youtube.com/watch?v=umLY_6nOuOE",
+    //     uploader: "강레오",
+    //     tip: "신선한 해산물과 다양한 채소를 곁들인 지중해식 생선구이. 건강하고 맛있는 식사입니다.",
+    //     ingredients: ["연어", "새우", "오징어", "가지", "애호박", "양파", "마늘", "올리브 오일", "소금", "후추", "레몬즙"]
+    // },
     {
         name: "토마토 해장 라면",
         url: "https://www.youtube.com/watch?v=lIAye5iO7FY",
@@ -376,13 +376,13 @@ const menuData_kr = [
         tip: "우리나라 과자. 아이스크림 같은 걸로 다양한 디저트 가능. 세계적 경쟁력 있을지도!",
         ingredients: ["우리나라 과자", "아이스크림", "과일", "초콜릿"]
     },
-    {
-        name: "버터 & 푸딩 브레드",
-        url: "https://www.youtube.com/watch?v=R2ysLQYxqt",
-        uploader: "강레오",
-        tip: "버터와 푸딩의 부드러운 조화가 일품인 빵. 따뜻하게 먹으면 더욱 맛있습니다.",
-        ingredients: ["식빵", "버터", "푸딩", "달걀", "우유", "설탕", "시나몬 가루"]
-    },
+    // {
+    //     name: "버터 & 푸딩 브레드",
+    //     url: "https://www.youtube.com/watch?v=R2ysLQYxqt",
+    //     uploader: "강레오",
+    //     tip: "버터와 푸딩의 부드러운 조화가 일품인 빵. 따뜻하게 먹으면 더욱 맛있습니다.",
+    //     ingredients: ["식빵", "버터", "푸딩", "달걀", "우유", "설탕", "시나몬 가루"]
+    // },
     {
         name: "연어사비체",
         url: "https://www.youtube.com/watch?v=Yk8QtDuFo9A",
@@ -502,13 +502,13 @@ const menuData_kr = [
         tip: "부드러운 크림 소스와 고기, 버섯의 풍미가 어우러진 스튜입니다.",
         ingredients: ["소고기", "양송이버섯", "양파", "마늘", "생크림", "화이트 와인", "파슬리"]
     },
-    {
-        name: "버섯루꼴라양파고기샐러드",
-        url: "https://www.youtube.com/watch?v=SqJx9EgG_kQ&t=46s",
-        uploader: "강레오",
-        tip: "다양한 버섯과 루꼴라, 양파, 고기를 함께 즐길 수 있는 샐러드입니다.",
-        ingredients: ["소고기", "버섯", "루꼴라", "양파", "올리브 오일", "발사믹 식초"]
-    },
+    // {
+    //     name: "버섯루꼴라양파고기샐러드",
+    //     url: "https://www.youtube.com/watch?v=SqJx9EgG_kQ&t=46s",
+    //     uploader: "강레오",
+    //     tip: "다양한 버섯과 루꼴라, 양파, 고기를 함께 즐길 수 있는 샐러드입니다.",
+    //     ingredients: ["소고기", "버섯", "루꼴라", "양파", "올리브 오일", "발사믹 식초"]
+    // },
     {
         name: "시금치파스타",
         url: "https://www.youtube.com/shorts/zNfd-IOzulU",

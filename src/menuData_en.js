@@ -90,13 +90,13 @@ const menuData_en = [
         tip: "Hold the tail when frying shrimp for better shape. Do not over-fry enoki mushrooms to avoid toughness. Adjust lime juice or mayo to taste.",
         ingredients: ["Shrimp", "Enoki Mushroom", "Potato Starch", "Egg White", "Cooking Oil", "Salt", "Citrus Marmalade", "Minced Garlic", "Mayonnaise", "Lime Juice", "Lettuce", "Lime", "Pepper"]
     },
-    {
-        name: "Citrus Chicken Steak",
-        url: "https://www.youtube.com/watch?v=H4TGm0L_E7",
-        uploader: "Kang Leo",
-        tip: "A steak where the refreshing taste of citrus balances well with the tenderness of chicken. The citrus sauce reduces the greasiness of the chicken.",
-        ingredients: ["chicken thigh", "citrus", "onion", "garlic", "olive oil", "salt", "pepper", "rosemary"]
-    },
+    // {
+    //     name: "Citrus Chicken Steak",
+    //     url: "https://www.youtube.com/watch?v=H4TGm0L_E7",
+    //     uploader: "Kang Leo",
+    //     tip: "A steak where the refreshing taste of citrus balances well with the tenderness of chicken. The citrus sauce reduces the greasiness of the chicken.",
+    //     ingredients: ["chicken thigh", "citrus", "onion", "garlic", "olive oil", "salt", "pepper", "rosemary"]
+    // },
     {
         name: "Citrus Scallop",
         url: "https://www.youtube.com/watch?v=9Pi-qt_9YU0",
@@ -118,13 +118,13 @@ const menuData_en = [
         tip: "A dish where scallops and various mushrooms come together for a rich flavor. The taste varies depending on the types of mushrooms used.",
         ingredients: ["scallop", "king oyster mushroom", "shiitake mushroom", "button mushroom", "garlic", "olive oil", "salt", "pepper", "white wine"]
     },
-    {
-        name: "Pork Jowl Ramen",
-        url: "https://www.youtube.com/watch?v=JnD9ZAYIFZ",
-        uploader: "Bab Kim Guk",
-        tip: "A dish where the chewy texture of pork jowl and the spiciness of ramen blend perfectly. Grilled pork jowl is added to the ramen for a richer taste.",
-        ingredients: ["ramen", "pork jowl", "onion", "green onion", "cheongyang pepper", "garlic", "chili powder", "soy sauce", "sugar"]
-    },
+    // {
+    //     name: "Pork Jowl Ramen",
+    //     url: "https://www.youtube.com/watch?v=JnD9ZAYIFZ",
+    //     uploader: "Bab Kim Guk",
+    //     tip: "A dish where the chewy texture of pork jowl and the spiciness of ramen blend perfectly. Grilled pork jowl is added to the ramen for a richer taste.",
+    //     ingredients: ["ramen", "pork jowl", "onion", "green onion", "cheongyang pepper", "garlic", "chili powder", "soy sauce", "sugar"]
+    // },
     {
         name: "Tomato Soup",
         url: "https://www.youtube.com/watch?v=qDF_6HLIY6o&t=316s",
@@ -237,13 +237,13 @@ const menuData_en = [
         tip: "French vegetable stew. You can make it with various vegetables.",
         ingredients: ["tomato", "eggplant", "zucchini", "onion", "garlic", "olive oil", "salt", "pepper", "herbs"]
     },
-    {
-        name: "Duck with Mushrooms",
-        url: "https://www.youtube.com/watch?v=SqJx9EgG_kQ",
-        uploader: "Kang Leo",
-        tip: "A dish where duck and mushrooms blend in harmony. The taste varies depending on the types of mushrooms.",
-        ingredients: ["duck", "mushroom", "onion", "garlic", "olive oil", "salt", "pepper", "rosemary"]
-    },
+    // {
+    //     name: "Duck with Mushrooms",
+    //     url: "https://www.youtube.com/watch?v=SqJx9EgG_kQ",
+    //     uploader: "Kang Leo",
+    //     tip: "A dish where duck and mushrooms blend in harmony. The taste varies depending on the types of mushrooms.",
+    //     ingredients: ["duck", "mushroom", "onion", "garlic", "olive oil", "salt", "pepper", "rosemary"]
+    // },
     {
         name: "Flatfish Fry",
         url: "https://www.youtube.com/watch?v=KzUTBj0kK0Q",
@@ -251,27 +251,27 @@ const menuData_en = [
         tip: "Crispy and moist fried flatfish. The ratio of batter is important.",
         ingredients: ["flatfish", "flour", "starch", "egg", "beer", "salt", "pepper"]
     },
-    {
-        name: "Grilled Dokdom + Tomato Salsa",
-        url: "https://www.youtube.com/watch?v=pK6aVCb4X3c",
-        uploader: "Kang Leo",
-        tip: "Grilled dokdom with a unique taste and texture. Enjoy it with tomato salsa.",
-        ingredients: ["dokdom", "tomato", "onion", "garlic", "chili", "olive oil", "salt", "pepper", "lemon juice"]
-    },
-    {
-        name: "Tomato Egg Garlic Pork Stir-fry",
-        url: "https://www.youtube.com/watch?v=LOW4oXLYu64",
-        uploader: "Kang Leo",
-        tip: "Spicy and savory pork stir-fry. Perfect with rice.",
-        ingredients: ["pork", "onion", "green onion", "garlic chives", "gochujang", "soy sauce", "garlic", "sugar", "sesame oil"]
-    },
-    {
-        name: "Mediterranean Grilled Fish",
-        url: "https://www.youtube.com/watch?v=umLY_6nOuOE",
-        uploader: "Kang Leo",
-        tip: "Mediterranean-style grilled fish with fresh seafood and vegetables. Healthy and delicious.",
-        ingredients: ["salmon", "shrimp", "squid", "eggplant", "zucchini", "onion", "garlic", "olive oil", "salt", "pepper", "lemon juice"]
-    },
+    // {
+    //     name: "Grilled Dokdom + Tomato Salsa",
+    //     url: "https://www.youtube.com/watch?v=pK6aVCb4X3c",
+    //     uploader: "Kang Leo",
+    //     tip: "Grilled dokdom with a unique taste and texture. Enjoy it with tomato salsa.",
+    //     ingredients: ["dokdom", "tomato", "onion", "garlic", "chili", "olive oil", "salt", "pepper", "lemon juice"]
+    // },
+    // {
+    //     name: "Tomato Egg Garlic Pork Stir-fry",
+    //     url: "https://www.youtube.com/watch?v=LOW4oXLYu64",
+    //     uploader: "Kang Leo",
+    //     tip: "Spicy and savory pork stir-fry. Perfect with rice.",
+    //     ingredients: ["pork", "onion", "green onion", "garlic chives", "gochujang", "soy sauce", "garlic", "sugar", "sesame oil"]
+    // },
+    // {
+    //     name: "Mediterranean Grilled Fish",
+    //     url: "https://www.youtube.com/watch?v=umLY_6nOuOE",
+    //     uploader: "Kang Leo",
+    //     tip: "Mediterranean-style grilled fish with fresh seafood and vegetables. Healthy and delicious.",
+    //     ingredients: ["salmon", "shrimp", "squid", "eggplant", "zucchini", "onion", "garlic", "olive oil", "salt", "pepper", "lemon juice"]
+    // },
     {
         name: "Tomato Hangover Ramen",
         url: "https://www.youtube.com/watch?v=lIAye5iO7FY",
@@ -364,13 +364,13 @@ const menuData_en = [
         tip: "Korean snacks. Can be used to make a variety of desserts like ice cream. Could have global potential!",
         ingredients: ["Korean snacks", "ice cream", "fruit", "chocolate"]
     },
-    {
-        name: "Butter & Pudding Bread",
-        url: "https://www.youtube.com/watch?v=R2ysLQYxqt",
-        uploader: "Kang Leo",
-        tip: "Bread with a soft combination of butter and pudding. Tastes even better when warm.",
-        ingredients: ["bread", "butter", "pudding", "egg", "milk", "sugar", "cinnamon powder"]
-    },
+    // {
+    //     name: "Butter & Pudding Bread",
+    //     url: "https://www.youtube.com/watch?v=R2ysLQYxqt",
+    //     uploader: "Kang Leo",
+    //     tip: "Bread with a soft combination of butter and pudding. Tastes even better when warm.",
+    //     ingredients: ["bread", "butter", "pudding", "egg", "milk", "sugar", "cinnamon powder"]
+    // },
     {
         name: "Salmon Ceviche",
         url: "https://www.youtube.com/watch?v=Yk8QtDuFo9A",
@@ -490,13 +490,13 @@ const menuData_en = [
         tip: "A stew with a soft cream sauce combined with meat and mushroom flavors.",
         ingredients: ["beef", "mushroom", "onion", "garlic", "fresh cream", "white wine", "parsley"]
     },
-    {
-        name: "Beef, Mushroom, Arugula, and Onion Salad",
-        url: "https://www.youtube.com/watch?v=SqJx9EgG_kQ&t=46s",
-        uploader: "Kang Leo",
-        tip: "A salad where various mushrooms, arugula, onion, and beef can be enjoyed together.",
-        ingredients: ["beef", "mushroom", "arugula", "onion", "olive oil", "balsamic vinegar"]
-    },
+    // {
+    //     name: "Beef, Mushroom, Arugula, and Onion Salad",
+    //     url: "https://www.youtube.com/watch?v=SqJx9EgG_kQ&t=46s",
+    //     uploader: "Kang Leo",
+    //     tip: "A salad where various mushrooms, arugula, onion, and beef can be enjoyed together.",
+    //     ingredients: ["beef", "mushroom", "arugula", "onion", "olive oil", "balsamic vinegar"]
+    // },
     {
         name: "Spinach Pasta",
         url: "https://www.youtube.com/shorts/zNfd-IOzulU",

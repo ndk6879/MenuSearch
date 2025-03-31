@@ -79,12 +79,12 @@ function App() {
         
 
         <TagSearch onSearch={handleSearch} options={ingredientOptions} />
-        <select onChange={handleUploaderChange} value={selectedUploader} className="search-button">
+        {/* <select onChange={handleUploaderChange} value={selectedUploader} className="search-button">
           <option value="all">All Uploaders</option>
           {allUploaders.map((uploader) => (
             <option key={uploader} value={uploader}>{uploader}</option>
           ))}
-        </select>
+        </select> */}
       </div>
 
       <p className="result-count">
