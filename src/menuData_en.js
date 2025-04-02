@@ -1,4 +1,54 @@
 const menuData_en = [
+
+    {
+        name: "Abalone Pasta",
+        url: "https://www.youtube.com/watch?v=-AjoAl9SeWw",
+        uploader: "",
+        tip: "A luxurious pasta dish featuring the chewy texture and rich seafood flavor of abalone. Perfect for special occasions.",
+        ingredients: ["pasta", "abalone", "shrimp", "mussels", "garlic", "olive oil", "white wine", "salt", "pepper"]
+    },
+
+    {
+        name: "Gordon Ramsay's Potato Sea Bream Dish",
+        url: "https://www.youtube.com/watch?v=7UVXlMM8WzA",
+        uploader: "Matsooryeong",
+        tip: "A dish so delicious, it was meant for a loved one on a special day—but you'll end up wanting it all to yourself.",
+        ingredients: ["Sea Bream", "Potato", "Butter", "Cream", "Shallot"]
+    },
+    {
+        name: "Ratatouille",
+        url: "https://www.youtube.com/shorts/uJZSviosysM",
+        uploader: "",
+        tip: "French vegetable stew. You can make it with various vegetables.",
+        ingredients: ["tomato", "eggplant", "zucchini", "onion", "garlic", "olive oil", "salt", "pepper", "herbs"]
+    },
+
+
+    {
+        name: "Currywurst",
+        url: "https://www.youtube.com/watch?v=U7cujPVrudw",
+        uploader: "",
+        tip: "A German street food recipe that pairs perfectly with beer. Stir-fry chopped onions, add curry, ketchup, vinegar, and sugar to make the sauce. Boil the sausage, score it, grill it, and serve with fries.",
+        ingredients: ["onion", "curry", "ketchup", "vinegar", "sugar", "sausage", "french fries"]
+    },
+    
+    
+
+    {
+        name: "Flatfish Fry",
+        url: "https://www.youtube.com/watch?v=KzUTBj0kK0Q",
+        uploader: "Kang Leo",
+        tip: "Crispy and moist fried flatfish. The ratio of batter is important.",
+        ingredients: ["flatfish", "flour", "starch", "egg", "beer", "salt", "pepper"]
+    },
+
+    {
+        name: "French Toast 2",
+        url: "https://www.youtube.com/shorts/zGijEP_KKdY",
+        uploader: "Yoo Ji Man",
+        tip: "Various variations of French toast. Enjoy it with a variety of toppings.",
+        ingredients: ["bread", "egg", "milk", "sugar", "butter", "berries", "maple syrup"]
+    },
     {
         name: "Sashimi Carpaccio",
         url: "https://www.youtube.com/watch?v=Bhq0ApL-Un0",
@@ -19,13 +69,6 @@ const menuData_en = [
         uploader: "Kang Leo",
         tip: "A dish where the spiciness of pepper enhances the flavor of the steak. The taste may vary depending on the type of pepper used.",
         ingredients: ["Beef", "Pepper", "Olive Oil", "Salt", "Butter"]
-    },
-    {
-        name: "Gordon Ramsay's Potato Sea Bream Dish",
-        url: "https://www.youtube.com/watch?v=7UVXlMM8WzA",
-        uploader: "Matsooryeong",
-        tip: "A dish so delicious, it was meant for a loved one on a special day—but you'll end up wanting it all to yourself.",
-        ingredients: ["Sea Bream", "Potato", "Butter", "Cream", "Shallot"]
     },
     {
         name: "Spanish Cod Dish with Bacalao & Aioli Sauce",
@@ -189,13 +232,6 @@ const menuData_en = [
         ingredients: ["bread", "egg", "milk", "sugar", "butter", "cinnamon powder"]
     },
     {
-        name: "French Toast 2",
-        url: "https://www.youtube.com/shorts/zGijEP_KKdY",
-        uploader: "Yoo Ji Man",
-        tip: "Various variations of French toast. Enjoy it with a variety of toppings.",
-        ingredients: ["bread", "egg", "milk", "sugar", "butter", "berries", "maple syrup"]
-    },
-    {
         name: "Currywurst (German Street Food)",
         url: "https://www.youtube.com/watch?v=U7cujPVrudw",
         uploader: "",
@@ -216,13 +252,7 @@ const menuData_en = [
         tip: "A French dish made by thinly slicing raw beef. Enjoy with bread or crackers.",
         ingredients: ["beef tenderloin", "onion", "dill", "parsley", "mustard", "lemon juice", "olive oil", "salt", "pepper"]
     },
-    {
-        name: "Ratatouille",
-        url: "https://www.youtube.com/shorts/uJZSviosysM",
-        uploader: "",
-        tip: "French vegetable stew. You can make it with various vegetables.",
-        ingredients: ["tomato", "eggplant", "zucchini", "onion", "garlic", "olive oil", "salt", "pepper", "herbs"]
-    },
+    
     {
         name: "Tantanmen",
         url: "https://www.youtube.com/watch?v=8RWnsvjxIRU",
@@ -230,13 +260,13 @@ const menuData_en = [
         tip: "A spicy Japanese-style ramen topped with peanut sauce and minced meat.",
         ingredients: ["ramen", "peanut sauce", "minced meat", "green onion", "bean sprouts", "spinach", "sesame", "sesame oil"]
     },
-    {
-        name: "Ratatouille (Kang Leo's version)",
-        url: "https://www.youtube.com/watch?v=FdbU7-kSQ2A&t=16s",
-        uploader: "Kang Leo",
-        tip: "French vegetable stew. You can make it with various vegetables.",
-        ingredients: ["tomato", "eggplant", "zucchini", "onion", "garlic", "olive oil", "salt", "pepper", "herbs"]
-    },
+    // {
+    //     name: "Ratatouille (Kang Leo's version)",
+    //     url: "https://www.youtube.com/watch?v=FdbU7-kSQ2A&t=16s",
+    //     uploader: "Kang Leo",
+    //     tip: "French vegetable stew. You can make it with various vegetables.",
+    //     ingredients: ["tomato", "eggplant", "zucchini", "onion", "garlic", "olive oil", "salt", "pepper", "herbs"]
+    // },
     // {
     //     name: "Duck with Mushrooms",
     //     url: "https://www.youtube.com/watch?v=SqJx9EgG_kQ",
@@ -244,13 +274,6 @@ const menuData_en = [
     //     tip: "A dish where duck and mushrooms blend in harmony. The taste varies depending on the types of mushrooms.",
     //     ingredients: ["duck", "mushroom", "onion", "garlic", "olive oil", "salt", "pepper", "rosemary"]
     // },
-    {
-        name: "Flatfish Fry",
-        url: "https://www.youtube.com/watch?v=KzUTBj0kK0Q",
-        uploader: "Kang Leo",
-        tip: "Crispy and moist fried flatfish. The ratio of batter is important.",
-        ingredients: ["flatfish", "flour", "starch", "egg", "beer", "salt", "pepper"]
-    },
     // {
     //     name: "Grilled Dokdom + Tomato Salsa",
     //     url: "https://www.youtube.com/watch?v=pK6aVCb4X3c",
@@ -335,13 +358,6 @@ const menuData_en = [
         uploader: "Kang Leo",
         tip: "Enjoy the rich taste of pork steak. The flavor varies depending on the degree of doneness.",
         ingredients: ["pork shoulder", "olive oil", "salt", "pepper", "rosemary", "thyme", "garlic"]
-    },
-    {
-        name: "Abalone Pasta",
-        url: "https://www.youtube.com/watch?v=-AjoAl9SeWw",
-        uploader: "",
-        tip: "A luxurious pasta dish featuring the chewy texture and rich seafood flavor of abalone. Perfect for special occasions.",
-        ingredients: ["pasta", "abalone", "shrimp", "mussels", "garlic", "olive oil", "white wine", "salt", "pepper"]
     },
     {
         name: "Clafoutis = Cherry Dessert",
