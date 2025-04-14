@@ -1,5 +1,6 @@
 /* App.js */
 import React, { useState } from "react";
+import axios from "axios";
 import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
@@ -25,26 +26,45 @@ function App() {
     new Set(currentData.map((item) => item.uploader).filter(Boolean))
   );
 
-  const ingredientOptions = allIngredients.map((ing) => ({
-    value: ing,
-    label: ing,
-  })).sort((a, b) => a.label.localeCompare(b.label));
+  const ingredientOptions = allIngredients
+    .map((ing) => ({ value: ing, label: ing }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
-  const handleSearch = (selected) => {
-    let filtered = currentData;
-
-    if (selectedUploader !== "all") {
-      filtered = filtered.filter(item => item.uploader === selectedUploader);
+  const handleSearch = async (selected) => {
+    if (selected.length === 0) {
+      setSearchResults(currentData);
+      return;
     }
 
-    if (selected.length > 0) {
-      const selectedValues = selected.map((opt) => opt.value);
-      filtered = filtered.filter((item) =>
+    const selectedValues = selected.map((opt) => opt.value);
+
+    try {
+      const res = await axios.post("/menus/_search", {
+        size: 1000,
+        query: {
+          bool: {
+            must: selectedValues.map((val) => ({
+              match: { ingredients: val },
+            })),
+          },
+        },
+      });
+
+      const results = res.data.hits.hits.map((hit) => hit._source);
+
+      let filtered = results;
+      if (selectedUploader !== "all") {
+        filtered = filtered.filter((item) => item.uploader === selectedUploader);
+      }
+
+      setSearchResults(filtered);
+    } catch (error) {
+      console.error("Elasticsearch search failed, using fallback.", error);
+      let fallbackResults = currentData.filter((item) =>
         selectedValues.every((val) => item.ingredients?.includes(val))
       );
+      setSearchResults(fallbackResults);
     }
-
-    setSearchResults(filtered);
   };
 
   const handleToggleLanguage = () => {
@@ -61,7 +81,7 @@ function App() {
     let filtered = currentData;
 
     if (uploader !== "all") {
-      filtered = filtered.filter(item => item.uploader === uploader);
+      filtered = filtered.filter((item) => item.uploader === uploader);
     }
 
     setSearchResults(filtered);
@@ -69,6 +89,8 @@ function App() {
 
   return (
     <div className="container">
+      
+
       <h1 className="title">Menu Search</h1>
 
       <div className="search-section">
@@ -76,9 +98,9 @@ function App() {
           {language === "en" ? "🇰🇷 KR" : "🇺🇸 EN"}
         </button>
 
-        
-
         <TagSearch onSearch={handleSearch} options={ingredientOptions} />
+
+        {/* Optional uploader filter */}
         {/* <select onChange={handleUploaderChange} value={selectedUploader} className="search-button">
           <option value="all">All Uploaders</option>
           {allUploaders.map((uploader) => (

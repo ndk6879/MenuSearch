@@ -16,7 +16,7 @@ const menuData_kr = [
         url: "https://www.youtube.com/watch?v=R0N3mTYFOEM",
         uploader: "공격수셰프",
         tip: "쉽고 맛있고 플레이팅도 예쁨. 씹레전드..",
-        ingredients: ["오징어짬뽕", "짜파게티", "쪽파", "스테이크", "팽이버섯"]
+        ingredients: ["오징어짬뽕", "짜파게티", "쪽파", "스테이크", "팽이버섯", "고기"]
     },
 
     {
@@ -545,4 +545,6 @@ const menuData_kr = [
         ingredients: ["과일", "탄산수", "술"]
     }
   ];
+
+
   export default menuData_kr;
