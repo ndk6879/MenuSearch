@@ -1,15 +1,13 @@
 import Select from "react-select";
 import { useState } from "react";
 
-function TagSearch({ onSearch, options }) {
+function TagSearch({ onSearch, options, language }) {
   const [selected, setSelected] = useState([]);
 
   const handleChange = (selectedOptions) => {
-    setSelected(selectedOptions || []);
-  };
-
-  const handleSubmit = () => {
-    onSearch(selected);
+    const newSelected = selectedOptions || [];
+    setSelected(newSelected);
+    onSearch(newSelected); // 선택이 바뀌면 즉시 검색
   };
 
   const handleReset = () => {
@@ -25,7 +23,7 @@ function TagSearch({ onSearch, options }) {
           isMulti
           onChange={handleChange}
           value={selected}
-          placeholder="Select ingredients..."
+          placeholder={language === "kr" ? "메뉴를 검색하세요!" : "Select ingredients!"}
           classNamePrefix="react-select"
           theme={(theme) => ({
             ...theme,
@@ -67,7 +65,6 @@ function TagSearch({ onSearch, options }) {
           }}
         />
       </div>
-      <button onClick={handleSubmit} className="search-button">Search</button>
       <button onClick={handleReset} className="search-button">Reset</button>
     </div>
   );

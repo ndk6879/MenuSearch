@@ -98,7 +98,11 @@ function App() {
           {language === "en" ? "🇰🇷 KR" : "🇺🇸 EN"}
         </button>
 
-        <TagSearch onSearch={handleSearch} options={ingredientOptions} />
+        <TagSearch
+          onSearch={handleSearch}
+          options={ingredientOptions}
+          language={language}
+        />
 
         {/* Optional uploader filter */}
         {/* <select onChange={handleUploaderChange} value={selectedUploader} className="search-button">
