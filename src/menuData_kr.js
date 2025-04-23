@@ -1,6 +1,237 @@
 const menuData_kr = [
-    
-    
+{
+  "name": "김치잼",
+  "url": "https://youtu.be/rhTnvUY6KBs",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-19",
+  "ingredients": [
+    "배추 김치",
+    "대파",
+    "올리브오일",
+    "알룰로스",
+    "쉐리식초",
+    "쪽파"
+  ]
+},
+{
+  "name": "김치잼",
+  "url": "https://youtu.be/7X9S7Wl4PdI",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-19",
+  "ingredients": [
+    "배추김치",
+    "대파",
+    "올리브오일",
+    "알룰로스",
+    "쉐리식초",
+    "쪽파"
+  ]
+},
+{
+  "name": "차지키 소스",
+  "url": "https://youtu.be/hQIjQyCqpy0",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-21",
+  "ingredients": [
+    "그릭요거트",
+    "오이",
+    "사과식초",
+    "마늘",
+    "꿀",
+    "쪽파",
+    "올리브오일",
+    "라임주스",
+    "소금"
+  ]
+},
+{
+  "name": "오리다리 큐어링",
+  "url": "https://youtu.be/qeAHR0R-Wnk",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-25",
+  "ingredients": [
+    "오리다리",
+    "소금",
+    "타임",
+    "파슬리",
+    "마늘",
+    "샬롯",
+    "스타아니스",
+    "주니퍼베리",
+    "피클링스파이스"
+  ]
+},
+{
+  "name": "딸기 그릭요거트 얼그레이 티 파르페",
+  "url": "https://youtu.be/tiFI8_IbZtk",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-26",
+  "ingredients": [
+    "그릭요거트",
+    "바나나",
+    "라임",
+    "딸기",
+    "화이트 발사믹 글레이즈",
+    "얼그레이 티",
+    "물"
+  ]
+},
+{
+  "name": "레몬 허브 올리브 마리네이드",
+  "url": "https://youtu.be/xIw7LxDlHc4",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-28",
+  "ingredients": [
+    "올리브",
+    "올리브오일",
+    "마늘",
+    "레몬",
+    "타임",
+    "로즈마리",
+    "페페론치노",
+    "월계수잎"
+  ]
+},
+{
+  "name": "새우 볶음밥",
+  "url": "https://youtu.be/A4RU7ObAY1I",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-29",
+  "ingredients": [
+    "새우",
+    "오징어짬뽕 스프",
+    "양송이버섯",
+    "대파",
+    "현미 즉석밥",
+    "버터",
+    "케첩",
+    "계란",
+    "생크림",
+    "파마산 치즈",
+    "쪽파"
+  ]
+},
+{
+  "name": "새우 크림 페투치네",
+  "url": "https://youtu.be/pQulmc-yU7Q",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-30",
+  "ingredients": [
+    "새우",
+    "오징어짬뽕 스프",
+    "양송이버섯",
+    "대파",
+    "페투치네",
+    "물",
+    "버터",
+    "케첩",
+    "생크림",
+    "파마산 치즈",
+    "쪽파"
+  ]
+},
+{
+  "name": "버섯 두부 볶음",
+  "url": "https://youtu.be/xreatwQoIEA",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-04-01",
+  "ingredients": [
+    "새송이버섯",
+    "느타리버섯",
+    "쪽파",
+    "청양고추",
+    "홍고추",
+    "들기름",
+    "마늘",
+    "후리가케",
+    "맛소금",
+    "두부"
+  ]
+},
+{
+  "name": "차지키 소스",
+  "url": "https://youtu.be/6yritDr_Umw",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-04-02",
+  "ingredients": [
+    "그릭요거트",
+    "오이",
+    "사과식초",
+    "마늘",
+    "꿀",
+    "쪽파",
+    "올리브오일",
+    "라임 주스",
+    "소금",
+    "감태",
+    "라이스페이퍼",
+    "양배추",
+    "참기름"
+  ]
+},
+{
+  "name": "솥밥st 냄비밥",
+  "url": "https://youtu.be/ATDOpvw05HU",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-04-03",
+  "ingredients": [
+    "한우패티",
+    "아보카도 오일",
+    "쌈장",
+    "진간장",
+    "미림",
+    "설탕",
+    "백미",
+    "포르치니버섯",
+    "물",
+    "무염버터",
+    "쪽파",
+    "후리가케",
+    "사골코인육수"
+  ]
+},
+{
+  "name": "차지키 소스",
+  "url": "https://youtu.be/6yritDr_Umw",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-04-02",
+  "ingredients": [
+    "그릭요거트",
+    "오이",
+    "사과식초",
+    "마늘",
+    "꿀",
+    "쪽파",
+    "올리브오일",
+    "라임 주스",
+    "소금",
+    "감태",
+    "라이스페이퍼",
+    "양배추",
+    "참기름"
+  ]
+},
+{
+  "name": "한우 솥밥st 냄비밥",
+  "url": "https://youtu.be/ATDOpvw05HU",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-04-03",
+  "ingredients": [
+    "한우패티",
+    "아보카도 오일",
+    "쌈장",
+    "진간장",
+    "미림",
+    "설탕",
+    "백미",
+    "포르치니버섯",
+    "물",
+    "무염버터",
+    "쪽파",
+    "후리가케",
+    "사골코인육수"
+  ]
+},
 
     
     {
@@ -544,7 +775,8 @@ const menuData_kr = [
         tip: "다양한 과일을 활용한 상큼한 칵테일 레시피입니다.",
         ingredients: ["과일", "탄산수", "술"]
     }
-  ];
+    
 
+];
 
-  export default menuData_kr;
+export default menuData_kr;
