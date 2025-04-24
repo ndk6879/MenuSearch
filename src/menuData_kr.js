@@ -1,5 +1,276 @@
 const menuData_kr = [
 {
+  "name": "삼겹살 콩피와 오렌지 드레싱",
+  "url": "https://youtu.be/OF04fVMINVg",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-02-27",
+  "ingredients": [
+    "삼겹살",
+    "생수",
+    "스타아니스",
+    "마늘",
+    "통후추",
+    "소금",
+    "꿀",
+    "올리브오일",
+    "월계수잎",
+    "블러드 오렌지 주스",
+    "쉐리식초",
+    "오렌지 제스트",
+    "홀그레인 머스터드",
+    "콩피오일",
+    "쪽파",
+    "후추"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "버섯 요리",
+  "url": "https://youtu.be/nw70oP8yQbk",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-02",
+  "ingredients": [
+    "코인 육수",
+    "진간장",
+    "미림",
+    "알룰로스",
+    "감자",
+    "버섯"
+  ],
+  "source": "스크립트"
+},
+
+{
+  "name": "애플망고와 프로슈토",
+  "url": "https://youtu.be/O2FWlKnl2k0",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-04",
+  "ingredients": [
+    "애플망고",
+    "카이막",
+    "루꼴라",
+    "프로슈토",
+    "피스타치오",
+    "발사믹 글레이즈"
+  ],
+  "source": "더보기란"
+},
+
+{
+  "name": "랍스터&토마토 콩피",
+  "url": "https://youtu.be/Er8X9A0E5_A",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-02-25",
+  "ingredients": [
+    "랍스터 테일",
+    "방울토마토",
+    "바닐라빈",
+    "마늘",
+    "올리브오일",
+    "월계수잎",
+    "바질",
+    "처빌",
+    "꽃게 코인육수",
+    "후추"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "분석 불가",
+  "url": "https://youtu.be/OF04fVMINVg",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-02-27",
+  "ingredients": [],
+  "source": "더보기란"
+},
+
+{
+  "name": "양송이덮밥",
+  "url": "https://youtu.be/nw70oP8yQbk",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-02",
+  "ingredients": [
+    "꽃게 코인육수",
+    "물",
+    "양송이",
+    "마늘",
+    "대파",
+    "쪽파",
+    "올리브오일",
+    "진간장",
+    "미림",
+    "알룰로스",
+    "후추",
+    "감자전분"
+  ],
+  "source": "더보기란"
+},
+
+{
+  "name": "애플망고 프로슈토",
+  "url": "https://youtu.be/O2FWlKnl2k0",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-04",
+  "ingredients": [
+    "애플망고",
+    "카이막",
+    "루꼴라",
+    "프로슈토",
+    "피스타치오",
+    "화이트 발사믹 글레이즈"
+  ],
+  "source": "더보기란"
+},
+
+{
+  "name": "",
+  "url": "https://youtu.be/VhNShQFXtQs",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-13",
+  "ingredients": [],
+  "source": "고정댓글"
+},
+
+{
+  "name": "김부각",
+  "url": "https://youtu.be/VdPhFwfPfHQ",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-14",
+  "ingredients": [
+    "캐비어",
+    "연어알",
+    "타르타르"
+  ],
+  "source": "스크립트"
+},
+
+{
+  "name": "메뉴 이름",
+  "url": "https://youtu.be/OM5eUQe-8h4",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-18",
+  "ingredients": [
+    "AMT 찜기"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "아보카도 후무스",
+  "url": "https://youtu.be/O-zvF4p7tDc",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-05",
+  "ingredients": [
+    "병아리콩",
+    "타히니",
+    "아보카도",
+    "마늘",
+    "바질",
+    "라임",
+    "얼음",
+    "올리브 오일",
+    "소금"
+  ],
+  "source": "더보기란"
+},
+
+{
+  "name": "콩피전복",
+  "url": "https://youtu.be/uj0PWQKxl4I",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-06",
+  "ingredients": [
+    "전복",
+    "무",
+    "다시마",
+    "콩피오일",
+    "마늘"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "버섯 콩피",
+  "url": "https://youtu.be/s86JbjOsCXg",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-10",
+  "ingredients": [
+    "버섯",
+    "버터"
+  ],
+  "source": "스크립트"
+},
+
+{
+  "name": "치즈 감자 그라탕",
+  "url": "https://youtu.be/IsdqJNZ3AAg",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-11",
+  "ingredients": [
+    "돼지 뒷다리",
+    "생수",
+    "스타아니스",
+    "마늘",
+    "통후추",
+    "소금",
+    "꿀",
+    "올리브오일",
+    "월계수잎",
+    "양파",
+    "기버터",
+    "스테이크소스",
+    "모짜렐라치즈",
+    "파마산치즈"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "크림치즈와 마늘빵",
+  "url": "https://youtu.be/ZdZyAwZqop8",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-12",
+  "ingredients": [
+    "크림치즈",
+    "생크림",
+    "메이플시럽",
+    "엑스트라 버진 올리브 오일",
+    "마늘빵",
+    "식용꽃"
+  ],
+  "source": "더보기란"
+},
+
+{
+  "name": "파로 샐러드",
+  "url": "https://youtu.be/-z9O4MeMRpE",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-23",
+  "ingredients": [
+    "파로",
+    "채소",
+    "고기"
+  ],
+  "source": "스크립트"
+},
+{
+  "name": "달래장 훈제오리 볶음",
+  "url": "https://youtu.be/5lentPDHyEg",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-23",
+  "ingredients": [
+    "달래",
+    "양념재료",
+    "훈제오리",
+    "고춧가루",
+    "참기름",
+    "깨"
+  ],
+  "source": "더보기란"
+},
+{
   "name": "김치잼",
   "url": "https://youtu.be/rhTnvUY6KBs",
   "uploader": "공격수셰프 Striker chef",

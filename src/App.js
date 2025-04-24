@@ -5,6 +5,8 @@ import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
 import menuData_en from "./menuData_en";
+import HeroSection from "./HeroSection"; // 추가
+import HeroSubSections from "./HeroSubSections";
 
 function extractYouTubeId(url) {
   const match = url.match(/(?:\?v=|\/embed\/|\.be\/|\/v\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
@@ -86,12 +88,19 @@ function App() {
 
     setSearchResults(filtered);
   };
+  const searchRef = React.useRef(null);
+  const scrollToSearch = () => {
+    searchRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
-    <div className="container">
+    <>
+    <HeroSection onScrollToSearch={scrollToSearch} /> {/* ✅ container 밖 */}    
+    {/* <HeroSubSections />  */}
+    <div className="container" ref={searchRef}>
       
 
-      <h1 className="title">Menu Search</h1>
+      <h1 className="title">Findish</h1>
 
       <div className="search-section">
         <button onClick={handleToggleLanguage} className="search-button">
@@ -145,6 +154,8 @@ function App() {
         )}
       </ul>
     </div>
+    </>
+
   );
 }
 

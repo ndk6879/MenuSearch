@@ -1,0 +1,73 @@
+.hero-container {
+    background-color: black;
+    position: relative;
+    height: 92.5vh; /* ⬅️ 100vh 대신 85%로 살짝 줄임 */
+    width: 100%;
+    background-image: url("/public/hero-background-optimized.webp");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: brightness(1); /* 필요시 조정 가능 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+    padding: 0;
+  }
+  
+  .hero-content {
+    z-index: 2;
+    max-width: 800px;
+    padding: 1rem;
+  }
+  
+  .hero-content h1 {
+    font-size: 3rem;
+    font-family: 'Playfair Display', serif;
+    margin-bottom: 1rem;
+  }
+  
+  .hero-content p {
+    font-size: 1.2rem;
+    opacity: 0.85;
+    margin-bottom: 1.5rem;
+  }
+  
+  .hero-content button {
+    background: white;
+    color: black;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .hero-content button:hover {
+    background: #f0f0f0;
+  }
+  
+
+
+
+
+
+
+  .sub-hero-section {
+    /* background-image: url("/images/chef.jpg");  */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+  }
+  
+  .sub-hero-section h2 {
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
+  }
+  
+  .sub-hero-section p {
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+  }
+  

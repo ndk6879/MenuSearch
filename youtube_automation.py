@@ -1,3 +1,6 @@
+# ✅ 완성본 youtube_automation.py (복붙하면 바로 실행 가능)
+# 기능: 고정댓글 → 더보기란 → 스크립트 순서로 Sonar 분석 + 출처 포함 + 중복 검사 + 긴영상
+
 import json  
 from googleapiclient.discovery import build
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -7,13 +10,19 @@ import sys
 import os
 from dotenv import load_dotenv
 import re
+from datetime import datetime
+
+log_date = datetime.now().strftime("%Y-%m-%d")
+log_path = f"logs/menu_extraction_{log_date}.log"
 
 # 로그 + 터미널 동시 출력
 logging.basicConfig(
-    filename="logs/menu_extraction.log",
+    filename=log_path,
     level=logging.INFO,
     format="%(asctime)s - %(message)s",
 )
+
+
 class DualLogger:
     def __init__(self):
         self.terminal = sys.__stdout__
@@ -28,7 +37,7 @@ sys.stdout = DualLogger()
 load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 SONAR_API_KEY = os.getenv("SONAR_API_KEY")
-CHANNEL_ID = "UC2IIBYSTMSvJaK2UJzCC06g"
+CHANNEL_ID = "UC2IIBYSTMSvJaK2UJzCC06g"  # 원하는 채널로 교체 가능
 
 def extract_json_block(text):
     try:
@@ -40,7 +49,7 @@ def extract_json_block(text):
     except Exception as e:
         print("❌ JSON 파싱 실패:", e)
     return None
-    
+
 def append_to_js(parsed_data, video_url, uploader_name, upload_date, file_path="src/menuData_kr.js"):
     try:
         entry = {
@@ -48,33 +57,37 @@ def append_to_js(parsed_data, video_url, uploader_name, upload_date, file_path="
             "url": video_url,
             "uploader": uploader_name,
             "upload_date": upload_date,
-            "ingredients": parsed_data["재료"]
+            "ingredients": parsed_data["재료"],
+            "source": parsed_data.get("출처", "unknown")
         }
 
         with open(file_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
+            content = f.read()
+            existing_items = re.findall(r"\{[\s\S]*?\}", content)
+            for item in existing_items:
+                try:
+                    data = json.loads(item)
+                    if data.get("name") == entry["name"] and data.get("url") == entry["url"]:
+                        print("⚠️ 이미 존재하는 항목 (중복) → 추가 생략")
+                        return
+                except:
+                    continue
+            lines = content.splitlines()
 
-        # 배열 닫는 위치 찾기 (맨 마지막 export 제외 전의 ]; 위치)
         close_idx = next((i for i, line in reversed(list(enumerate(lines))) if line.strip() == "];"), -1)
         export_idx = next((i for i, line in reversed(list(enumerate(lines))) if "export default" in line), -1)
-
         if close_idx == -1 or export_idx == -1:
-            print("❌ JS 형식 이상: 닫는 괄호나 export 줄을 찾지 못했습니다.")
+            print("❌ JS 형식 이상")
             return
 
-        # 새 데이터 삽입 위치는 배열 시작 바로 뒤 (const 다음 줄)
-        insert_idx = 1  # const menuData_kr = [ 다음 줄
-        json_str = json.dumps(entry, ensure_ascii=False, indent=2)
-        lines.insert(insert_idx, json_str + ",\n")
-
-        # 덮어쓰기
+        insert_idx = 1
+        lines.insert(insert_idx, json.dumps(entry, ensure_ascii=False, indent=2) + ",\n")
         with open(file_path, "w", encoding="utf-8") as f:
-            f.writelines(lines)
+            f.writelines(line + "\n" for line in lines)
 
-        print("✅ 데이터 추가 완료 (닫기/export 줄은 수정 안 함)")
+        print(f"✅ 데이터 추가 완료 (출처: {entry['source']})")
     except Exception as e:
         print("❌ JS 저장 중 오류:", e)
-
 
 def initialize_js_file_if_needed(file_path="src/menuData_kr.js"):
     if not os.path.exists(file_path):
@@ -84,7 +97,6 @@ def initialize_js_file_if_needed(file_path="src/menuData_kr.js"):
         with open(file_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
-        # 중복된 export 제거
         new_lines = []
         seen_export = False
         for line in lines:
@@ -98,11 +110,10 @@ def initialize_js_file_if_needed(file_path="src/menuData_kr.js"):
         with open(file_path, "w", encoding="utf-8") as f:
             f.writelines(new_lines)
 
-
 def finalize_js_file(file_path="src/menuData_kr.js"):
     try:
         with open(file_path, "r+", encoding="utf-8") as f:
-            content = f.read().rstrip(",\n")  # 마지막 콤마 제거
+            content = f.read().rstrip(",\n")
             f.seek(0)
             f.write(content)
             f.truncate()
@@ -110,9 +121,11 @@ def finalize_js_file(file_path="src/menuData_kr.js"):
     except Exception as e:
         print("❌ 종료 구문 처리 실패:", e)
 
+
 def get_video_ids_and_channel(api_key, channel_id, max_results=0):
     youtube = build("youtube", "v3", developerKey=api_key)
     videos = []
+
     search_response = youtube.search().list(
         channelId=channel_id,
         part="id",
@@ -120,15 +133,33 @@ def get_video_ids_and_channel(api_key, channel_id, max_results=0):
         maxResults=max_results,
         type="video"
     ).execute()
+
     video_ids = [item["id"]["videoId"] for item in search_response["items"]]
     video_response = youtube.videos().list(
-        part="snippet",
+        part="snippet,contentDetails",
         id=",".join(video_ids)
     ).execute()
+
     for item in video_response["items"]:
-        if item["snippet"]["liveBroadcastContent"] == "none":
-            videos.append((item["id"], item["snippet"]["channelId"]))
+        if item["snippet"]["liveBroadcastContent"] != "none":
+            continue  # 생방송/예약 방송 제외
+
+        # ⏱ 길이 제한 추가 (PT##M##S 형식 → 초 변환)
+        duration = item["contentDetails"]["duration"]
+        match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
+        hours = int(match.group(1) or 0)
+        minutes = int(match.group(2) or 0)
+        seconds = int(match.group(3) or 0)
+        total_seconds = hours * 3600 + minutes * 60 + seconds
+
+        if total_seconds >= 50 * 60:
+            print(f"⏩ {item['id']} → 영상 길이 {total_seconds//60}분 → 건너뜀")
+            continue
+
+        videos.append((item["id"], item["snippet"]["channelId"]))
+
     return videos
+
 
 def get_first_comment_and_author(api_key, video_id):
     youtube = build("youtube", "v3", developerKey=api_key)
@@ -145,17 +176,42 @@ def get_first_comment_and_author(api_key, video_id):
         return text, author_id
     return None, None
 
-def ask_sonar_from_comment(comment_text):
+def get_transcript_text(video_id):
+    try:
+        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["ko", "en"])
+        return " ".join([entry["text"] for entry in transcript])
+    except Exception as e:
+        print("❌ 스크립트 가져오기 실패:", e)
+        return None
+
+def get_description(youtube, video_id):
+    try:
+        response = youtube.videos().list(part="snippet", id=video_id).execute()
+        return response["items"][0]["snippet"]["description"]
+    except Exception as e:
+        print("❌ 더보기란 가져오기 실패:", e)
+        return None
+
+def ask_sonar_from_comment(comment_text, source_name=""):
     headers = {
         "Authorization": f"Bearer {SONAR_API_KEY}",
         "Content-Type": "application/json"
     }
-    prompt = f"""이 댓글은 유튜브 요리 영상의 고정 댓글로 추정됩니다. 댓글을 기반으로 요리 메뉴 이름과 재료들을 JSON 형식으로 추출해주세요. 
-    만약 댓글이 메뉴나 재료와 무관하거나, 제품 홍보나 안내일 경우 분석하지 말고 "분석 불가"를 출력해주세요. 
-    재료의 양은 필요없으며, 생수는 물로 대체. 양념장/드레싱이 여러 재료로 구성되면 구성 성분도 포함해주세요.
-    단, 다진/깐/삶은 등의 수식어는 제거하고 재료 이름만 포함해주세요. Ex) 깐마늘 → 마늘, 다진 쪽파 → 쪽파
 
-댓글:
+    prompt_prefix = {
+        "고정댓글": "이 댓글은 유튜브 요리 영상의 고정 댓글로 추정됩니다.",
+        "더보기란": "이 텍스트는 유튜브 영상의 더보기란입니다. 메뉴/재료와 무관하거나 광고, 제품 홍보, 링크 안내가 주된 경우 분석하지 말고 '분석 불가'를 출력해주세요.",
+        "스크립트": "이 텍스트는 유튜브 자막(스크립트)입니다."
+    }
+
+    prompt = f"""{prompt_prefix.get(source_name, '이 텍스트는 요리 영상의 일부입니다.')} 
+내용에서 요리 메뉴 이름과 재료들을 JSON 형식으로 추출해주세요. 
+다진/깐/삶은 등의 수식어는 제거하고 재료 이름만 포함해주세요. Ex) 깐마늘 → 마늘, 다진 쪽파 → 쪽파
+요리나 재료가 명시되어 있지 않고, 제품 설명이나 홍보만 있다면 반드시 `"Only 제품 설명 OR 홍보"`를 출력하세요.
+- 만약 여러 섹션(예: 브라인, 콩피, 드레싱)이 존재하더라도 메뉴는 하나이며, 모든 섹션의 재료를 중복 없이 통합해서 "재료"에 포함해주세요.
+
+
+내용:
 {comment_text}
 
 형식:
@@ -163,6 +219,7 @@ def ask_sonar_from_comment(comment_text):
   "메뉴": "메뉴 이름",
   "재료": ["재료1", "재료2", ...]
 }}"""
+
     payload = {
         "model": "sonar-reasoning",
         "messages": [
@@ -184,36 +241,48 @@ def ask_sonar_from_comment(comment_text):
         print("❌ Sonar 응답 없음 또는 실패:", response.status_code)
         return None
 
-# 실행
+# ✅ 실행
 videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=50)
-videos = videos_all[30:40]
+videos = videos_all[40:50]
 
 youtube = build("youtube", "v3", developerKey=API_KEY)
 initialize_js_file_if_needed()
 
 for idx, (video_id, uploader_id) in enumerate(videos, start=1):
     print(f"\n📌 영상 {idx}번: https://youtu.be/{video_id}")
+    video_url = f"https://youtu.be/{video_id}"
+    video_response = youtube.videos().list(part="snippet", id=video_id).execute()
+    snippet = video_response["items"][0]["snippet"]
+    uploader_name = snippet["channelTitle"]
+    upload_date = snippet["publishedAt"][:10]
     comment, author_id = get_first_comment_and_author(API_KEY, video_id)
 
-    if comment and author_id == uploader_id:
-        print("✅ 고정 댓글 확인됨 → Sonar 분석 시작")
-        result = ask_sonar_from_comment(comment)
-        print("🧠 Sonar 응답:\n", result)
+    # 순서: 고정댓글 → 더보기란 → 스크립트
+    sources = [
+        ("고정댓글", comment if author_id == uploader_id else None),
+        ("더보기란", get_description(youtube, video_id)),
+        ("스크립트", get_transcript_text(video_id))
+    ]
+
+    print("🔍 분석 순서: 고정댓글 → 더보기란 → 스크립트")
+
+    for source_name, text in sources:
+        print(f"⏭️ 현재 단계: {source_name} 확인 중...")
+        if not text:
+            print(f"🚫 {source_name} 없음 또는 확인 불가 → 다음 단계로 이동")
+            continue
+        print(f"📄 {source_name} 분석 시도")
+        result = ask_sonar_from_comment(text, source_name)
+        print(f"🧠 Sonar 응답 ({source_name}):\n{result}")
 
         parsed = extract_json_block(result)
-
         if parsed:
-            video_response = youtube.videos().list(part="snippet", id=video_id).execute()
-            snippet = video_response["items"][0]["snippet"]
-            uploader_name = snippet["channelTitle"]
-            upload_date = snippet["publishedAt"][:10]
-            video_url = f"https://youtu.be/{video_id}"
-
+            parsed["출처"] = source_name
             append_to_js(parsed, video_url, uploader_name, upload_date)
+            break
         else:
-            print("⚠️ Sonar 분석 실패 또는 분석 대상 아님 → 생략")
-    else:
-        print("❌ 고정 댓글 없음 → 분석 생략")
+            print(f"⚠️ {source_name} 분석 실패 → 다음 단계로 이동")
+
 
     print("-" * 60)
 

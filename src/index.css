@@ -1,15 +1,24 @@
+/* ✅ 1. body는 검정색으로 깔끔하게 */
 body {
-  background-color: #5383E8;
-  /* color: #f1f1f1; */
   font-family: 'Noto Sans', sans-serif;
   margin: 0;
-  padding: 40px;
+  
 }
 
+/* ✅ 2. 나머지 영역은 container에서 기존 배경색 주기 */
+.container {
+  padding: 40px;
+  background-color: #202225; 
+  color: white;
+}
+
+
+/* ✅ 2. App 영역을 가운데 정렬 */
 .App {
   max-width: 700px;
   margin: 0 auto;
 }
+
 
 h1 {
   font-size: 2rem;
@@ -33,14 +42,14 @@ h1 {
   padding: 10px 16px;
   border: none;
   border-radius: 6px;
-  background-color: #1f6feb;
+  background-color: #2f3136;
   color: white;
   cursor: pointer;
   font-weight: bold;
 }
 
 .search-button:hover {
-  background-color: #388bff;
+  background-color: black;
 }
 
 ul {
@@ -88,8 +97,9 @@ li {
 
 
 .menu-card {
-  background-color: #ffffff;
-  color: #000;
+  background-color: #2f3136; 
+  /* border: 1px solid white; */
+  color: #fff;
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
@@ -104,6 +114,14 @@ li {
 .menu-card:hover {
   transform: translateY(-4px);
 }
+
+.menu-name,
+.menu-ingredients,
+.menu-uploader,
+.menu-tip {
+  color: #fff; /* ✅ 카드 내부 글자는 무조건 흰색으로 지정 */
+}
+
 
 .menu-content {
   display: flex;
@@ -145,13 +163,6 @@ li {
   gap: 20px;
 }
 
-.menu-card {
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  list-style: none;
-}
 
 .menu-content {
   display: flex;
@@ -172,7 +183,7 @@ li {
 /* 버튼 기본 스타일 */
 .btn {
   padding: 6px 12px;
-  background-color: #1976d2;
+  background-color: #1f6feb;
   border: none;
   color: white;
   border-radius: 4px;
@@ -181,5 +192,5 @@ li {
 }
 
 .btn:hover {
-  background-color: #115293;
+  background-color: black;
 }
