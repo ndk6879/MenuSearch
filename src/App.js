@@ -5,6 +5,7 @@ import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
 import menuData_en from "./menuData_en";
 import HeroSection from "./HeroSection";
+import { FaGithub, FaInstagram } from "react-icons/fa";
 
 function extractYouTubeId(url) {
   const match = url.match(/(?:\?v=|\/embed\/|\.be\/|\/v\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
@@ -76,26 +77,48 @@ function App() {
 
   return (
     <div className={darkMode ? "app dark" : "app light"}>
+      {/* 🔥 Header Start */}
+      <header className="header">
+        {/* 왼쪽: 로고 Findish */}
+        <div className="header-left">
+          <span className="header-logo">Findish</span>
+        </div>
+
+        {/* 오른쪽: 메뉴들 */}
+        <div className="header-right">
+          <a href="#about" className="header-link">About</a>
+          <a href="https://github.com/ndk6879/menu-search" target="_blank" rel="noopener noreferrer">
+            <FaGithub size={20} color={darkMode ? "#ccc" : "#333"} />
+          </a>
+          <a href="https://www.instagram.com/YOUR_ID" target="_blank" rel="noopener noreferrer">
+            <FaInstagram size={20} color="#E1306C" />
+          </a>
+          
+          <button onClick={toggleDarkMode} className="search-button">
+            {darkMode ? "☀️" : "🌙"}
+          </button>
+        </div>
+      </header>
+
+      {/* 🔥 Header End */}
+
       <HeroSection onScrollToSearch={scrollToSearch} />
+
       <div className="container" ref={searchRef}>
-        <h1 className="title">Findish</h1>
+      <h1 className="title">🍽️ Findish</h1>
 
         <div className="search-section">
-          <button onClick={handleToggleLanguage} className="search-button">
+        <button onClick={handleToggleLanguage} className="search-button">
             {language === "en" ? "🇰🇷 KR" : "🇺🇸 EN"}
           </button>
-
+          
           <TagSearch
             onSearch={handleSearch}
             options={ingredientOptions}
             language={language}
-            darkMode={darkMode} // ✅ 추가
+            darkMode={darkMode}
           />
-
-
-          <button onClick={toggleDarkMode} className="search-button">
-            {darkMode ? "☀️ Light" : "🌙 Dark"}
-          </button>
+          
         </div>
 
         <p className="result-count">

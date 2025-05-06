@@ -1,16 +1,17 @@
-// HeroSection.js
 import React from "react";
 import "./HeroSection.css";
 
-export default function HeroSection({ onScrollToSearch }) {
+function HeroSection({ onScrollToSearch }) {
   return (
     <div className="hero-container">
-     
       <div className="hero-content">
-        <h1>Transform the way you search recipes</h1>
-        <p>Find dishes with just the ingredients you have</p>
-        <button onClick={onScrollToSearch}>Get Started</button>
+        <h1 className="hero-title">Transform the way you search recipes</h1>
+        <p className="hero-subtitle">Find the perfect recipe based on what you already have</p>
+        <button className="hero-button">Search Recipes</button>
       </div>
+
     </div>
   );
 }
+
+export default HeroSection;
