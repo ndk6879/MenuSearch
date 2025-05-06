@@ -91,7 +91,12 @@ def append_to_js(parsed_data, video_url, uploader_name, upload_date, file_path="
                     continue
             lines = content.splitlines()
 
+                # 🔧 수정 전:
         close_idx = next((i for i, line in reversed(list(enumerate(lines))) if line.strip() == "]"), -1)
+
+        # ✅ 수정 후:
+        close_idx = next((i for i, line in reversed(list(enumerate(lines))) if line.strip().startswith("]")), -1)
+
         export_idx = next((i for i, line in reversed(list(enumerate(lines))) if "export default" in line), -1)
         if close_idx == -1 or export_idx == -1:
             safe_print("❌ JS 형식 이상")

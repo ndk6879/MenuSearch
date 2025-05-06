@@ -1,26 +1,196 @@
 const menuData_kr = [    
 {
-  "name": "차지키 소스 라이스페이퍼 롤",
-  "url": "https://youtu.be/6yritDr_Umw",
+  "name": "오리콩피",
+  "url": "https://youtu.be/qeAHR0R-Wnk",
   "uploader": "공격수셰프 Striker chef",
-  "upload_date": "2025-04-02",
+  "upload_date": "2025-03-25",
   "ingredients": [
-    "그릭요거트",
-    "오이",
-    "사과식초",
-    "마늘",
-    "꿀",
-    "쪽파",
-    "올리브오일",
-    "라임 주스",
+    "오리다리",
     "소금",
-    "감태",
-    "라이스페이퍼",
-    "양배추",
-    "참기름"
+    "타임",
+    "파슬리",
+    "마늘",
+    "샬롯",
+    "스타아니스",
+    "주니퍼베리",
+    "피클링스파이스",
+    "오리기름",
+    "콩피오일",
+    "당근",
+    "토마토소스",
+    "렌틸콩",
+    "물",
+    "채소 코인육수",
+    "후추가루",
+    "이탈리안 파슬리",
+    "발사믹식초"
   ],
   "source": "고정댓글"
 },
+
+{
+  "name": "딸기 그릭요거트 크림",
+  "url": "https://youtu.be/tiFI8_IbZtk",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-26",
+  "ingredients": [
+    "그릭요거트",
+    "바나나",
+    "라임",
+    "딸기",
+    "화이트 발사믹 글레이즈",
+    "얼그레이티",
+    "물"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "두부명란아보카도요리", //첫번쨰 댓글이 고정댓글 아님.
+  "url": "https://youtu.be/ZlSYVhG07Us",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-27",
+  "ingredients": [
+    "두부",
+    "명란",
+    "아보카도"
+  ],
+  "source": "더보기란"
+},
+
+{
+  "name": "마늘레몬 올리브 오일 숙성",
+  "url": "https://youtu.be/xIw7LxDlHc4",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-28",
+  "ingredients": [
+    "올리브",
+    "올리브오일",
+    "마늘",
+    "레몬",
+    "타임",
+    "로즈마리",
+    "페페론치노",
+    "월계수잎"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "새우 오징어짬뽕스프 볶음밥",
+  "url": "https://youtu.be/A4RU7ObAY1I",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-29",
+  "ingredients": [
+    "새우",
+    "오징어짬뽕스프",
+    "양송이버섯",
+    "대파",
+    "밥",
+    "버터",
+    "케첩",
+    "계란",
+    "생크림",
+    "파마산치즈",
+    "쪽파"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "새우 페투치네",
+  "url": "https://youtu.be/pQulmc-yU7Q",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-03-30",
+  "ingredients": [
+    "새우",
+    "오징어짬뽕 스프",
+    "양송이버섯",
+    "대파",
+    "파스타",
+    "물",
+    "버터",
+    "케첩",
+    "생크림",
+    "파마산 치즈",
+    "쪽파"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "버섯 두부 무침",
+  "url": "https://youtu.be/xreatwQoIEA",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-04-01",
+  "ingredients": [
+    "새송이버섯",
+    "느타리버섯",
+    "쪽파",
+    "청양고추",
+    "홍고추",
+    "들기름",
+    "마늘",
+    "후리가케",
+    "맛소금",
+    "두부"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "Only 제품 설명 OR 홍보", //skipped video로 가야할코드
+  "url": "https://youtu.be/lXuLxggJy94",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-04-01",
+  "ingredients": [],
+  "source": "고정댓글"
+},
+
+{
+  "name": "땡초 소고기 계란 볶음밥",
+  "url": "https://youtu.be/YYSZnp6FqLg",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-05-01",
+  "ingredients": [
+    "소고기",
+    "계란",
+    "밥",
+    "청양고추",
+    "홍고추",
+    "마늘",
+    "쪽파",
+    "아보카도오일",
+    "후리가케",
+    "참기름",
+    "케찹마니스"
+  ],
+  "source": "고정댓글"
+},
+
+    
+    {
+    "name": "차지키 소스 라이스페이퍼 롤",
+    "url": "https://youtu.be/6yritDr_Umw",
+    "uploader": "공격수셰프 Striker chef",
+    "upload_date": "2025-04-02",
+    "ingredients": [
+        "그릭요거트",
+        "오이",
+        "사과식초",
+        "마늘",
+        "꿀",
+        "쪽파",
+        "올리브오일",
+        "라임 주스",
+        "소금",
+        "감태",
+        "라이스페이퍼",
+        "양배추",
+        "참기름"
+    ],
+    "source": "고정댓글"
+    },
 
 {
   "name": "한우 솥밥st 냄비밥",
@@ -66,7 +236,7 @@ const menuData_kr = [
 },
 
 {
-  "name": "귤갈비찜", //더보기란 참고했지만 더보기란엔 링크말곤 내용이 없음. Sonar가 유추한듯.
+  "name": "귤갈비찜", /* 더보기란 참고했지만 더보기란엔 링크말곤 내용이 없음. Sonar가 유추한듯.*/
   "url": "https://youtu.be/L9i5UewGuEs",
   "uploader": "공격수셰프 Striker chef",
   "upload_date": "2025-04-08",
@@ -108,7 +278,7 @@ const menuData_kr = [
 },
 
 {
-  "name": "타르타르 단새우 성게알", //2. 더보기란 참고했지만 더보기란엔 링크말곤 특별한 내용이 없음. Sonar가 유추한듯.
+  "name": "타르타르 단새우 성게알", /* 2. 더보기란 참고했지만 더보기란엔 링크말곤 특별한 내용이 없음. Sonar가 유추한듯. */
   "url": "https://youtu.be/6Q68r4SxeqI",
   "uploader": "공격수셰프 Striker chef",
   "upload_date": "2025-04-10",
@@ -139,7 +309,7 @@ const menuData_kr = [
 },
 
 {
-  "name": "시트러스 샐러드", // 공격수 셰프의 첫번째 댓글을 고정댓글로 가져오는데 이건 첫번째 댓글이 고정댓글이 아니라서 잘 가져옴.
+  "name": "시트러스 샐러드", /* 공격수 셰프의 첫번째 댓글을 고정댓글로 가져오는데 이건 첫번째 댓글이 고정댓글이 아니라서 잘 가져옴. */
   "url": "https://youtu.be/bALu902v5PU",
   "uploader": "공격수셰프 Striker chef",
   "upload_date": "2025-04-14",
@@ -227,7 +397,7 @@ const menuData_kr = [
 },
 
 {
-  "name": "Kick 토마토 해장 파스타", //고정댓글에 링크만. 그래서 자막은 그냥 빼는게 좋을듯. 메뉴: Only 제품 설명 OR 홍보 이렇게 분류되면 그냥 패스하도록 설정 ㄱㄱ. 아니면 url만 따로 저장해서 추가안되게 해서 중복방지하던지.
+  "name": "Kick 토마토 해장 파스타", /* 고정댓글에 링크만. 그래서 자막은 그냥 빼는게 좋을듯. 메뉴: Only 제품 설명 OR 홍보 이렇게 분류되면 그냥 패스하도록 설정 ㄱㄱ. 아니면 url만 따로 저장해서 추가안되게 해서 중복방지하던지. */
   "url": "https://youtu.be/Z8--WDaFvDk",
   "uploader": "공격수셰프 Striker chef",
   "upload_date": "2025-04-21",
@@ -242,7 +412,7 @@ const menuData_kr = [
 
 {
   "name": "토마토 해장 파스타",
-  "url": "https://youtu.be/kFNWbeLjvgY", // 이것도 위랑 비슷함. 고정댓글이랑 더보기란에는 설명밖에 링크만 있는데 스크립트에서 분석해옴.
+  "url": "https://youtu.be/kFNWbeLjvgY", /* 이것도 위랑 비슷함. 고정댓글이랑 더보기란에는 설명밖에 링크만 있는데 스크립트에서 분석해옴. */
   "uploader": "공격수셰프 Striker chef",
   "upload_date": "2025-04-22",
   "ingredients": [
@@ -916,5 +1086,4 @@ const menuData_kr = [
         ingredients: ["과일", "탄산수", "술"]
     }
 ];
-
 export default menuData_kr;

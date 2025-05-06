@@ -1,7 +1,7 @@
 import Select from "react-select";
 import { useState } from "react";
 
-function TagSearch({ onSearch, options, language }) {
+function TagSearch({ onSearch, options, language, darkMode }) {
   const [selected, setSelected] = useState([]);
 
   const handleChange = (selectedOptions) => {
@@ -14,6 +14,8 @@ function TagSearch({ onSearch, options, language }) {
     setSelected([]);
     onSearch([]);
   };
+
+  
 
   return (
     <div style={{ display: "flex", gap: "10px", width: "100%", maxWidth: "700px" }}>
@@ -30,39 +32,41 @@ function TagSearch({ onSearch, options, language }) {
             borderRadius: 6,
             colors: {
               ...theme.colors,
-              primary25: "#334155",   // hover background
-              primary: "#3b82f6",      // active border
-              neutral0: "#1e293b",     // input background
-              neutral80: "#f1f5f9",    // input text
-              neutral20: "#475569",    // border color
-              neutral30: "#64748b",    // arrow
+              primary25: darkMode ? "#334155" : "#e2e8f0",   // hover background
+              primary: darkMode ? "#3b82f6" : "#2563eb",      // active border
+              neutral0: darkMode ? "#1e293b" : "#ffffff",     // input background
+              neutral80: darkMode ? "#f1f5f9" : "#1e293b",     // input text
+              neutral20: darkMode ? "#475569" : "#cbd5e1",    // border color
+              neutral30: darkMode ? "#64748b" : "#94a3b8",    // arrow
             },
           })}
+          
           styles={{
             control: (base) => ({
               ...base,
-              backgroundColor: "#1e293b",
-              borderColor: "#475569",
-              color: "#f1f5f9",
+              backgroundColor: darkMode ? "#1e293b" : "#ffffff",
+              borderColor: darkMode ? "#475569" : "#cbd5e1",
+              color: darkMode ? "#f1f5f9" : "#1e293b",
             }),
             menu: (base) => ({
               ...base,
-              backgroundColor: "#1e293b",
-              color: "#f1f5f9",
+              backgroundColor: darkMode ? "#1e293b" : "#ffffff",
+              color: darkMode ? "#f1f5f9" : "#1e293b",
             }),
             multiValue: (base) => ({
               ...base,
-              backgroundColor: "#334155",
+              backgroundColor: darkMode ? "#334155" : "#e2e8f0",
             }),
             multiValueLabel: (base) => ({
               ...base,
-              color: "#f1f5f9",
+              color: darkMode ? "#f1f5f9" : "#1e293b",
             }),
             placeholder: (base) => ({
               ...base,
-              color: "#cbd5e1",
+              color: darkMode ? "#cbd5e1" : "#94a3b8",
             }),
           }}
+          
         />
       </div>
       <button onClick={handleReset} className="search-button">Reset</button>

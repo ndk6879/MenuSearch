@@ -1,30 +1,37 @@
-/* ✅ 1. body는 검정색으로 깔끔하게 */
 body {
   font-family: 'Noto Sans', sans-serif;
   margin: 0;
-  
 }
 
-/* ✅ 2. 나머지 영역은 container에서 기존 배경색 주기 */
-.container {
-  padding: 40px;
-  background-color: #202225; 
+.app.dark {
+  background-color: #121212;
   color: white;
 }
 
-
-/* ✅ 2. App 영역을 가운데 정렬 */
-.App {
-  max-width: 700px;
-  margin: 0 auto;
+.app.light {
+  background-color: #f5f5f5;
+  color: black;
 }
 
+.container {
+  padding: 40px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
 
-h1 {
+.container.light {
+  background-color: #ffffff;
+  color: black;
+}
+
+.container.dark {
+  background-color: #202225;
+  color: white;
+}
+
+.title {
   font-size: 2rem;
-  margin-bottom: 20px;
   text-align: center;
-  color: #f9f9f9;
+  margin-bottom: 20px;
 }
 
 .search-section {
@@ -32,10 +39,6 @@ h1 {
   gap: 10px;
   justify-content: center;
   margin-bottom: 20px;
-}
-
-.select-container {
-  flex: 1;
 }
 
 .search-button {
@@ -48,149 +51,90 @@ h1 {
   font-weight: bold;
 }
 
+.app.light .search-button {
+  background-color: #e0e0e0;
+  color: black;
+}
+
+.app.light .search-button:hover {
+  background-color: #d0d0d0;
+}
+
 .search-button:hover {
   background-color: black;
 }
 
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li {
-  background-color: white;
-  padding: 14px 20px;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.result-title {
-  font-weight: bold;
-  font-size: 16px;
-  color: #fff;
-}
-
-.result-ingredients {
-  font-size: 14px;
-  color: #8b949e;
-  margin-top: 4px;
-}
-
-
-
-.menu-thumbnail.large-thumbnail {
-  width: 160px;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 6px;
-  margin-right: 16px;
-}
-
-.menu-card {
-  font-size: 1.2rem; /* 기존보다 살짝 키움 */
-  padding: 20px;
-}
-
-
-
-
-
-.menu-card {
-  background-color: #2f3136; 
-  /* border: 1px solid white; */
-  color: #fff;
-  border-radius: 12px;
-  padding: 24px;
+.result-count {
+  text-align: center;
   margin-bottom: 20px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.grid-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 32px;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-card {
+  background-color: #2c2c2c;
+  border-radius: 12px;
+  overflow: hidden;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  padding: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s;
-  min-height: 180px;
-  font-size: 1.1rem; /* 전체 텍스트 크기 약간 키움 */
+}
+
+.app.light .menu-card {
+  background-color: #ffffff;
+  color: #222;
+}
+
+.app.dark .menu-card {
+  background-color: #2c2c2c;
+  color: white;
 }
 
 .menu-card:hover {
-  transform: translateY(-4px);
-}
-
-.menu-name,
-.menu-ingredients,
-.menu-uploader,
-.menu-tip {
-  color: #fff; /* ✅ 카드 내부 글자는 무조건 흰색으로 지정 */
-}
-
-
-.menu-content {
-  display: flex;
-  gap: 20px;
-  width: 100%;
+  transform: scale(1.02);
 }
 
 .menu-thumbnail {
-  width: 180px;
-  height: 110px;
+  width: 95%;
+  max-height: 200px;
   object-fit: cover;
-  border-radius: 10px;
-  flex-shrink: 0;
+  border-radius: 8px;
+  margin-top: 6px;
 }
 
 .menu-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
+  width: 100%;
+  text-align: center;
+  margin-top: 10px;
 }
 
 .menu-name {
   font-weight: bold;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  margin-bottom: 6px;
 }
 
-.menu-ingredients,
-.menu-uploader,
-.menu-tip {
-  font-size: 1.05rem;
+.menu-ingredients {
+  font-size: 0.9rem;
+  color: #ccc;
+  word-break: break-word;
 }
 
-
-.grid-list {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+.app.light .menu-name,
+.app.light .menu-ingredients {
+  color: #222;
 }
 
-
-.menu-content {
-  display: flex;
-  gap: 10px;
-}
-
-.menu-thumbnail {
-  width: 120px;
-  height: 90px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.menu-text {
-  flex: 1;
-}
-
-/* 버튼 기본 스타일 */
-.btn {
-  padding: 6px 12px;
-  background-color: #1f6feb;
-  border: none;
+.app.dark .menu-name,
+.app.dark .menu-ingredients {
   color: white;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.btn:hover {
-  background-color: black;
 }
