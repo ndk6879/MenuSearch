@@ -16,7 +16,7 @@ function App() {
   const [language, setLanguage] = useState("en");
   const [searchResults, setSearchResults] = useState(menuData_en);
   const [selectedUploader, setSelectedUploader] = useState("all");
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
 
   const currentData = language === "en" ? menuData_en : menuData_kr;
 
@@ -87,10 +87,10 @@ function App() {
         {/* 오른쪽: 메뉴들 */}
         <div className="header-right">
           <a href="#about" className="header-link">About</a>
-          <a href="https://github.com/ndk6879/menu-search" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/ndk6879/MenuSearch" target="_blank" rel="noopener noreferrer">
             <FaGithub size={20} color={darkMode ? "#ccc" : "#333"} />
           </a>
-          <a href="https://www.instagram.com/YOUR_ID" target="_blank" rel="noopener noreferrer">
+          <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer">
             <FaInstagram size={20} color="#E1306C" />
           </a>
           
@@ -111,7 +111,7 @@ function App() {
         <button onClick={handleToggleLanguage} className="search-button">
             {language === "en" ? "🇰🇷 KR" : "🇺🇸 EN"}
           </button>
-          
+
           <TagSearch
             onSearch={handleSearch}
             options={ingredientOptions}
