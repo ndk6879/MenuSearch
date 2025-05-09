@@ -1,5 +1,101 @@
 const menuData_kr = [    
 {
+  "name": "트러플 스크램블 에그 김밥",
+  "url": "https://youtu.be/EJZ6Bmcs9dI",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-05-02",
+  "ingredients": [
+    "밥",
+    "올리브오일",
+    "꼬들단무지",
+    "굴소스",
+    "쪽파",
+    "후리가케",
+    "계란",
+    "설탕",
+    "소금",
+    "버터",
+    "김"
+  ],
+  "source": "고정댓글"
+},
+
+ 
+  
+{
+  "name": "모히또 콜라",
+  "url": "https://youtu.be/IKiUlWtjVTg",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-05-05",
+  "ingredients": [
+    "라임",
+    "민트잎",
+    "콜라"
+  ],
+  "source": "더보기란"
+},
+
+{
+  "name": "초리조 양상추 계란 볶음밥",
+  "url": "https://youtu.be/8dJnPPLAVFc",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-05-06",
+  "ingredients": [
+    "초리조",
+    "대파",
+    "마늘",
+    "계란",
+    "양상추",
+    "케찹마니스",
+    "밥",
+    "쪽파",
+    "아보카도오일"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "루꼴라 두부 샐러드",
+  "url": "https://youtu.be/EBEVBHWACiw",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-05-07",
+  "ingredients": [
+    "루꼴라",
+    "두부",
+    "발사믹식초",
+    "꿀",
+    "올리브오일",
+    "유자폰즈",
+    "소금",
+    "후추"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "라임 머스터드 드레싱 랍스터 샐러드",
+  "url": "https://youtu.be/oF4q7gLWZl0",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-05-08",
+  "ingredients": [
+    "랍스터",
+    "참외",
+    "아보카도",
+    "적양파",
+    "홀그레인 머스터드",
+    "마요네즈",
+    "마늘",
+    "딜",
+    "라임",
+    "올리브오일",
+    "소금",
+    "후추",
+    "물"
+  ],
+  "source": "고정댓글"
+},
+
+{
   "name": "오리콩피",
   "url": "https://youtu.be/qeAHR0R-Wnk",
   "uploader": "공격수셰프 Striker chef",

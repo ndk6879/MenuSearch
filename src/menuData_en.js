@@ -1,4 +1,364 @@
 const menuData_en = [
+{
+  "name": "Quesabirria Tacos",
+  "url": "https://youtu.be/G__j_juy_Zc",
+  "uploader": "Derek Chen",
+  "upload_date": "2024-12-17",
+  "ingredients": [
+    "olive oil",
+    "salt",
+    "pepper",
+    "beef chuck roast",
+    "beef short rib",
+    "onion",
+    "garlic",
+    "tomatoes",
+    "guajillo chiles",
+    "ancho chiles",
+    "arbol chiles",
+    "water",
+    "vinegar",
+    "cumin",
+    "mexican oregano",
+    "cinnamon",
+    "coriander",
+    "black pepper",
+    "cloves",
+    "bay leaves",
+    "beef stock",
+    "tortillas",
+    "oaxaca cheese",
+    "cilantro",
+    "lime"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Beef Caldereta",
+  "url": "https://youtu.be/NMPEmMGrmg4",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-01-07",
+  "ingredients": [
+    "carrots",
+    "potatoes",
+    "onion",
+    "garlic",
+    "bell peppers",
+    "beef",
+    "salt",
+    "pepper",
+    "olive oil",
+    "tomato paste",
+    "liver spread",
+    "crushed tomatoes",
+    "bay leaves",
+    "beef stock",
+    "fish sauce",
+    "soy sauce",
+    "oyster sauce",
+    "sugar",
+    "chilies",
+    "green olives",
+    "peas"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Taiwanese Fried Chicken Steak",
+  "url": "https://youtu.be/FlMlqMj6nYI",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-01-17",
+  "ingredients": [
+    "chicken breast",
+    "shaoxing wine",
+    "soy sauce",
+    "5 spice",
+    "white pepper",
+    "salt",
+    "ginger",
+    "Toom Garlic Dip",
+    "egg",
+    "sweet potato starch",
+    "olive oil",
+    "sugar",
+    "cayenne powder"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Roast Pork Belly",
+  "url": "https://youtu.be/EkgqbigSBM4",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-01-27",
+  "ingredients": [
+    "pork belly",
+    "salt",
+    "white vinegar",
+    "olive oil",
+    "sugar",
+    "chicken powder",
+    "white pepper",
+    "chinese 5 spice",
+    "shaoxing wine"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Cantonese-Style Steamed Fish",
+  "url": "https://youtu.be/mimj-PJ20Jo",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-01-28",
+  "ingredients": [
+    "white fleshed fish fillets",
+    "salt",
+    "Shaoxing wine",
+    "ginger",
+    "scallions",
+    "light soy sauce",
+    "sugar",
+    "sesame oil",
+    "water",
+    "olive oil"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Spicy Chili Oil Vodka Pasta",
+  "url": "https://youtu.be/8-XsUB5zFlY",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-02-06",
+  "ingredients": [
+    "guanciale",
+    "pancetta",
+    "olive oil",
+    "shallot",
+    "garlic",
+    "tomato paste",
+    "vodka",
+    "heavy cream",
+    "salt",
+    "pasta",
+    "Parmesan",
+    "butter",
+    "basil"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Tuna Tostada",
+  "url": "https://youtu.be/e6Lk4YwJrL4",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-02-12",
+  "ingredients": [
+    "shallots",
+    "mayo",
+    "chipotle peppers",
+    "chipotle sauce",
+    "lime",
+    "salt",
+    "pepper",
+    "corn tortillas",
+    "olive oil",
+    "tuna",
+    "soy sauce",
+    "orange",
+    "avocados"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Dong Po Rou",
+  "url": "https://youtu.be/apXHOlLfOxE",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-02-25",
+  "ingredients": [
+    "pork belly",
+    "Shaoxing wine",
+    "scallion",
+    "ginger",
+    "rock sugar",
+    "dried jujube",
+    "dried hawthorn berries",
+    "dark soy sauce",
+    "light soy sauce",
+    "yum yum",
+    "Chinese Yellow Wine",
+    "cornstarch",
+    "water"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Steak Frites",
+  "url": "https://youtu.be/3LdXSXG437E",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-03-04",
+  "ingredients": [
+    "ribeye steak",
+    "salt",
+    "neutral oil",
+    "shallot",
+    "garlic",
+    "black pepper",
+    "mirin",
+    "sake",
+    "red miso",
+    "beef bouillon paste",
+    "heavy cream",
+    "mustard",
+    "lemon juice",
+    "unsalted butter",
+    "parsley",
+    "oil",
+    "frozen fries"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Marry Me Chicken Pasta",
+  "url": "https://youtu.be/iIcincsSjUM",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-03-11",
+  "ingredients": [
+    "chicken thighs",
+    "salt",
+    "pepper",
+    "olive oil",
+    "butter",
+    "onion",
+    "garlic",
+    "tomato paste",
+    "gochujang",
+    "white wine",
+    "chicken stock",
+    "heavy cream",
+    "sun-dried tomatoes",
+    "gochugaru",
+    "oregano",
+    "lemon zest",
+    "lemon juice",
+    "basil",
+    "pasta",
+    "pasta water",
+    "parmesano reggiano"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Spicy Tuna Crispy Rice",
+  "url": "https://youtu.be/Y-AkvrRw4ok",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-03-20",
+  "ingredients": [
+    "sushi rice",
+    "water",
+    "kombu",
+    "rice vinegar",
+    "sugar",
+    "salt",
+    "neutral oil",
+    "tuna",
+    "scallion",
+    "ginger",
+    "soy sauce",
+    "sesame oil",
+    "yuzu juice",
+    "Japanese mayo",
+    "Sriracha",
+    "chives"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Soup Dumplings",
+  "url": "https://youtu.be/RktWPXwKnQQ",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-04-01",
+  "ingredients": [
+    "pork hock",
+    "green onions",
+    "ginger",
+    "bay leaves",
+    "Shaoxing wine",
+    "water",
+    "salt",
+    "ground pork",
+    "soy sauce",
+    "sesame oil",
+    "sugar",
+    "white pepper",
+    "dumpling flour",
+    "hot water"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Spaghetti and Meatballs",
+  "url": "https://youtu.be/s_kufUxEDQ8",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-04-16",
+  "ingredients": [
+    "breadcrumbs",
+    "milk",
+    "parsley",
+    "basil",
+    "garlic",
+    "Calabrian chili paste",
+    "pecorino romano",
+    "salt",
+    "pepper",
+    "eggs",
+    "ground beef",
+    "Italian sausage",
+    "olive oil",
+    "onion",
+    "crushed tomatoes",
+    "water",
+    "parmesan rind",
+    "pasta"
+  ],
+  "source": "Description Box"
+},
+
+{
+  "name": "Caesar Salad",
+  "url": "https://youtu.be/BINZvAfHvoc",
+  "uploader": "Derek Chen",
+  "upload_date": "2025-04-24",
+  "ingredients": [
+    "anchovy filets",
+    "garlic",
+    "egg",
+    "dijon mustard",
+    "Worcestershire sauce",
+    "lemon",
+    "olive oil",
+    "honey",
+    "parmigiano reggiano",
+    "salt",
+    "pepper",
+    "panko breadcrumbs",
+    "butter",
+    "romaine lettuce",
+    "little gem lettuce",
+    "ice",
+    "water"
+  ],
+  "source": "Description Box"
+},
+
 
 
 
