@@ -26,3 +26,5 @@ yarn-error.log*
 .env
 logs
 menu_results.json
+
+__pycache__

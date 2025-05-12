@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import re
 from datetime import datetime
 from langdetect import detect  # pip install langdetect
+from append_to_merged_js import append_to_merged_js
 
 log_date = datetime.now().strftime("%Y-%m-%d")
 log_path = f"logs/menu_extraction_{log_date}.log"
@@ -77,49 +78,7 @@ def is_english(text):
     except:
         return False
 
-def append_to_js(parsed_data, video_url, uploader_name, upload_date, file_path="src/menuData_kr.js"):
-    try:
-        entry = {
-            "name": parsed_data["메뉴"],
-            "url": video_url,
-            "uploader": uploader_name,
-            "upload_date": upload_date,
-            "ingredients": parsed_data["재료"],
-            "source": parsed_data.get("출처", "unknown")
-        }
 
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-            existing_items = re.findall(r"\{[\s\S]*?\}", content)
-            for item in existing_items:
-                try:
-                    data = json.loads(item)
-                    if data.get("url") == entry["url"]:
-                        safe_print("⚠️ 이미 저장된 URL → 추가 생략")
-                        return
-                except:
-                    continue
-            lines = content.splitlines()
-
-                # 🔧 수정 전:
-        close_idx = next((i for i, line in reversed(list(enumerate(lines))) if line.strip() == "]"), -1)
-
-        # ✅ 수정 후:
-        close_idx = next((i for i, line in reversed(list(enumerate(lines))) if line.strip().startswith("]")), -1)
-
-        export_idx = next((i for i, line in reversed(list(enumerate(lines))) if "export default" in line), -1)
-        if close_idx == -1 or export_idx == -1:
-            safe_print("❌ JS 형식 이상")
-            return
-
-        insert_idx = 1
-        lines.insert(insert_idx, json.dumps(entry, ensure_ascii=False, indent=2) + ",\n")
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.writelines(line + "\n" for line in lines)
-
-        safe_print(f"✅ 데이터 추가 완료 (출처: {entry['source']})")
-    except Exception as e:
-        safe_print(f"❌ JS 저장 중 오류: {e}")
 
 def initialize_js_file_if_needed(file_path="src/menuData_kr.js"):
     if not os.path.exists(file_path):
@@ -254,7 +213,7 @@ def ask_sonar_from_comment(comment_text, source_name=""):
 
 # ✅ 실행 부분
 videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=50)
-videos = videos_all[:15]
+videos = videos_all[:20]
 existing_urls = get_existing_urls("src/menuData_kr.js") | get_existing_urls("src/menuData_en.js")
 youtube = build("youtube", "v3", developerKey=API_KEY)
 initialize_js_file_if_needed()
@@ -294,8 +253,9 @@ for idx, (video_id, uploader_id) in enumerate(videos, start=1):
         if parsed:
             lang = detect(text)
             parsed["출처"] = ("고정댓글" if source_name == "고정댓글" else "더보기란") if lang == "ko" else ("Pinned Comment" if source_name == "고정댓글" else "Description Box")
-            file_path = "src/menuData_en.js" if lang == "en" else "src/menuData_kr.js"
-            append_to_js(parsed, video_url, uploader_name, upload_date, file_path=file_path)
+            source_name = parsed["출처"]
+            append_to_merged_js(parsed, video_url, uploader_name, upload_date, lang, source_name)
+
             break
 
         else:
