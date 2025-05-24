@@ -60,6 +60,8 @@ function TagSearch({ onSearch, options, language, darkMode }) {
           value={selected}
           placeholder={language === 'en' ? 'Type or select ingredients' : '재료를 입력하거나 선택하세요'}
           classNamePrefix="react-select"
+          menuShouldScrollIntoView={false}  // ✅ 이거 추가
+
           theme={(theme) => ({
             ...theme,
             borderRadius: 6,

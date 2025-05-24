@@ -5,11 +5,11 @@ function HeroSection({ onScrollToSearch }) {
   return (
     <div className="hero-container">
       <div className="hero-content">
-        <h1 className="hero-title">Transform the way you search recipes</h1>
-        <p className="hero-subtitle">Find the perfect recipe based on what you already have</p>
-        <button className="hero-button">Search Recipes</button>
-      </div>
+      <h6 className="hero-title">나의 재료로 레시피를 찾아보세요 </h6>
+      <p className="hero-subtitle">“하이엔드 요리를 쉽게” — 공격수 셰프</p>
+      <button className="hero-button" onClick={onScrollToSearch}> 레시피 찾기</button>
 
+      </div>
     </div>
   );
 }

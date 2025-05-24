@@ -24,12 +24,10 @@ body {
   font-weight: bold;
   margin: 20px 0;
   text-align: center;
-  color: #2e7d32;
 }
 
-.app.dark .title {
-  color: #90ee90;
-}
+
+
 
 .search-section {
   display: flex;
@@ -156,8 +154,8 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  position: sticky;
+  padding: 10px 20px; /* ✅ 기존 16px → 8px로 줄여 세로 높이 축소 */
+  /* position: sticky; */
   top: 0;
   background-color: white;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
@@ -168,21 +166,11 @@ header {
   background-color: #1e1e1e;
 }
 
+
 .header-left {
   display: flex;
   align-items: center;
   gap: 20px;
-}
-
-.header-logo {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #2e7d32;
-  margin-bottom: 0;
-}
-
-.app.dark .header-logo {
-  color: #90ee90;
 }
 
 .header-right {
@@ -265,9 +253,7 @@ header {
     font-size: 0.85rem;
   }
 
-  .header-logo {
-    font-size: 1.8rem;
-  }
+  
 
   .header-link {
     font-size: 0.85rem;
@@ -277,4 +263,25 @@ header {
     width: 18px;
     height: 18px;
   }
+}
+
+
+.header-logo {
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin-bottom: 0;
+  text-decoration: none;
+}
+
+
+/* ✅ 기본: 밝은 모드 (초록색) */
+.header-logo,
+.title {
+  color: #2e7d32;
+}
+
+/* ✅ 다크모드일 때만 덮어쓰기 (연두색) */
+.app.dark .header-logo,
+.app.dark .title {
+  color: #90ee90;
 }

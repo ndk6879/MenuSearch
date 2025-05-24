@@ -10,8 +10,6 @@ import os
 from dotenv import load_dotenv
 import re
 from datetime import datetime
-from langdetect import detect  # pip install langdetect
-from append_to_merged_js import append_to_merged_js
 
 log_date = datetime.now().strftime("%Y-%m-%d")
 log_path = f"logs/menu_extraction_{log_date}.log"
@@ -48,9 +46,7 @@ def safe_print(msg):
 load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 SONAR_API_KEY = os.getenv("SONAR_API_KEY")
-CHANNEL_ID = "UC0N7H8ALIQSnktDH6wy7iSw"
-# CHANNEL_ID = "UC2IIBYSTMSvJaK2UJzCC06g"
-
+CHANNEL_ID = "UC2IIBYSTMSvJaK2UJzCC06g"
 
 def extract_json_block(text):
     try:
@@ -71,14 +67,49 @@ def get_existing_urls(file_path="src/menuData_kr.js"):
         urls = re.findall(r'"url":\s*"([^"]+)"', content)
         return set(urls)
 
-def is_english(text):
+def append_to_js(parsed_data, video_url, uploader_name, upload_date, file_path="src/menuData_kr.js"):
     try:
-        lang = detect(text)
-        return lang == "en"
-    except:
-        return False
+        entry = {
+            "name": parsed_data["메뉴"],
+            "url": video_url,
+            "uploader": uploader_name,
+            "upload_date": upload_date,
+            "ingredients": parsed_data["재료"],
+            "source": parsed_data.get("출처", "unknown")
+        }
 
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            existing_items = re.findall(r"\{[\s\S]*?\}", content)
+            for item in existing_items:
+                try:
+                    data = json.loads(item)
+                    if data.get("url") == entry["url"]:
+                        safe_print("⚠️ 이미 저장된 URL → 추가 생략")
+                        return
+                except:
+                    continue
+            lines = content.splitlines()
 
+                # 🔧 수정 전:
+        close_idx = next((i for i, line in reversed(list(enumerate(lines))) if line.strip() == "]"), -1)
+
+        # ✅ 수정 후:
+        close_idx = next((i for i, line in reversed(list(enumerate(lines))) if line.strip().startswith("]")), -1)
+
+        export_idx = next((i for i, line in reversed(list(enumerate(lines))) if "export default" in line), -1)
+        if close_idx == -1 or export_idx == -1:
+            safe_print("❌ JS 형식 이상")
+            return
+
+        insert_idx = 1
+        lines.insert(insert_idx, json.dumps(entry, ensure_ascii=False, indent=2) + ",\n")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.writelines(line + "\n" for line in lines)
+
+        safe_print(f"✅ 데이터 추가 완료 (출처: {entry['source']})")
+    except Exception as e:
+        safe_print(f"❌ JS 저장 중 오류: {e}")
 
 def initialize_js_file_if_needed(file_path="src/menuData_kr.js"):
     if not os.path.exists(file_path):
@@ -172,15 +203,6 @@ def ask_sonar_from_comment(comment_text, source_name=""):
 - 서브 메뉴가 있거나 여러 메뉴가 있어도 메뉴는 메인 메뉴는 하나이며, 둘다 메인 같으면 메인 타이틀 같은걸 쓰거나 이름을 적당히 합쳐줘. 그리고 모든 재료는 중복 없이 \"재료\"에 통합해주세요.
 - 재료 대체: 생수는 물로 대체해. 엑스트라 버진 올리브오일은 그냥 올리브오일로 대체. 파스타면 종류는 그냥 파스타라고 대체해줘. 즉석밥, 햇반, 백미 같은거는 그냥 밥으로 대체. 코인육수는 있는 그대로 해줘. ex) 꽃게코인육수 -> 꽃게코인육수.
 
-확인하는 고정댓글/더보기란/자막이 영어인경우
-- egg yolk -> egg
-- 파스타면 종류는 pasta
-- hot water/ice water -> water
-- sushi rice -> rice
-- rice vinegar -> vinegar
-- unsalted butter -> butter
--> every oil -> olive oil
--> frozen fries -> fries
 내용:
 {sanitize(comment_text)}
 
@@ -213,8 +235,8 @@ def ask_sonar_from_comment(comment_text, source_name=""):
 
 # ✅ 실행 부분
 videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=50)
-videos = videos_all[:20]
-existing_urls = get_existing_urls("src/menuData_kr.js") | get_existing_urls("src/menuData_en.js")
+videos = videos_all[:50]
+existing_urls = get_existing_urls()
 youtube = build("youtube", "v3", developerKey=API_KEY)
 initialize_js_file_if_needed()
 
@@ -237,27 +259,19 @@ for idx, (video_id, uploader_id) in enumerate(videos, start=1):
     ]
 
     for source_name, text in sources:
+        safe_print(f"⏭️ 현재 단계: {source_name} 확인 중...")
         if not text:
             safe_print(f"🚫 {source_name} 없음 또는 확인 불가 → 다음 단계로 이동")
             continue
-
-        # ✅ Sonar 호출 전에 중복 확인
-        if video_url in existing_urls:
-            safe_print(f"⚠️ 이미 저장된 URL → {video_url} → Sonar 호출 생략")
-            break
         safe_print(f"📄 {source_name} 분석 시도")
         result = ask_sonar_from_comment(text, source_name)
         safe_print(f"🧠 Sonar 응답 ({source_name}):\n{result}")
 
         parsed = extract_json_block(result)
         if parsed:
-            lang = detect(text)
-            parsed["출처"] = ("고정댓글" if source_name == "고정댓글" else "더보기란") if lang == "ko" else ("Pinned Comment" if source_name == "고정댓글" else "Description Box")
-            source_name = parsed["출처"]
-            append_to_merged_js(parsed, video_url, uploader_name, upload_date, lang, source_name)
-
+            parsed["출처"] = source_name
+            append_to_js(parsed, video_url, uploader_name, upload_date)
             break
-
         else:
             safe_print(f"⚠️ {source_name} 분석 실패 → 다음 단계로 이동")
 

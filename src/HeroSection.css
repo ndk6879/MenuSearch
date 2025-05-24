@@ -1,10 +1,9 @@
 .hero-container {
-  background-color: black;
   position: relative;
   height: 92.5vh;
   width: 100%;
   background-image: url("/public/hero-background-optimized.webp");
-    background-size: cover;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   display: flex;
@@ -12,16 +11,15 @@
   align-items: center;
   text-align: center;
   color: white;
-  padding: 0;
+  padding: 0 20px;
   overflow: hidden;
 }
 
-/* ✅ 어두운 투명 오버레이로 텍스트 가독성 강화 */
 .hero-container::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.25); /* 기존보다 밝게 */
   z-index: 1;
 }
 
@@ -30,56 +28,37 @@
   max-width: 800px;
   padding: 1rem;
 }
-
-.hero-content h1 {
-  font-size: clamp(2.5rem, 5vw, 4rem);
+.hero-title {
+  font-size: clamp(1.3rem, 3.5vw, 2.2rem); /* 더 작고 자연스럽게 */
   font-family: 'Playfair Display', serif;
   font-weight: 700;
-  margin-bottom: 1rem;
+  margin-bottom: 0.6rem;
+  color: #fff;
 }
 
-.hero-content p {
-  font-size: 1.2rem;
+.hero-subtitle {
+  font-size: 1rem; /* 살짝 작게 */
   opacity: 0.85;
-  margin-bottom: 2rem;
-  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+  color: #ddd;
 }
 
-.hero-content button {
-  background: white;
-  color: black;
-  padding: 0.75rem 1.5rem;
+.hero-button {
+  font-size: 0.9rem; /* 작게 */
+  padding: 8px 16px;  /* 작게 */
+  border-radius: 8px;
   border: none;
-  border-radius: 10px;
-  font-weight: bold;
+  background-color: white;
+  color: black;
+  font-weight: 500;
   cursor: pointer;
-  font-size: 1rem;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-  transition: background 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-.hero-content button:hover {
-  background: #f0f0f0;
+
+.hero-button:hover {
+  background-color: #f0f0f0;
   transform: translateY(-2px);
-}
-
-/* ✅ 하단 서브 히어로 보정 (필요시) */
-.sub-hero-section {
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  position: relative;
-}
-
-.sub-hero-section h2 {
-  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
-}
-
-.sub-hero-section p {
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.hero-section {
-  margin-top: 0;
-  padding-top: 0;
 }

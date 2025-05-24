@@ -13,10 +13,10 @@ function extractYouTubeId(url) {
 }
 
 function App() {
-  const [language, setLanguage] = useState("en");
-  const [searchResults, setSearchResults] = useState(menuData_en);
+  const [language, setLanguage] = useState("kr");
+  const [searchResults, setSearchResults] = useState(menuData_kr);
   const [selectedUploader, setSelectedUploader] = useState("all");
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
 
   const currentData = language === "en" ? menuData_en : menuData_kr;
 
@@ -28,42 +28,25 @@ function App() {
     .map((ing) => ({ value: ing, label: ing }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
-  const handleSearch = async (selected) => {
-    if (selected.length === 0) {
-      setSearchResults(currentData);
-      return;
-    }
-
-    const selectedValues = selected.map((opt) => opt.value);
-
-    try {
-      const res = await axios.post("/menus/_search", {
-        size: 1000,
-        query: {
-          bool: {
-            must: selectedValues.map((val) => ({
-              match: { ingredients: val },
-            })),
-          },
-        },
-      });
-
-      const results = res.data.hits.hits.map((hit) => hit._source);
-      let filtered = results;
-
-      if (selectedUploader !== "all") {
-        filtered = filtered.filter((item) => item.uploader === selectedUploader);
+    const handleSearch = (selected) => {
+      if (selected.length === 0) {
+        setSearchResults(currentData);
+        return;
       }
-
+    
+      const selectedValues = selected.map((opt) => opt.value);
+    
+      const filtered = currentData.filter((item) => {
+        const ingredients = item.ingredients || [];
+        const matchesAll = selectedValues.every((val) => ingredients.includes(val));
+        const uploaderMatch = selectedUploader === "all" || item.uploader === selectedUploader;
+        return matchesAll && uploaderMatch;
+      });
+    
       setSearchResults(filtered);
-    } catch (error) {
-      let fallbackResults = currentData.filter((item) =>
-        selectedValues.every((val) => item.ingredients?.includes(val))
-      );
-      setSearchResults(fallbackResults);
-    }
-  };
+    };
 
+    
   const handleToggleLanguage = () => {
     const newLang = language === "en" ? "kr" : "en";
     setLanguage(newLang);
@@ -73,15 +56,21 @@ function App() {
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
   const searchRef = useRef(null);
-  const scrollToSearch = () => searchRef.current?.scrollIntoView({ behavior: "smooth" });
-
+  const scrollToSearch = () => {
+    if (searchRef.current) {
+      const yOffset = -80; // 헤더 높이만큼 위로 더 올리기
+      const y = searchRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  };
+  
   return (
     <div className={darkMode ? "app dark" : "app light"}>
       {/* 🔥 Header Start */}
       <header className="header">
         {/* 왼쪽: 로고 Findish */}
         <div className="header-left">
-          <span className="header-logo">Findish</span>
+          <a href="/" className="header-logo">Findish</a>
         </div>
 
         {/* 오른쪽: 메뉴들 */}
@@ -108,9 +97,7 @@ function App() {
       <h1 className="title">🍽️ Findish</h1>
 
         <div className="search-section">
-        <button onClick={handleToggleLanguage} className="search-button">
-            {language === "en" ? "🇰🇷 KR" : "🇺🇸 EN"}
-          </button>
+          
 
           <TagSearch
             onSearch={handleSearch}
