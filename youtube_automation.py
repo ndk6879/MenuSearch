@@ -127,41 +127,70 @@ def finalize_js_file(file_path="src/menuData_kr.js"):
     except Exception as e:
         safe_print(f"❌ 데이터 실패: {e}")
 
-def get_video_ids_and_channel(api_key, channel_id, max_results=0):
+
+
+def get_video_ids_and_channel(api_key, channel_id, max_results=200):
     youtube = build("youtube", "v3", developerKey=api_key)
     videos = []
+    next_page_token = None
 
-    search_response = youtube.search().list(
-        channelId=channel_id,
-        part="id",
-        order="date",
-        maxResults=max_results,
-        type="video"
-    ).execute()
+    while len(videos) < max_results:
+        search_response = youtube.search().list(
+            channelId=channel_id,
+            part="id",
+            order="date",
+            maxResults=50,
+            type="video",
+            pageToken=next_page_token
+        ).execute()
 
-    video_ids = [item["id"]["videoId"] for item in search_response["items"]]
-    video_response = youtube.videos().list(
-        part="snippet,contentDetails",
-        id=",".join(video_ids)
-    ).execute()
+        video_ids = [item["id"]["videoId"] for item in search_response["items"]]
+        video_response = youtube.videos().list(
+            part="snippet,contentDetails",
+            id=",".join(video_ids)
+        ).execute()
 
-    for item in video_response["items"]:
-        if item["snippet"]["liveBroadcastContent"] != "none":
-            continue
+        for item in video_response["items"]:
+            snippet = item.get("snippet", {})
+            live_status = snippet.get("liveBroadcastContent", "none")
+            duration = item["contentDetails"]["duration"]
 
-        duration = item["contentDetails"]["duration"]
-        match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
-        hours = int(match.group(1) or 0)
-        minutes = int(match.group(2) or 0)
-        seconds = int(match.group(3) or 0)
-        total_seconds = hours * 3600 + minutes * 60 + seconds
+            if live_status != "none":
+                continue
 
-        if total_seconds >= 30 * 60:
-            safe_print(f"⏩ {item['id']} → 영상 길이 {total_seconds//60}분 → 건너뜀")
-            continue
+            match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
+            hours = int(match.group(1) or 0)
+            minutes = int(match.group(2) or 0)
+            seconds = int(match.group(3) or 0)
+            total_seconds = hours * 3600 + minutes * 60 + seconds
 
-        videos.append((item["id"], item["snippet"]["channelId"]))
-    return videos
+            if total_seconds >= 1800:
+                video_url = f"https://youtu.be/{item['id']}"
+                if video_url in get_existing_urls():
+                    safe_print(f"⚠️ 이미 저장된 URL → {video_url} → 건너뜀 (길이 김)")
+                else:
+                    safe_print(f"⏩ {item['id']} → 영상 길이 {total_seconds//60}분 → 저장 (길이 김)")
+                    append_to_js(
+                        {
+                            "메뉴": "건너뜀 - 영상 너무 김",
+                            "재료": [],
+                            "출처": "자동 판별"
+                        },
+                        video_url,
+                        item["snippet"]["channelTitle"],
+                        item["snippet"]["publishedAt"][:10]
+                    )
+                continue
+
+
+            videos.append((item["id"], item["snippet"]["channelId"]))
+
+        next_page_token = search_response.get("nextPageToken")
+        if not next_page_token:
+            break
+
+    return videos[:max_results]
+
 
 def get_first_comment_and_author(api_key, video_id):
     youtube = build("youtube", "v3", developerKey=api_key)
@@ -201,6 +230,7 @@ def ask_sonar_from_comment(comment_text, source_name=""):
 - 다진/깐/삶은 등의 수식어는 제거하고 재료 이름만 포함해주세요. 예) 깐마늘 → 마늘, 다진 쪽파 → 쪽파
 - 메뉴나 재료가 없고 제품 설명이나 홍보만 있다면 \"Only 제품 설명 OR 홍보\"를 출력해주세요.
 - 서브 메뉴가 있거나 여러 메뉴가 있어도 메뉴는 메인 메뉴는 하나이며, 둘다 메인 같으면 메인 타이틀 같은걸 쓰거나 이름을 적당히 합쳐줘. 그리고 모든 재료는 중복 없이 \"재료\"에 통합해주세요.
+- 재료 이름과 띄어쓰기도 올바르게 해줘
 - 재료 대체: 생수는 물로 대체해. 엑스트라 버진 올리브오일은 그냥 올리브오일로 대체. 파스타면 종류는 그냥 파스타라고 대체해줘. 즉석밥, 햇반, 백미 같은거는 그냥 밥으로 대체. 코인육수는 있는 그대로 해줘. ex) 꽃게코인육수 -> 꽃게코인육수.
 
 내용:
@@ -234,8 +264,8 @@ def ask_sonar_from_comment(comment_text, source_name=""):
         return None
 
 # ✅ 실행 부분
-videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=50)
-videos = videos_all[:50]
+videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=200)
+videos = videos_all[50:95]
 existing_urls = get_existing_urls()
 youtube = build("youtube", "v3", developerKey=API_KEY)
 initialize_js_file_if_needed()
@@ -272,8 +302,16 @@ for idx, (video_id, uploader_id) in enumerate(videos, start=1):
             parsed["출처"] = source_name
             append_to_js(parsed, video_url, uploader_name, upload_date)
             break
+
         else:
             safe_print(f"⚠️ {source_name} 분석 실패 → 다음 단계로 이동")
+            failed_entry = {
+                "메뉴": "분석 불가",
+                "재료": [],
+                "출처": source_name
+            }
+            append_to_js(failed_entry, video_url, uploader_name, upload_date)
+            break
 
     safe_print("-" * 60)
 

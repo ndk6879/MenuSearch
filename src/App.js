@@ -21,12 +21,20 @@ function App() {
   const currentData = language === "en" ? menuData_en : menuData_kr;
 
   const allIngredients = Array.from(
-    new Set(currentData.flatMap((item) => item.ingredients || []))
+    new Set(
+      currentData
+        .flatMap((item) => item.ingredients || [])
+        .filter((ing) => typeof ing === "string" && ing !== "Only 제품 설명 OR 홍보")
+    )
   );
 
   const ingredientOptions = allIngredients
     .map((ing) => ({ value: ing, label: ing }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .sort((a, b) => {
+      const labelA = a.label || "";
+      const labelB = b.label || "";
+      return labelA.localeCompare(labelB);
+    });
 
     const handleSearch = (selected) => {
       if (selected.length === 0) {
@@ -91,7 +99,7 @@ function App() {
 
       {/* 🔥 Header End */}
 
-      <HeroSection onScrollToSearch={scrollToSearch} />
+      <HeroSection onScrollToSearch={() => {}} />
 
       <div className="container" ref={searchRef}>
       <h1 className="title">🍽️ Findish</h1>
@@ -109,34 +117,59 @@ function App() {
         </div>
 
         <p className="result-count">
-          {searchResults.length} of {currentData.length} results
-        </p>
+  {
+    searchResults.filter(item =>
+      item.name !== "Only 제품 설명 OR 홍보" &&
+      item.name !== "분석 불가" &&
+      item.name !== "건너뜀 - 영상 너무 김" &&
+      !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
+    ).length
+  } of {
+    currentData.filter(item =>
+      item.name !== "Only 제품 설명 OR 홍보" &&
+      item.name !== "분석 불가" &&
+      item.name !== "건너뜀 - 영상 너무 김" &&
+      !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
+    ).length
+  } results
+</p>
 
-        <ul className="menu-list grid-list">
-          {searchResults.length > 0 ? (
-            searchResults.map((item, idx) => (
-              <li key={idx} className="menu-card">
-                {item.url && (
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    <img
-                      src={`https://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
-                      alt="thumbnail"
-                      className="menu-thumbnail"
-                    />
-                  </a>
-                )}
-                <div className="menu-text">
-                  <div className="menu-name">🍽️ {item.name || "No Name"}</div>
-                  <div className="menu-ingredients">
-                    🥕 {item.ingredients?.join(", ") || "No Ingredients Info"}
-                  </div>
-                </div>
-              </li>
-            ))
-          ) : (
-            <p className="no-results">No matching menu found.</p>
+<ul className="menu-list grid-list">
+  {searchResults.length > 0 ? (
+    searchResults
+      .filter(item =>
+        item.name !== "Only 제품 설명 OR 홍보" &&
+        item.name !== "분석 불가" &&
+        item.name !== "건너뜀 - 영상 너무 김" &&
+        !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
+      )
+      .map((item, idx) => (
+        <li key={idx} className="menu-card">
+          {item.url && (
+            <a href={item.url} target="_blank" rel="noopener noreferrer">
+              <img
+                src={`https://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
+                alt="thumbnail"
+                className="menu-thumbnail"
+              />
+            </a>
           )}
-        </ul>
+          <div className="menu-text">
+            <div className="menu-name">🍽️ {item.name || "No Name"}</div>
+            <div className="menu-ingredients">
+              🥕 {item.ingredients?.join(", ") || "No Ingredients Info"}
+            </div>
+          </div>
+        </li>
+      ))
+  ) : (
+    <p className="no-results">No matching menu found.</p>
+  )}
+</ul>
+
+
+
+
       </div>
     </div>
   );
