@@ -7,8 +7,9 @@ function TagSearch({ onSearch, options, language, darkMode }) {
   const handleChange = (selectedOptions) => {
     const newSelected = selectedOptions || [];
     setSelected(newSelected);
-    onSearch(newSelected); // 선택이 바뀌면 즉시 검색
+    onSearch(newSelected); // 그대로 넘기기만 하면 됨
   };
+  
 
   const handleReset = () => {
     setSelected([]);

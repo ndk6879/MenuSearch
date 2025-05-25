@@ -10,6 +10,18 @@ import os
 from dotenv import load_dotenv
 import re
 from datetime import datetime
+import socket
+
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+import google.auth.transport.requests
+import google.auth
+
+import socket
+import httplib2
+
+socket.setdefaulttimeout(10)
+
 
 log_date = datetime.now().strftime("%Y-%m-%d")
 log_path = f"logs/menu_extraction_{log_date}.log"
@@ -265,7 +277,7 @@ def ask_sonar_from_comment(comment_text, source_name=""):
 
 # ✅ 실행 부분
 videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=200)
-videos = videos_all[50:105]
+videos = videos_all[100:200]
 existing_urls = get_existing_urls()
 youtube = build("youtube", "v3", developerKey=API_KEY)
 initialize_js_file_if_needed()
