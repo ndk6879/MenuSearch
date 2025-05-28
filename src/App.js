@@ -4,6 +4,7 @@ import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
 import menuData_en from "./menuData_en";
+import menuTest from "./menuTest";
 import HeroSection from "./HeroSection";
 import { FaGithub, FaInstagram } from "react-icons/fa";
 
@@ -14,11 +15,11 @@ function extractYouTubeId(url) {
 
 function App() {
   const [language, setLanguage] = useState("en");
-  const [searchResults, setSearchResults] = useState(menuData_en);
+  const [searchResults, setSearchResults] = useState(menuTest);
   const [selectedUploader, setSelectedUploader] = useState("all");
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
 
-  const currentData = language === "en" ? menuData_en : menuData_kr;
+  const currentData = language === "en" ? menuTest : menuData_kr;
 
   const allIngredients = Array.from(
     new Set(currentData.flatMap((item) => item.ingredients || []))
@@ -67,7 +68,7 @@ function App() {
   const handleToggleLanguage = () => {
     const newLang = language === "en" ? "kr" : "en";
     setLanguage(newLang);
-    setSearchResults(newLang === "en" ? menuData_en : menuData_kr);
+    setSearchResults(newLang === "en" ? menuTest : menuData_kr);
     setSelectedUploader("all");
   };
 
