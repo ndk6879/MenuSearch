@@ -256,7 +256,7 @@ Please extract the cooking menu name and ingredients in JSON format from the con
 
 def run():
     videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=50)
-    videos = videos_all[:5]
+    videos = videos_all[:25]
     youtube = build("youtube", "v3", developerKey=API_KEY)
     file_path = "src/menuTest.js"
     existing_urls = get_existing_urls(file_path)
