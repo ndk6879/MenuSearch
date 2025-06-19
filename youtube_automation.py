@@ -1,4 +1,5 @@
 # ✅ 실행 시 고정댓글 → 더보기란까지만 확인하고 스크립트는 생략한 버전
+# 육식맨 코드
 
 import json  
 from googleapiclient.discovery import build
@@ -58,7 +59,7 @@ def safe_print(msg):
 load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 SONAR_API_KEY = os.getenv("SONAR_API_KEY")
-CHANNEL_ID = "UC2IIBYSTMSvJaK2UJzCC06g"
+CHANNEL_ID = "UC0VR2v4TZeGcOrZHnmwbU_Q"
 
 def extract_json_block(text):
     try:
@@ -277,7 +278,7 @@ def ask_sonar_from_comment(comment_text, source_name=""):
 
 # ✅ 실행 부분
 videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=200)
-videos = videos_all[100:200]
+videos = videos_all[50:60]
 existing_urls = get_existing_urls()
 youtube = build("youtube", "v3", developerKey=API_KEY)
 initialize_js_file_if_needed()
