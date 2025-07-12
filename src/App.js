@@ -7,6 +7,10 @@ import menuData_en from "./menuData_en";
 import HeroSection from "./HeroSection";
 import { FaGithub, FaInstagram } from "react-icons/fa";
 
+import { Carousel } from 'react-responsive-carousel';
+import "react-responsive-carousel/lib/styles/carousel.min.css";
+
+
 function extractYouTubeId(url) {
   const match = url.match(/(?:\?v=|\/embed\/|\.be\/|\/v\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
   return match ? match[1] : null;
@@ -430,25 +434,11 @@ function App() {
   ingredientOptions.sort((a, b) => a.label.localeCompare(b.label, "ko")); // 한글 정렬도 대응
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   return (
     <div className={darkMode ? "app dark" : "app light"}>
       <header className="header">
         <div className="header-left">
-          <a href="/" className="header-logo">Findish</a>
+          <a href="/" className="header-logo">🍽️ Findish</a>
         </div>
         <div className="header-right">
           <a href="#about" className="header-link">About</a>
@@ -464,71 +454,134 @@ function App() {
         </div>
       </header>
 
-      <HeroSection onScrollToSearch={scrollToSearch} />
+      {/* <HeroSection onScrollToSearch={scrollToSearch} /> */}
 
-      <div className="container" ref={searchRef}>
-        <h1 className="title">🍽️ Findish</h1>
+{/* 🧑‍🍳 Chef's Picks 섹션 */}
 
-        <div className="search-section">
-          <TagSearch
-            onSearch={handleSearch}
-            options={ingredientOptions}
-            language={language}
-            darkMode={darkMode}
-          />
-        </div>
+<section className="container" style={{ marginTop: "3rem" }}> {/* ✨ margin-top 값 증가 */}
+  <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>🧑‍🍳 Chef's Picks</h2>
+  <ul className="menu-list grid-list">
+    {sortedData
+      .filter(item =>
+        item.name !== "Only 제품 설명 OR 홍보" &&
+        item.name !== "건너김 - 영상 너무 김" &&
+        item.name !== "분석 불가" &&
+        !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
+      )
+      .slice(0, 3)
+      .map((item, idx) => (
+        <li key={idx} className="menu-card">
+          <a href={item.url} target="_blank" rel="noopener noreferrer">
+            <img
+                  src={`http://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
+                  alt="thumbnail"
+              className="menu-thumbnail"
+            />
+          </a>
+          <div className="menu-text">
+            <div className="menu-name">🍽️ {item.name}</div>
+            <div className="menu-ingredients">🥕 {item.ingredients?.join(", ")}</div>
+          </div>
+        </li>
+      ))}
+  </ul>
+</section>
 
-        <p className="result-count">
-          {
-            searchResults.filter(item =>
-              item.name !== "Only 제품 설명 OR 홍보" &&
-              item.name !== "분석 불가" &&
-              item.name !== "건너뜀 - 영상 너무 김" &&
-              !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
-            ).length
-          } of {
-            sortedData.filter(item =>
-              item.name !== "Only 제품 설명 OR 홍보" &&
-              item.name !== "분석 불가" &&
-              item.name !== "건너뜀 - 영상 너무 김" &&
-              !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
-            ).length
-          } results
-        </p>
 
-        <ul className="menu-list grid-list">
-          {searchResults.length > 0 ? (
-            searchResults
-              .filter(item =>
-                item.name !== "Only 제품 설명 OR 홍보" &&
-                item.name !== "분석 불가" &&
-                item.name !== "건너뜀 - 영상 너무 김" &&
-                !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
-              )
-              .map((item, idx) => (
-                <li key={idx} className="menu-card">
-                  {item.url && (
-                    <a href={item.url} target="_blank" rel="noopener noreferrer">
-                      <img
-                        src={`https://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
-                        alt="thumbnail"
-                        className="menu-thumbnail"
-                      />
-                    </a>
-                  )}
-                  <div className="menu-text">
-                    <div className="menu-name">🍽️ {item.name || "No Name"}</div>
-                    <div className="menu-ingredients">
-                      🥕 {item.ingredients?.join(", ") || "No Ingredients Info"}
-                    </div>
-                  </div>
-                </li>
-              ))
-          ) : (
-            <p className="no-results">No matching menu found.</p>
-          )}
-        </ul>
-      </div>
+
+{/* 🆕 Latest Drop 섹션 */}
+
+<section className="container" style={{ marginTop: "3rem" }}> {/* ✨ Adjusted margin-top */}
+  <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>🆕 Latest Drops</h2>
+  <ul className="menu-list grid-list">
+    {sortedData
+      .filter(item =>
+        item.name !== "Only 제품 설명 OR 홍보" &&
+        item.name !== "건너김 - 영상 너무 김" &&
+        item.name !== "분석 불가" &&
+        !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
+      )
+      .slice(3, 6)
+      .map((item, idx) => (
+        <li key={idx} className="menu-card">
+          <a href={item.url} target="_blank" rel="noopener noreferrer">
+            <img
+                  src={`http://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
+                  alt="thumbnail"
+              className="menu-thumbnail"
+            />
+          </a>
+          <div className="menu-text">
+            <div className="menu-name">🍽️ {item.name}</div>
+            <div className="menu-ingredients">🥕 {item.ingredients?.join(", ")}</div>
+          </div>
+        </li>
+      ))}
+  </ul>
+</section>
+
+
+
+
+{/* ✅ 전체 메뉴 영역: section으로 통일 */}
+
+
+<section className="container" ref={searchRef} style={{ marginTop: "3rem" }}> {/* ✨ Adjusted margin-top */}
+  <div className="all-toolbar">
+    <h2 style={{ fontSize: "1.5rem" }}>🍽️ All Menu</h2>
+    <div className="tagsearch-wrapper">
+    <TagSearch
+      onSearch={handleSearch}
+      options={ingredientOptions}
+      language={language}
+      darkMode={darkMode}
+    />
+  </div>
+
+  </div>
+
+  <ul className="menu-list grid-list">
+    {searchResults.length > 0 ? (
+      searchResults
+        .filter(
+          (item) =>
+            item.name !== "Only 제품 설명 OR 홍보" &&
+            item.name !== "분석 불가" &&
+            item.name !== "건너김 - 영상 너무 김" &&
+            !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
+        )
+        .map((item, idx) => (
+          <li key={idx} className="menu-card">
+            {item.url && (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                                  src={`http://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
+
+                  alt="thumbnail"
+                  className="menu-thumbnail"
+                />
+              </a>
+            )}
+            <div className="menu-text">
+              <div className="menu-name">
+                🍽️ {item.name || "No Name"}
+              </div>
+              <div className="menu-ingredients">
+                🥕 {item.ingredients?.join(", ") || "No Ingredients Info"}
+              </div>
+            </div>
+          </li>
+        ))
+    ) : (
+      <p className="no-results">No matching menu found.</p>
+    )}
+  </ul>
+</section>
+
     </div>
   );
 }

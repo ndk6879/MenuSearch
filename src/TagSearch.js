@@ -53,7 +53,8 @@ function TagSearch({ onSearch, options, language, darkMode }) {
 
   return (
     <div style={{ display: "flex", gap: "10px", width: "100%", maxWidth: "700px" }}>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, textAlign: "center" }}>
+
         <Select
           options={options}
           isMulti

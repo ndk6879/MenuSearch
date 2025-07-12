@@ -1,4 +1,5 @@
 # ✅ 실행 시 고정댓글 → 더보기란까지만 확인하고 스크립트는 생략한 버전
+# 공격수 솊
 
 import json  
 from googleapiclient.discovery import build
@@ -244,7 +245,7 @@ def ask_sonar_from_comment(comment_text, source_name=""):
 - 서브 메뉴가 있거나 여러 메뉴가 있어도 메뉴는 메인 메뉴는 하나이며, 둘다 메인 같으면 메인 타이틀 같은걸 쓰거나 이름을 적당히 합쳐줘. 그리고 모든 재료는 중복 없이 \"재료\"에 통합해주세요.
 - 재료 이름과 띄어쓰기도 올바르게 해줘
 - 재료 대체: 생수는 물로 대체해. 엑스트라 버진 올리브오일은 그냥 올리브오일로 대체. 파스타면 종류는 그냥 파스타라고 대체해줘. 즉석밥, 햇반, 백미 같은거는 그냥 밥으로 대체. 코인육수는 있는 그대로 해줘. ex) 꽃게코인육수 -> 꽃게코인육수.
-
+- 영상 하나에 여러가지의 다른 요리를 하는거 같으면 각 메뉴와 재료를 따로 추가해줘.  
 내용:
 {sanitize(comment_text)}
 
@@ -277,7 +278,7 @@ def ask_sonar_from_comment(comment_text, source_name=""):
 
 # ✅ 실행 부분
 videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=200)
-videos = videos_all[100:200]
+videos = videos_all[:10]
 existing_urls = get_existing_urls()
 youtube = build("youtube", "v3", developerKey=API_KEY)
 initialize_js_file_if_needed()

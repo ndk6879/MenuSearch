@@ -1,6 +1,192 @@
 const menuData_kr = [  
 {
   "name": "분석 불가",
+  "url": "https://youtu.be/BBu30A-ntew",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-05-30",
+  "ingredients": [],
+  "source": "더보기란"
+},
+
+{
+  "name": "오이 그릭요거트 냉파스타",
+  "url": "https://youtu.be/QXJ93kPHaYc",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-04",
+  "ingredients": [
+    "그릭요거트",
+    "화이트 발사믹 식초",
+    "마늘",
+    "꿀",
+    "쪽파",
+    "올리브오일",
+    "라임주스",
+    "소금",
+    "후추",
+    "미니오이",
+    "미니바질"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "와사비 냉모밀",
+  "url": "https://youtu.be/99_0lFxgTiU",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-05",
+  "ingredients": [
+    "물",
+    "디포리 해물 다시팩",
+    "대게백간장",
+    "미림",
+    "설탕",
+    "가다랑어포",
+    "무",
+    "와사비",
+    "와사비잎",
+    "메밀면",
+    "후리가케"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "분석 불가",
+  "url": "https://youtu.be/s9bwLCRejTo",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-09",
+  "ingredients": [],
+  "source": "고정댓글"
+},
+
+{
+  "name": "분석 불가",
+  "url": "https://youtu.be/npMxIRAgdTI",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-10",
+  "ingredients": [],
+  "source": "고정댓글"
+},
+
+{
+  "name": "분석 불가",
+  "url": "https://youtu.be/kI2uro6qY7Q",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-12",
+  "ingredients": [],
+  "source": "고정댓글"
+},
+
+{
+  "name": "이쑤시개 꼬치",
+  "url": "https://youtu.be/hHh9ARM5q38",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-13",
+  "ingredients": [
+    "그린 올리브",
+    "블랙 올리브",
+    "오이피클",
+    "고추피클",
+    "그라브락스",
+    "올리브오일",
+    "후추"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "바삭한 라이스 오믈렛",
+  "url": "https://youtu.be/2bB8mkYqVAQ",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-17",
+  "ingredients": [
+    "밥",
+    "계란",
+    "명란젓",
+    "초당옥수수",
+    "식빵",
+    "비건 마요네즈",
+    "쪽파",
+    "올리브오일",
+    "소금"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "안심 스테이크와 타이 스타일 칠리소스, 매콤한 팟타이",
+  "url": "https://youtu.be/9oSVHDPKj-Q",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-17",
+  "ingredients": [
+    "채끝",
+    "후추",
+    "소금",
+    "아보카도 오일",
+    "아스파라거스",
+    "쌀",
+    "참치액젓",
+    "냉동 홍시",
+    "라임",
+    "설탕",
+    "양파",
+    "쪽파",
+    "고수",
+    "청양고추",
+    "홍고추",
+    "고운 고추가루",
+    "쌀국수",
+    "새우",
+    "계란",
+    "숙주",
+    "마늘",
+    "땅콩 분태",
+    "홍시",
+    "팜슈가",
+    "고추기름",
+    "스리라차 소스"
+  ],
+  "source": "고정댓글"
+},
+
+{
+  "name": "분석 불가",
+  "url": "https://youtu.be/vRSLxJeutfo",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-18",
+  "ingredients": [],
+  "source": "고정댓글"
+},
+
+{
+  "name": "건너뜀 - 영상 너무 김",
+  "url": "https://youtu.be/rkSqPFxtDTM",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-05-26",
+  "ingredients": [],
+  "source": "자동 판별"
+},
+
+{
+  "name": "건너뜀 - 영상 너무 김",
+  "url": "https://youtu.be/FT4Zs-Ej_yI",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-09",
+  "ingredients": [],
+  "source": "자동 판별"
+},
+
+{
+  "name": "건너뜀 - 영상 너무 김",
+  "url": "https://youtu.be/Maoep_Uh93g",
+  "uploader": "공격수셰프 Striker chef",
+  "upload_date": "2025-06-16",
+  "ingredients": [],
+  "source": "자동 판별"
+},
+
+{
+  "name": "분석 불가",
   "url": "https://youtu.be/SMTmd9Y2dls",
   "uploader": "공격수셰프 Striker chef",
   "upload_date": "2023-10-18",

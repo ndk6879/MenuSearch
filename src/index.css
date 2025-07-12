@@ -15,8 +15,11 @@ body {
 }
 
 .container {
-  padding: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem;
   transition: background-color 0.3s ease, color 0.3s ease;
+  position: relative; /* ✨ Ensure this is present for absolute positioning later if needed */
 }
 
 .title {
@@ -26,17 +29,9 @@ body {
   text-align: center;
 }
 
-
-
-
-.search-section {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin: 24px auto;
-  padding: 12px 0;
-}
+/* section.container + section.container {
+  margin-top: 0.5rem;
+} */ /* Remove or comment this out as individual section margins will be controlled in App.js */
 
 .search-button {
   padding: 6px 10px;
@@ -69,11 +64,6 @@ body {
   background-color: #444;
 }
 
-.result-count {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
 .grid-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(240px, 1fr));
@@ -89,7 +79,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px;
+  padding: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -154,8 +144,7 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px; /* ✅ 기존 16px → 8px로 줄여 세로 높이 축소 */
-  /* position: sticky; */
+  padding: 10px 20px;
   top: 0;
   background-color: white;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
@@ -165,7 +154,6 @@ header {
 .app.dark header {
   background-color: #1e1e1e;
 }
-
 
 .header-left {
   display: flex;
@@ -201,15 +189,16 @@ header {
   background-color: #333;
 }
 
-.header-icon {
-  width: 20px;
-  height: 20px;
-  opacity: 0.8;
-  transition: opacity 0.2s ease;
+.header-logo {
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin-bottom: 0;
+  text-decoration: none;
+  color: #2e7d32;
 }
 
-.header-icon:hover {
-  opacity: 1;
+.app.dark .header-logo {
+  color: #90ee90;
 }
 
 /* ✅ Responsive */
@@ -240,12 +229,6 @@ header {
     gap: 8px;
   }
 
-  .search-section {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-
   .search-button {
     width: auto;
     min-width: 40px;
@@ -253,35 +236,104 @@ header {
     font-size: 0.85rem;
   }
 
-  
-
   .header-link {
     font-size: 0.85rem;
   }
-
-  .header-icon {
-    width: 18px;
-    height: 18px;
-  }
 }
 
+/* ✅ All 섹션 툴바 정렬 (수정됨) */
+.all-toolbar {
+  display: flex;
+  align-items: center; /* 세로 중앙 정렬 */
+  justify-content: space-between; /* 'All'과 검색 영역을 양 끝으로 분리 */
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.5rem; /* Adjusted for closer spacing */
+  padding: 0 1rem;
+}
 
-.header-logo {
-  font-size: 1.7rem;
-  font-weight: 700;
+.all-toolbar h2 {
+  margin: 0;
+  flex-shrink: 0; /* 'All' 텍스트가 줄어들지 않도록 함 */
+  font-size: 1.5rem;
+}
+
+.tagsearch-wrapper {
+  display: flex;
+  align-items: center; /* 검색창과 리셋 버튼 세로 중앙 정렬 */
+  justify-content: center; /* 검색창과 리셋 버튼을 이 영역의 가운데로 정렬 */
+  flex-grow: 1; /* 남은 공간을 차지하도록 하여 가운데 정렬을 위한 공간 확보 */
+  max-width: 700px; /* TagSearch.js의 maxWidth와 일치 */
+  margin: 0 auto; /* tagsearch-wrapper 자체를 가운데 정렬 */
+  /* 부모인 .all-toolbar가 space-between이므로, 이 auto margin이 flex-grow와 함께 작동하여 중앙에 위치하게 됩니다. */
+}
+
+.carousel-slide {
+  /* ...다른 스타일... */
+  background-color: #ffffff; /* ✨ 흰색으로 변경 */
+  /* ...다른 스타일... */
+}
+
+/* New/Adjusted styles for all-section-header if still in use, otherwise remove */
+.all-section-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 10;
+  padding: 20px 1rem;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
   margin-bottom: 0;
-  text-decoration: none;
 }
 
-
-/* ✅ 기본: 밝은 모드 (초록색) */
-.header-logo,
-.title {
-  color: #2e7d32;
+.all-section-header h2 {
+  color: white;
+  margin: 0;
+  font-size: 1.8rem;
 }
 
-/* ✅ 다크모드일 때만 덮어쓰기 (연두색) */
-.app.dark .header-logo,
-.app.dark .title {
-  color: #90ee90;
+.all-section-header .tagsearch-wrapper {
+  flex-grow: 1;
+  max-width: 500px;
+  margin-left: 20px;
+}
+
+.tagsearch-wrapper button {
+  z-index: 11;
+}
+
+.app.dark .all-section-header {
+  background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0));
+}
+
+.app.dark .all-section-header h2 {
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .all-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 15px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0));
+  }
+
+  .all-section-header h2 {
+      margin-bottom: 10px;
+  }
+
+  .all-section-header .tagsearch-wrapper {
+      margin-left: 0;
+      width: 100%;
+      max-width: none;
+  }
+
+  .container .menu-list.grid-list {
+      padding-top: 100px;
+  }
 }

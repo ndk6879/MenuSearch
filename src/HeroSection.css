@@ -1,8 +1,11 @@
+/* HeroSection.css */
+
+/* 기본 컨테이너 스타일 (기존 유지) */
 .hero-container {
   position: relative;
   height: 92.5vh;
   width: 100%;
-  background-image: url("/public/hero-background-optimized.webp");
+  background-image: url("/public/hero-background-optimized.webp"); /* 배경 이미지 (필요시 교체) */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -19,7 +22,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.25); /* 기존보다 밝게 */
+  background: rgba(0, 0, 0, 0.25); /* 오버레이 색상 */
   z-index: 1;
 }
 
@@ -28,37 +31,368 @@
   max-width: 800px;
   padding: 1rem;
 }
+
+/* 캐러셀 전체 컨테이너 스타일 */
+.hero-carousel {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  background-color: white; /* 캐러셀 배경색을 흰색으로 통일 */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); /* 은은한 그림자 추가 */
+}
+
+/* 캐러셀 슬라이드 개별 스타일 */
+.carousel-slide {
+  position: relative;
+  display: flex; /* flexbox 사용 */
+  align-items: center; /* 세로 중앙 정렬 */
+  height: 500px; /* 캐러셀 슬라이드 높이 증가 (이미지가 더 크게 보이도록) */
+  background-color: white; /* 각 슬라이드 배경색을 흰색으로 통일 */
+  overflow: hidden;
+}
+
+/* 이미지 섹션 스타일 */
+.carousel-image-section {
+  flex: 0 0 60%; /* 이미지 섹션이 전체 너비의 60%를 차지하도록 고정 */
+  height: 100%; /* 슬라이드 높이 꽉 채움 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0; /* 이미지 주변 패딩 제거하여 공간 최대화 */
+  box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+  background-color: black; /* ✨ 이미지 섹션 배경을 검은색으로 변경하여 이미지 자체의 검은 여백과 어우러지게 함 */
+}
+
+.carousel-image-section img { /* 이미지 섹션 내 이미지 스타일 */
+  max-height: 100%; /* 이미지 높이를 컨테이너에 맞춤 */
+  max-width: 100%; /* 이미지 너비를 컨테이너에 맞춤 */
+  object-fit: contain; /* 이미지가 잘리지 않고 전체가 보이도록 설정 */
+  display: block;
+  filter: none; /* 이미지 필터 제거 */
+}
+
+/* 텍스트 섹션 스타일 */
+.carousel-text-section {
+  flex: 0 0 40%; /* 텍스트 섹션이 전체 너비의 40%를 차지하도록 고정 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 40px; /* 텍스트 섹션 내부 여백 */
+  color: #333; /* 텍스트 색상을 어두운 회색으로 변경 (흰색 배경에 대비) */
+  text-align: left; /* 기본 텍스트 정렬 */
+  box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+}
+
+/* 슬라이드 레이아웃에 따른 이미지/텍스트 순서 및 정렬 */
+.carousel-slide.image-right {
+  flex-direction: row-reverse; /* 이미지 오른쪽, 텍스트 왼쪽 */
+}
+
+.carousel-slide.image-left {
+  flex-direction: row; /* 이미지 왼쪽, 텍스트 오른쪽 (기본값) */
+}
+
+/* 히어로 섹션 제목/부제목 스타일 */
 .hero-title {
-  font-size: clamp(1.3rem, 3.5vw, 2.2rem); /* 더 작고 자연스럽게 */
-  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.5rem, 3.5vw, 2.5rem); /* 폰트 크기 살짝 줄임 */
+  font-family: 'Noto Sans', sans-serif;
   font-weight: 700;
-  margin-bottom: 0.6rem;
-  color: #fff;
+  margin-bottom: 0.6rem; /* 마진 줄임 */
+  color: #333; /* 텍스트 색상 어둡게 */
+  line-height: 1.2;
 }
 
 .hero-subtitle {
-  font-size: 1rem; /* 살짝 작게 */
-  opacity: 0.85;
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
-  color: #ddd;
+  font-size: clamp(0.8rem, 1.8vw, 1.1rem); /* 폰트 크기 살짝 줄임 */
+  opacity: 0.9;
+  margin-bottom: 1.5rem; /* 마진 줄임 */
+  line-height: 1.6;
+  color: #555; /* 서브타이틀 색상 더 어둡게 */
 }
 
+/* 히어로 섹션 버튼 스타일 */
 .hero-button {
-  font-size: 0.9rem; /* 작게 */
-  padding: 8px 16px;  /* 작게 */
+  all: unset;
+  display: inline-block;
+  padding: 10px 20px; /* 버튼 패딩 줄임 */
   border-radius: 8px;
-  border: none;
-  background-color: white;
-  color: black;
-  font-weight: 500;
+  background-color: #2563eb;
+  color: white;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  text-decoration: none;
+  font-size: 0.9rem; /* 버튼 폰트 크기 줄임 */
 }
-
 
 .hero-button:hover {
-  background-color: #f0f0f0;
-  transform: translateY(-2px);
+  background-color: #1a4dbe;
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* 캐러셀 점 내비게이션 스타일 */
+.carousel .control-dots {
+  bottom: 20px;
+}
+
+.carousel .control-dots .dot {
+  background: rgba(0, 0, 0, 0.4); /* 점 색상 어둡게 (흰색 배경에 대비) */
+  box-shadow: none;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  width: 10px;
+  height: 10px;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.carousel .control-dots .dot.selected,
+.carousel .control-dots .dot:hover {
+  background: #2563eb;
+  transform: scale(1.2);
+}
+
+/* 캐러셀 화살표 내비게이션 스타일 */
+.carousel .control-arrow {
+  opacity: 0.7;
+  transition: opacity 0.3s ease, background-color 0.3s ease;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel .control-arrow:before {
+  border: none;
+  font-family: 'FontAwesome';
+  font-size: 1.5rem;
+  color: white;
+}
+
+.carousel .control-prev:before {
+  content: '\f104';
+}
+
+.carousel .control-next:before {
+  content: '\f105';
+}
+
+.carousel .control-arrow:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .carousel-slide {
+    flex-direction: column; /* 모바일에서는 세로로 정렬 */
+    height: auto; /* 높이 자동 조절 */
+    padding: 20px 0; /* 모바일 슬라이드 상하 패딩 */
+  }
+
+  .carousel-image-section {
+    width: 100%;
+    height: 250px; /* 모바일 이미지 섹션 높이 고정 */
+    padding: 0 20px; /* 모바일 이미지 좌우 패딩 */
+  }
+
+  .carousel-text-section {
+    width: 100%;
+    padding: 20px; /* 모바일 텍스트 섹션 패딩 */
+    text-align: center; /* 모바일 텍스트 가운데 정렬 */
+  }
+
+  .hero-title {
+    font-size: 1.8rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .hero-button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+}
+/* HeroSection.css */
+
+/* ... (기존 스타일 유지) ... */
+
+/* 이미지 섹션 스타일 */
+.carousel-image-section {
+  flex: 0 0 60%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  box-sizing: border-box;
+  background-color: white; /* ✨ 이미지 섹션 배경을 흰색으로 변경 */
+}
+
+.carousel-image-section img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  filter: none;
+}
+
+/* 텍스트 섹션 스타일 */
+.carousel-text-section {
+  flex: 0 0 40%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 40px;
+  color: #333;
+  text-align: left;
+  box-sizing: border-box;
+  background-color: #ffffff; /* ✨ 텍스트 섹션 배경도 흰색으로 통일 */
+  border-left: 1px solid #eee; /* ✨ 이미지와 텍스트 섹션 경계에 미묘한 선 추가 */
+}
+
+/* 히어로 섹션 제목/부제목 스타일 */
+.hero-title {
+  font-size: clamp(1.8rem, 4vw, 2.8rem); /* 폰트 크기 살짝 키움 */
+  font-family: 'Noto Sans', sans-serif;
+  font-weight: 700;
+  margin-bottom: 0.8rem; /* 마진 조정 */
+  color: #222; /* 텍스트 색상 더 어둡게 */
+  line-height: 1.2;
+  letter-spacing: -0.5px; /* 글자 간격 조정 */
+}
+
+.hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.3rem); /* 폰트 크기 살짝 키움 */
+  opacity: 0.85; /* 투명도 살짝 줄임 */
+  margin-bottom: 2rem; /* 마진 늘림 */
+  line-height: 1.6;
+  color: #444; /* 서브타이틀 색상 조정 */
+}
+
+/* 히어로 섹션 버튼 스타일 */
+.hero-button {
+  all: unset;
+  display: inline-block;
+  padding: 12px 25px; /* 버튼 패딩 늘림 */
+  border-radius: 8px;
+  background-color: #2563eb;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); /* 그림자 색상 및 강도 변경 */
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  text-decoration: none;
+  font-size: 1rem; /* 버튼 폰트 크기 조정 */
+  letter-spacing: 0.5px;
+}
+
+.hero-button:hover {
+  background-color: #1a4dbe;
+  transform: translateY(-4px); /* 호버 시 더 크게 움직이도록 */
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4); /* 호버 시 그림자 강화 */
+}
+
+/* 캐러셀 점 내비게이션 스타일 */
+.carousel .control-dots {
+  bottom: 30px; /* 점 내비게이션을 더 아래로 내림 */
+}
+
+.carousel .control-dots .dot {
+  background: rgba(0, 0, 0, 0.3); /* 점 색상 조정 */
+  box-shadow: none;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  width: 10px;
+  height: 10px;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.carousel .control-dots .dot.selected,
+.carousel .control-dots .dot:hover {
+  background: #2563eb;
+  transform: scale(1.3); /* 선택되거나 호버 시 더 크게 */
+}
+
+/* 캐러셀 화살표 내비게이션 스타일 */
+.carousel .control-arrow {
+  opacity: 0.6;
+  transition: opacity 0.3s ease, background-color 0.3s ease;
+  background: rgba(0, 0, 0, 0.3); /* 화살표 배경색 조정 */
+  border-radius: 50%;
+  width: 45px; /* 화살표 크기 키움 */
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel .control-arrow:before {
+  border: none;
+  font-family: 'FontAwesome';
+  font-size: 1.8rem; /* 화살표 아이콘 크기 키움 */
+  color: white;
+}
+
+.carousel .control-arrow:hover {
+  opacity: 0.9;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .carousel-slide {
+    flex-direction: column;
+    height: auto;
+    padding: 30px 0; /* 모바일 슬라이드 상하 패딩 늘림 */
+  }
+
+  .carousel-image-section {
+    width: 100%;
+    height: 220px; /* 모바일 이미지 섹션 높이 조정 */
+    padding: 0 15px; /* 모바일 이미지 좌우 패딩 조정 */
+    background-color: white; /* 모바일에서도 흰색 배경 유지 */
+  }
+
+  .carousel-text-section {
+    width: 100%;
+    padding: 25px; /* 모바일 텍스트 섹션 패딩 조정 */
+    text-align: center;
+    border-left: none; /* 모바일에서는 선 제거 */
+    border-top: 1px solid #eee; /* 모바일에서는 상단에 선 추가 */
+  }
+
+  .hero-title {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+
+  .carousel .control-dots {
+    bottom: 15px; /* 모바일에서 점 내비게이션 위치 조정 */
+  }
+}
+
+/* 캐러셀 전체 컨테이너 스타일 */
+.hero-carousel {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  background-color: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-top: 20px; /* ✨ 캐러셀을 아래로 20px 내림 */
 }
