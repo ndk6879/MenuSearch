@@ -334,6 +334,6 @@ header {
   }
 
   .container .menu-list.grid-list {
-      padding-top: 100px;
+      padding-top: 0;
   }
 }
