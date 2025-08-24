@@ -1,5 +1,3 @@
-// test for commit after fetch
-
 import React, { useState, useRef } from "react";
 import axios from "axios";
 import "./App.css";
@@ -91,6 +89,7 @@ function App() {
     "배추 김치": "김치",
     "배추김치": "김치",
     "신김치": "김치",
+    "백김치": "김치",
     "묵은지": "김치",
 
     "배": "배",
@@ -434,8 +433,19 @@ function App() {
 
 
   ingredientOptions.sort((a, b) => a.label.localeCompare(b.label, "ko")); // 한글 정렬도 대응
+  
 
-
+  const CHEFS_PICKS = [
+    { id: "OF04fVMINVg", url: "https://www.youtube.com/watch?v=OF04fVMINVg" },
+    { id: "0kPXAkQKtAY", url: "https://www.youtube.com/watch?v=0kPXAkQKtAY" },
+    { id: "QKxViaaB_cQ", url: "https://www.youtube.com/watch?v=QKxViaaB_cQ" },
+  ];
+  
+  const chefsPicks = CHEFS_PICKS.map(pick => {
+    const found = sortedData.find(item => extractYouTubeId(item.url) === pick.id);
+    return found || { name: "제목 없음", ingredients: [], url: pick.url }; // fallback
+  });
+  
   return (
     <div className={darkMode ? "app dark" : "app light"}>
       <header className="header">
@@ -460,56 +470,50 @@ function App() {
 
 {/* 🧑‍🍳 Chef's Picks 섹션 */}
 
-<section className="container" style={{ marginTop: "3rem" }}> {/* ✨ margin-top 값 증가 */}
+
+
+<section className="container" style={{ marginTop: "3rem" }}>
   <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>🧑‍🍳 Chef's Picks</h2>
   <ul className="menu-list grid-list">
-    {sortedData
-      .filter(item =>
-        item.name !== "Only 제품 설명 OR 홍보" &&
-        item.name !== "건너김 - 영상 너무 김" &&
-        item.name !== "분석 불가" &&
-        !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
-      )
-      .slice(0, 3)
-      .map((item, idx) => (
-        <li key={idx} className="menu-card">
-          <a href={item.url} target="_blank" rel="noopener noreferrer">
-            <img
-                  src={`http://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
-                  alt="thumbnail"
-              className="menu-thumbnail"
-            />
-          </a>
-          <div className="menu-text">
-            <div className="menu-name">🍽️ {item.name}</div>
-            <div className="menu-ingredients">🥕 {item.ingredients?.join(", ")}</div>
-          </div>
-        </li>
-      ))}
+    {chefsPicks.map((item, idx) => (
+      <li key={idx} className="menu-card">
+        <a href={item.url} target="_blank" rel="noopener noreferrer">
+          <img
+            src={`http://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
+            alt="thumbnail"
+            className="menu-thumbnail"
+          />
+        </a>
+        <div className="menu-text">
+          <div className="menu-name">🍽️ {item.name}</div>
+          <div className="menu-ingredients">🥕 {item.ingredients?.join(", ")}</div>
+        </div>
+      </li>
+    ))}
   </ul>
 </section>
 
 
-
 {/* 🆕 Latest Drop 섹션 */}
 
-<section className="container" style={{ marginTop: "3rem" }}> {/* ✨ Adjusted margin-top */}
+{/* 🆕 Latest Drops 섹션 */}
+<section className="container" style={{ marginTop: "3rem" }}>
   <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>🆕 Latest Drops</h2>
   <ul className="menu-list grid-list">
     {sortedData
       .filter(item =>
         item.name !== "Only 제품 설명 OR 홍보" &&
-        item.name !== "건너김 - 영상 너무 김" &&
+        item.name !== "건너뜀 - 영상 너무 김" &&
         item.name !== "분석 불가" &&
         !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
       )
-      .slice(3, 6)
+      .slice(0, 3)  
       .map((item, idx) => (
         <li key={idx} className="menu-card">
           <a href={item.url} target="_blank" rel="noopener noreferrer">
             <img
-                  src={`http://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
-                  alt="thumbnail"
+              src={`http://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
+              alt="thumbnail"
               className="menu-thumbnail"
             />
           </a>
@@ -521,7 +525,6 @@ function App() {
       ))}
   </ul>
 </section>
-
 
 
 
@@ -549,7 +552,7 @@ function App() {
           (item) =>
             item.name !== "Only 제품 설명 OR 홍보" &&
             item.name !== "분석 불가" &&
-            item.name !== "건너김 - 영상 너무 김" &&
+            item.name !== "건너뜀 - 영상 너무 김" &&
             !(item.ingredients || []).includes("Only 제품 설명 OR 홍보")
         )
         .map((item, idx) => (
