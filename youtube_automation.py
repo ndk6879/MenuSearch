@@ -1,5 +1,5 @@
 # ✅ 실행 시 고정댓글 → 더보기란까지만 확인하고 스크립트는 생략한 버전
-# 호윤솊입니다 제발ㅇ
+# featured용입니다
 
 import json  
 from googleapiclient.discovery import build
