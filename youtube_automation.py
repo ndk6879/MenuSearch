@@ -59,7 +59,7 @@ def safe_print(msg):
 load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 SONAR_API_KEY = os.getenv("SONAR_API_KEY")
-CHANNEL_ID = "UC2IIBYSTMSvJaK2UJzCC06g"
+CHANNEL_ID = "UC0x63Jy1Sy63grrf_Pq0WEg"
 
 def extract_json_block(text):
     try:
