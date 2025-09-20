@@ -1,5 +1,6 @@
 # ✅ 실행 시 고정댓글 → 더보기란까지만 확인하고 스크립트는 생략한 버전
-# 공격수 솊
+# 공솊 브랜치임 
+
 
 import json  
 from googleapiclient.discovery import build
