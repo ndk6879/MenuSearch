@@ -1,5 +1,15 @@
 # ✅ 실행 시 고정댓글 → 더보기란까지만 확인하고 스크립트는 생략한 버전
 # featured용입니다
+'''
+
+할거 
+
+1. 메인페이지에서 원하는 영상의 링크를 붙이면 재료 파싱해서 데이터 저장 
+2. 디테일 페이지 만들기 - 각 메뉴의 요리 순서와 용량도 저장. 각 메뉴의 detail 페이지 만들고 그 안에 보여주기 
+3. 댓글, 좋아요, 목록에 저장 같은 기능도 
+
+
+'''
 
 import json  
 from googleapiclient.discovery import build
@@ -20,6 +30,56 @@ import google.auth
 
 import socket
 import httplib2
+
+# youtube_automation.py (맨 위쪽에 추가)
+import re, json
+from googleapiclient.discovery import build
+
+def analyze_one_video(url: str) -> dict:
+    try:
+        # 1. videoId 추출
+        match = re.search(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", url)
+        if not match:
+            return {"ok": False, "error": "영상 URL에서 videoId 추출 실패"}
+        video_id = match.group(1)
+
+        youtube = build("youtube", "v3", developerKey=API_KEY)
+        video_response = youtube.videos().list(part="snippet", id=video_id).execute()
+        snippet = video_response["items"][0]["snippet"]
+        uploader_name = snippet["channelTitle"]
+        upload_date = snippet["publishedAt"][:10]
+        video_url = f"https://youtu.be/{video_id}"
+
+        # 2. 고정댓글/더보기란 가져오기
+        comment, author_id = get_first_comment_and_author(API_KEY, video_id)
+        sources = [
+            ("고정댓글", comment if author_id == snippet["channelId"] else None),
+            ("더보기란", get_description(youtube, video_id))
+        ]
+
+        # 3. Sonar API 분석
+        for source_name, text in sources:
+            if not text: 
+                continue
+            result = ask_sonar_from_comment(text, source_name)
+            parsed = extract_json_block(result)
+            if parsed:
+                return {
+                    "ok": True,
+                    "result": {
+                        "name": parsed["메뉴"],
+                        "ingredients": parsed["재료"],
+                        "source": source_name,
+                        "uploader": uploader_name,
+                        "upload_date": upload_date,
+                        "video_url": video_url,
+                    }
+                }
+
+        return {"ok": False, "error": "분석 실패"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 
 socket.setdefaulttimeout(10)
 
@@ -276,56 +336,59 @@ def ask_sonar_from_comment(comment_text, source_name=""):
         safe_print(f"❌ Sonar 응답 없음 또는 실패: {response.status_code}")
         return None
 
-# ✅ 실행 부분
-videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=200)
-videos = videos_all[:10]
-existing_urls = get_existing_urls()
-youtube = build("youtube", "v3", developerKey=API_KEY)
-initialize_js_file_if_needed()
 
-for idx, (video_id, uploader_id) in enumerate(videos, start=1):
-    video_url = f"https://youtu.be/{video_id}"
-    if video_url in existing_urls:
-        safe_print(f"⚠️ 이미 저장된 URL → {video_url} → 건너뜀")
-        continue
+if __name__ == "__main__":
 
-    safe_print(f"\n📌 영상 {idx}번: {video_url}")
-    video_response = youtube.videos().list(part="snippet", id=video_id).execute()
-    snippet = video_response["items"][0]["snippet"]
-    uploader_name = snippet["channelTitle"]
-    upload_date = snippet["publishedAt"][:10]
-    comment, author_id = get_first_comment_and_author(API_KEY, video_id)
+    # ✅ 실행 부분
+    videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=200)
+    videos = videos_all[:10]
+    existing_urls = get_existing_urls()
+    youtube = build("youtube", "v3", developerKey=API_KEY)
+    initialize_js_file_if_needed()
 
-    sources = [
-        ("고정댓글", comment if author_id == uploader_id else None),
-        ("더보기란", get_description(youtube, video_id))
-    ]
-
-    for source_name, text in sources:
-        safe_print(f"⏭️ 현재 단계: {source_name} 확인 중...")
-        if not text:
-            safe_print(f"🚫 {source_name} 없음 또는 확인 불가 → 다음 단계로 이동")
+    for idx, (video_id, uploader_id) in enumerate(videos, start=1):
+        video_url = f"https://youtu.be/{video_id}"
+        if video_url in existing_urls:
+            safe_print(f"⚠️ 이미 저장된 URL → {video_url} → 건너뜀")
             continue
-        safe_print(f"📄 {source_name} 분석 시도")
-        result = ask_sonar_from_comment(text, source_name)
-        safe_print(f"🧠 Sonar 응답 ({source_name}):\n{result}")
 
-        parsed = extract_json_block(result)
-        if parsed:
-            parsed["출처"] = source_name
-            append_to_js(parsed, video_url, uploader_name, upload_date)
-            break
+        safe_print(f"\n📌 영상 {idx}번: {video_url}")
+        video_response = youtube.videos().list(part="snippet", id=video_id).execute()
+        snippet = video_response["items"][0]["snippet"]
+        uploader_name = snippet["channelTitle"]
+        upload_date = snippet["publishedAt"][:10]
+        comment, author_id = get_first_comment_and_author(API_KEY, video_id)
 
-        else:
-            safe_print(f"⚠️ {source_name} 분석 실패 → 다음 단계로 이동")
-            failed_entry = {
-                "메뉴": "분석 불가",
-                "재료": [],
-                "출처": source_name
-            }
-            append_to_js(failed_entry, video_url, uploader_name, upload_date)
-            break
+        sources = [
+            ("고정댓글", comment if author_id == uploader_id else None),
+            ("더보기란", get_description(youtube, video_id))
+        ]
 
-    safe_print("-" * 60)
+        for source_name, text in sources:
+            safe_print(f"⏭️ 현재 단계: {source_name} 확인 중...")
+            if not text:
+                safe_print(f"🚫 {source_name} 없음 또는 확인 불가 → 다음 단계로 이동")
+                continue
+            safe_print(f"📄 {source_name} 분석 시도")
+            result = ask_sonar_from_comment(text, source_name)
+            safe_print(f"🧠 Sonar 응답 ({source_name}):\n{result}")
 
-finalize_js_file()
+            parsed = extract_json_block(result)
+            if parsed:
+                parsed["출처"] = source_name
+                append_to_js(parsed, video_url, uploader_name, upload_date)
+                break
+
+            else:
+                safe_print(f"⚠️ {source_name} 분석 실패 → 다음 단계로 이동")
+                failed_entry = {
+                    "메뉴": "분석 불가",
+                    "재료": [],
+                    "출처": source_name
+                }
+                append_to_js(failed_entry, video_url, uploader_name, upload_date)
+                break
+
+        safe_print("-" * 60)
+
+    finalize_js_file()

@@ -1,3 +1,5 @@
+
+// 맨 위 임포트에 추가
 import React, { useState, useRef } from "react";
 import axios from "axios";
 import "./App.css";
@@ -10,6 +12,9 @@ import { FaGithub, FaInstagram } from "react-icons/fa";
 import { Carousel } from 'react-responsive-carousel';
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 
+import Modal from "./components/Modal";
+import AnalyzePanel from "./components/AnalyzePanel";
+
 
 function extractYouTubeId(url) {
   const match = url.match(/(?:\?v=|\/embed\/|\.be\/|\/v\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
@@ -17,6 +22,8 @@ function extractYouTubeId(url) {
 }
 
 function App() {
+  const [open, setOpen] = useState(false);
+
   const [language, setLanguage] = useState("kr");
   const [selectedUploader, setSelectedUploader] = useState("all");
   const [darkMode, setDarkMode] = useState(false);
@@ -460,6 +467,10 @@ function App() {
           <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer">
             <FaInstagram size={20} color="#E1306C" />
           </a>
+
+          
+
+
           <button onClick={toggleDarkMode} className="search-button">
             {darkMode ? "☀️" : "🌙"}
           </button>
@@ -469,8 +480,13 @@ function App() {
       {/* <HeroSection onScrollToSearch={scrollToSearch} /> */}
 
 {/* 🧑‍🍳 Chef's Picks 섹션 */}
+{/* 모달 열기 버튼 */}
+<button onClick={() => setOpen(true)}>링크 분석</button>
 
-
+{/* 모달 */}
+<Modal open={open} onClose={() => setOpen(false)}>
+  <AnalyzePanel apiBase="http://localhost:8000" />
+</Modal>
 
 <section className="container" style={{ marginTop: "3rem" }}>
   <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>🧑‍🍳 Chef's Picks</h2>
