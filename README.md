@@ -14,7 +14,7 @@ However, I often ran into a common problem: having leftover ingredients and no i
 I've seen a lot of people facing the same problem as I do.
 
 So I thought:  
-**What if I could build a website that helps people search for recipes based on the ingredients they already have—powered by AI?**
+**What if I could build a website that helps people search for recipes based on the ingredients they already have with AI?**
 
 That’s how **Findish** was born:  
 An ingredient-first, bilingual (Korean-English) recipe search tool that helps people discover relevant YouTube cooking videos using what’s already in their fridge.  
