@@ -1,6 +1,8 @@
 ## 🍽️ Menu Search Platform
 
-**Findish – AI-powered Recipe Search from YouTube**
+https://menu-search.vercel.app/
+
+**Findish – Find Your Recipe based On Ingredients You Have!**
 
 Findish is an ingredient-based recipe search platform powered by Perplexity’s Sonar API.  
 It helps users discover dishes using the ingredients they already have by automatically extracting recipes from YouTube content—such as pinned comments, descriptions, and transcripts.
