@@ -1,19 +1,6 @@
-# ✅ 실행 시 고정댓글 → 더보기란까지만 확인하고 스크립트는 생략한 버전
-# featured용입니다
-'''
-
-할거 
-
-1. 메인페이지에서 원하는 영상의 링크를 붙이면 재료 파싱해서 데이터 저장 
-2. 디테일 페이지 만들기 - 각 메뉴의 요리 순서와 용량도 저장. 각 메뉴의 detail 페이지 만들고 그 안에 보여주기 
-3. 댓글, 좋아요, 목록에 저장 같은 기능도 
-
-
-'''
-
 import json  
 from googleapiclient.discovery import build
-from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api import YouTubeTranscriptApi # ✅ 자막 API 추가
 import requests
 import logging
 import sys
@@ -34,6 +21,10 @@ import httplib2
 # youtube_automation.py (맨 위쪽에 추가)
 import re, json
 from googleapiclient.discovery import build
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import (
+    TranscriptsDisabled, NoTranscriptFound, VideoUnavailable, TooManyRequests
+)
 
 def analyze_one_video(url: str) -> dict:
     try:
@@ -50,11 +41,15 @@ def analyze_one_video(url: str) -> dict:
         upload_date = snippet["publishedAt"][:10]
         video_url = f"https://youtu.be/{video_id}"
 
-        # 2. 고정댓글/더보기란 가져오기
+        # 2. 고정댓글/더보기란/자막 가져오기
         comment, author_id = get_first_comment_and_author(API_KEY, video_id)
+        transcript_text = get_transcript(video_id) # ✅ 자막 가져오기 추가
+        
+        # ✅ 세 가지 출처를 우선 순위별로 정의
         sources = [
             ("고정댓글", comment if author_id == snippet["channelId"] else None),
-            ("더보기란", get_description(youtube, video_id))
+            ("더보기란", get_description(youtube, video_id)),
+            ("자막", transcript_text) # ✅ 자막 소스 추가
         ]
 
         # 3. Sonar API 분석
@@ -69,6 +64,7 @@ def analyze_one_video(url: str) -> dict:
                     "result": {
                         "name": parsed["메뉴"],
                         "ingredients": parsed["재료"],
+                        "steps": parsed.get("순서", []), # ✅ 순서(steps) 필드 추가
                         "source": source_name,
                         "uploader": uploader_name,
                         "upload_date": upload_date,
@@ -121,12 +117,14 @@ API_KEY = os.getenv("YOUTUBE_API_KEY")
 SONAR_API_KEY = os.getenv("SONAR_API_KEY")
 CHANNEL_ID = "UC0x63Jy1Sy63grrf_Pq0WEg"
 
+# ✅ '순서' 필드 검증 로직 추가
 def extract_json_block(text):
     try:
         match = re.search(r'\{[\s\S]*?\}', text)
         if match:
             parsed = json.loads(match.group())
-            if "메뉴" in parsed and "재료" in parsed:
+            # 메뉴, 재료, 순서 모두 있는지 확인
+            if "메뉴" in parsed and "재료" in parsed and "순서" in parsed: 
                 return parsed
     except Exception as e:
         safe_print(f"❌ JSON 파싱 실패: {e}")
@@ -140,6 +138,7 @@ def get_existing_urls(file_path="src/menuData_kr.js"):
         urls = re.findall(r'"url":\s*"([^"]+)"', content)
         return set(urls)
 
+# ✅ 'steps' 필드 추가 및 저장 로직 수정
 def append_to_js(parsed_data, video_url, uploader_name, upload_date, file_path="src/menuData_kr.js"):
     try:
         entry = {
@@ -148,6 +147,7 @@ def append_to_js(parsed_data, video_url, uploader_name, upload_date, file_path="
             "uploader": uploader_name,
             "upload_date": upload_date,
             "ingredients": parsed_data["재료"],
+            "steps": parsed_data.get("순서", []), # ✅ 순서 필드를 'steps'로 저장
             "source": parsed_data.get("출처", "unknown")
         }
 
@@ -164,10 +164,6 @@ def append_to_js(parsed_data, video_url, uploader_name, upload_date, file_path="
                     continue
             lines = content.splitlines()
 
-                # 🔧 수정 전:
-        close_idx = next((i for i, line in reversed(list(enumerate(lines))) if line.strip() == "]"), -1)
-
-        # ✅ 수정 후:
         close_idx = next((i for i, line in reversed(list(enumerate(lines))) if line.strip().startswith("]")), -1)
 
         export_idx = next((i for i, line in reversed(list(enumerate(lines))) if "export default" in line), -1)
@@ -199,7 +195,6 @@ def finalize_js_file(file_path="src/menuData_kr.js"):
         safe_print("📁 데이터 추가 완료")
     except Exception as e:
         safe_print(f"❌ 데이터 실패: {e}")
-
 
 
 def get_video_ids_and_channel(api_key, channel_id, max_results=200):
@@ -247,6 +242,7 @@ def get_video_ids_and_channel(api_key, channel_id, max_results=200):
                         {
                             "메뉴": "건너뜀 - 영상 너무 김",
                             "재료": [],
+                            "순서": [], # ✅ 순서 필드 추가
                             "출처": "자동 판별"
                         },
                         video_url,
@@ -264,6 +260,36 @@ def get_video_ids_and_channel(api_key, channel_id, max_results=200):
 
     return videos[:max_results]
 
+
+# ✅ 자막 가져오는 함수 추가
+def get_transcript(video_id):
+    try:
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        
+        ko_transcript = None
+        for t in transcript_list:
+            if t.language_code == 'ko':
+                ko_transcript = t
+                break
+        
+        if not ko_transcript:
+            for t in transcript_list:
+                 if t.is_generated or t.language_code == 'en': 
+                     ko_transcript = t
+                     break
+
+        if not ko_transcript:
+            safe_print("🚫 한국어 또는 다른 사용 가능한 자막 없음")
+            return None
+
+        transcript = ko_transcript.fetch()
+        full_text = " ".join([item['text'] for item in transcript])
+        
+        return full_text
+        
+    except Exception as e:
+        safe_print(f"❌ 자막 가져오기 실패: {e}")
+        return None
 
 def get_first_comment_and_author(api_key, video_id):
     youtube = build("youtube", "v3", developerKey=api_key)
@@ -285,7 +311,7 @@ def get_description(youtube, video_id):
     except Exception as e:
         safe_print(f"❌ 더보기란 가져오기 실패: {e}")
         return None
-
+# ✅ ask_sonar_from_comment 함수 전체 (수정 완료 버전)
 def ask_sonar_from_comment(comment_text, source_name=""):
     headers = {
         "Authorization": f"Bearer {SONAR_API_KEY}",
@@ -294,25 +320,27 @@ def ask_sonar_from_comment(comment_text, source_name=""):
 
     prompt_prefix = {
         "고정댓글": "이 댓글은 유튜브 요리 영상의 고정 댓글로 추정됩니다.",
-        "더보기란": "이 텍스트는 유튜브 영상의 더보기란입니다. 메뉴/재료와 무관하거나 광고, 제품 홍보, 링크 안내가 주된 경우 분석하지 말고 '분석 불가'를 출력해주세요."
+        "더보기란": "이 텍스트는 유튜브 영상의 더보기란입니다. 메뉴/재료와 무관하거나 광고, 제품 홍보, 링크 안내가 주된 경우 분석하지 말고 '분석 불가'를 출력해주세요.",
+        "자막": "이 텍스트는 유튜브 영상의 자막입니다. 영상에서 요리하는 내용만 추려서 메뉴/재료/순서를 추출해야 합니다. 쓸데없는 대화, 배경 설명, PPL 등은 무시하고 **오직 요리 순서에 해당하는 문장**만 간단히 요약하여 순서에 포함해주세요."
     }
 
     prompt = f"""{prompt_prefix.get(source_name, '')}
 
-내용에서 요리 메뉴 이름과 재료들을 JSON 형식으로 추출해주세요.
-- 다진/깐/삶은 등의 수식어는 제거하고 재료 이름만 포함해주세요. 예) 깐마늘 → 마늘, 다진 쪽파 → 쪽파
-- 메뉴나 재료가 없고 제품 설명이나 홍보만 있다면 \"Only 제품 설명 OR 홍보\"를 출력해주세요.
-- 서브 메뉴가 있거나 여러 메뉴가 있어도 메뉴는 메인 메뉴는 하나이며, 둘다 메인 같으면 메인 타이틀 같은걸 쓰거나 이름을 적당히 합쳐줘. 그리고 모든 재료는 중복 없이 \"재료\"에 통합해주세요.
-- 재료 이름과 띄어쓰기도 올바르게 해줘
-- 재료 대체: 생수는 물로 대체해. 엑스트라 버진 올리브오일은 그냥 올리브오일로 대체. 파스타면 종류는 그냥 파스타라고 대체해줘. 즉석밥, 햇반, 백미 같은거는 그냥 밥으로 대체. 코인육수는 있는 그대로 해줘. ex) 꽃게코인육수 -> 꽃게코인육수.
-- 영상 하나에 여러가지의 다른 요리를 하는거 같으면 각 메뉴와 재료를 따로 추가해줘.  
+내용에서 요리 메뉴 이름, 재료들, 그리고 **요리 순서(레시피)**를 JSON 형식으로 추출해주세요.
+
+- 메뉴나 재료/순서가 없고 제품 설명이나 홍보만 있다면 \"Only 제품 설명 OR 홍보\"를 출력해주세요.
+- 서브 메뉴가 있거나 여러 메뉴가 있어도 메인 메뉴는 하나이며, 둘다 메인 같으면 메인 타이틀 같은걸 쓰거나 이름을 적당히 합쳐줘.
+- **재료**: 모든 재료는 중복 없이 \"재료\"에 통합해주세요. (다진/깐 등의 수식어는 제거하고 이름만 남기세요. 예: 깐마늘 → 마늘)
+- **순서**: 요리 순서를 단계별 배열로 추출해주세요. **만약 입력된 내용에 이미 명확하게 정리된 단계별 순서가 있다면, 있는걸 사용해주세요.**
+
 내용:
 {sanitize(comment_text)}
 
 형식:
 {{
   \"메뉴\": \"메뉴 이름\",
-  \"재료\": [\"재료1\", \"재료2\", ...]
+  \"재료\": [\"재료1\", \"재료2\", ...],
+  \"순서\": [\"순서1\", \"순서2\", \"순서3\", ...]
 }}"""
 
     payload = {
@@ -337,11 +365,12 @@ def ask_sonar_from_comment(comment_text, source_name=""):
         return None
 
 
+
 if __name__ == "__main__":
 
     # ✅ 실행 부분
     videos_all = get_video_ids_and_channel(API_KEY, CHANNEL_ID, max_results=200)
-    videos = videos_all[:10]
+    videos = videos_all[:5]
     existing_urls = get_existing_urls()
     youtube = build("youtube", "v3", developerKey=API_KEY)
     initialize_js_file_if_needed()
@@ -358,17 +387,23 @@ if __name__ == "__main__":
         uploader_name = snippet["channelTitle"]
         upload_date = snippet["publishedAt"][:10]
         comment, author_id = get_first_comment_and_author(API_KEY, video_id)
+        
+        transcript_text = get_transcript(video_id) # ✅ 자막 가져오기
 
+        # ✅ 고정댓글, 더보기란, 자막 순으로 탐색
         sources = [
             ("고정댓글", comment if author_id == uploader_id else None),
-            ("더보기란", get_description(youtube, video_id))
+            ("더보기란", get_description(youtube, video_id)),
+            ("자막", transcript_text)
         ]
 
+        found_and_saved = False
         for source_name, text in sources:
             safe_print(f"⏭️ 현재 단계: {source_name} 확인 중...")
             if not text:
                 safe_print(f"🚫 {source_name} 없음 또는 확인 불가 → 다음 단계로 이동")
                 continue
+            
             safe_print(f"📄 {source_name} 분석 시도")
             result = ask_sonar_from_comment(text, source_name)
             safe_print(f"🧠 Sonar 응답 ({source_name}):\n{result}")
@@ -377,17 +412,22 @@ if __name__ == "__main__":
             if parsed:
                 parsed["출처"] = source_name
                 append_to_js(parsed, video_url, uploader_name, upload_date)
+                found_and_saved = True
                 break
-
             else:
                 safe_print(f"⚠️ {source_name} 분석 실패 → 다음 단계로 이동")
-                failed_entry = {
-                    "메뉴": "분석 불가",
-                    "재료": [],
-                    "출처": source_name
-                }
-                append_to_js(failed_entry, video_url, uploader_name, upload_date)
-                break
+        
+        # 모든 출처에서 분석 실패 시 '분석 불가' 저장
+        if not found_and_saved:
+            safe_print("❌ 모든 출처 분석 실패 → '분석 불가' 항목 저장")
+            failed_entry = {
+                "메뉴": "분석 불가",
+                "재료": [],
+                "순서": [],
+                "출처": "모든 출처 실패"
+            }
+            append_to_js(failed_entry, video_url, uploader_name, upload_date)
+
 
         safe_print("-" * 60)
 
