@@ -1,3 +1,4 @@
+# api_server.py
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -11,6 +12,7 @@ from youtube_automation import (
 
 app = Flask(__name__)
 
+# 프론트 로컬 CORS 허용
 CORS(app, resources={
     r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}
 })
@@ -23,15 +25,22 @@ SAVE_PATH = os.path.join(BASE_DIR, "src", "menuData_kr.js")
 # ✅ 결과만 반환 (저장 X)
 @app.post("/analyze")
 def analyze():
-    url = (request.get_json() or {}).get("url", "")
+    url = (request.get_json() or {}).get("url", "").strip()
+    if not url:
+        return jsonify({"ok": False, "error": "url이 비어 있습니다."}), 400
+
     out = analyze_one_video(url)
+    # out 구조: {"ok": bool, "result": {...}} 또는 {"ok": False, "error": "..."}
     return jsonify(out), (200 if out.get("ok") else 400)
 
 
 # ✅ 결과 + menuData_kr.js 저장
 @app.post("/analyze-save")
 def analyze_and_save():
-    url = (request.get_json() or {}).get("url", "")
+    url = (request.get_json() or {}).get("url", "").strip()
+    if not url:
+        return jsonify({"ok": False, "error": "url이 비어 있습니다.", "saved": False, "save_path": SAVE_PATH}), 400
+
     out = analyze_one_video(url)
 
     # 분석 실패 시
@@ -42,9 +51,9 @@ def analyze_and_save():
             "save_path": SAVE_PATH
         }), 400
 
-    r = out["result"]
+    r = out["result"]  # name / ingredients / steps / source / uploader / upload_date / video_url
 
-    # 1️⃣ 스킵 규칙
+    # 1️⃣ 스킵 규칙 (프로모션/분석불가는 저장 안 함)
     if (r.get("name") in ["분석 불가", "Only 제품 설명 OR 홍보"]) or \
        ("Only 제품 설명 OR 홍보" in (r.get("ingredients") or [])):
         return jsonify({
@@ -69,10 +78,15 @@ def analyze_and_save():
             "save_path": SAVE_PATH
         }), 200
 
-    # 3️⃣ 저장 시도
+    # 3️⃣ 저장 시도 (✅ steps까지 함께 저장)
     try:
         append_to_js(
-            {"메뉴": r["name"], "재료": r["ingredients"], "출처": r["source"]},
+            {
+                "메뉴": r["name"],
+                "재료": r["ingredients"],
+                "순서": r.get("steps", []),   # ← 추가: 요리 순서 저장
+                "출처": r["source"]
+            },
             r["video_url"],
             r["uploader"],
             r["upload_date"],

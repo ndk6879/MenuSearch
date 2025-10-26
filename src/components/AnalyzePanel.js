@@ -6,27 +6,26 @@ import React, { useState } from "react";
  * - AbortController로 타임아웃(25s)
  * - 응답이 JSON이 아니거나 status!=ok일 때 친절한 에러
  * - logs 없어도 동작 (UI는 유지)
+ * - ✅ 분석 결과에 요리 순서(steps) 표시 추가
  */
 export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMode = false }) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState([]);       // 디자인 유지용
+  const [logs, setLogs] = useState([]); // 디자인 유지용
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
   // endpoint 후보들을 상황에 맞춰 구성
   const buildCandidates = () => {
-    // apiBase가 비어있으면(프록시 사용) 상대경로 우선
     const relative = ["/api/analyze-save", "/api/analyze", "/analyze-save", "/analyze"];
     const abs = [
-      `${apiBase.replace(/\/+$/,"")}/analyze-save`,
-      `${apiBase.replace(/\/+$/,"")}/analyze`,
+      `${apiBase.replace(/\/+$/, "")}/analyze-save`,
+      `${apiBase.replace(/\/+$/, "")}/analyze`,
       "http://localhost:8000/analyze-save",
       "http://localhost:8000/analyze",
       "http://127.0.0.1:8000/analyze-save",
       "http://127.0.0.1:8000/analyze",
     ];
-    // apiBase를 명시했으면 절대경로부터, 아니면 상대경로부터 시도
     return apiBase ? abs : [...relative, ...abs];
   };
 
@@ -43,7 +42,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
 
   const run = async () => {
     setLoading(true);
-    setLogs([]);        // 안 써도 디자인 유지
+    setLogs([]);
     setResult(null);
     setError("");
 
@@ -61,12 +60,10 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
     for (const ep of candidates) {
       try {
         const resp = await fetchWithTimeout(ep, { method: "POST", headers, body }, 25000);
-        // 일부 환경에서 CORS 차단 시 status가 0이거나 ok=false 일 수 있음
         if (!resp.ok) {
           lastErr = `HTTP ${resp.status} @ ${ep}`;
           continue;
         }
-        // JSON 파싱 시도
         let data;
         try {
           data = await resp.json();
@@ -75,23 +72,19 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
           continue;
         }
         if (data && data.ok) {
-          // 백엔드가 logs 안 줄 수도 있어도 안전
           setLogs(Array.isArray(data.logs) ? data.logs : []);
           setResult(data.result || null);
           setLoading(false);
           return;
         } else {
-          lastErr = (data && data.error) ? `${data.error} @ ${ep}` : `분석 실패 @ ${ep}`;
-          // 다른 후보도 계속 시도
+          lastErr = data && data.error ? `${data.error} @ ${ep}` : `분석 실패 @ ${ep}`;
         }
       } catch (e) {
-        // 네트워크/타임아웃/CORS 등
         lastErr = `${String(e)} @ ${ep}`;
         continue;
       }
     }
 
-    // 전부 실패
     setError(lastErr || "요청 실패");
     setLoading(false);
   };
@@ -134,7 +127,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
         </button>
       </div>
 
-      {/* 로그 영역 (디자인 유지, 미사용 가능) */}
+      {/* 로그 영역 */}
       <div
         style={{
           border: "1px solid #eee",
@@ -192,6 +185,18 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
           <div style={{ marginTop: 6 }}>
             재료 ({(result.ingredients || []).length}): {(result.ingredients || []).join(", ")}
           </div>
+
+          {/* ✅ 요리 순서 표시 */}
+          {result.steps && result.steps.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>🍳 요리 순서</div>
+              <ol style={{ marginLeft: 20 }}>
+                {result.steps.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
       )}
     </section>
