@@ -25,7 +25,7 @@ function App() {
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
 
-  const [language, setLanguage] = useState("kr");
+  const [language] = useState("kr");
   const [darkMode, setDarkMode] = useState(false);
 
   const currentRawData = language === "en" ? menuData_en : menuData_kr;

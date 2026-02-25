@@ -29,7 +29,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
   const [videoList, setVideoList] = useState([]);
   const [analysisStatus, setAnalysisStatus] = useState({}); // videoId → "waiting"|"analyzing"|"done"|"failed"
   const [analysisResults, setAnalysisResults] = useState({}); // videoId → result object
-  const [expandedId, setExpandedId] = useState(null);
+  const [, setExpandedId] = useState(null);
   const [batchRunning, setBatchRunning] = useState(false);
   const [saveStatus, setSaveStatus] = useState({}); // videoId → "saving"|"saved"|"duplicate"|"overwritten"|"error"
   const [videoFilter, setVideoFilter] = useState("all"); // "all" | "video" | "shorts"
@@ -618,7 +618,6 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                     {filteredList.map((v, i) => {
                       const st = analysisStatus[v.video_id];
                       const res = analysisResults[v.video_id];
-                      const isExpanded = expandedId === v.video_id;
                       const sv = saveStatus[v.video_id];
 
                       return (
