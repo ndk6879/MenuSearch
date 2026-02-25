@@ -7,107 +7,115 @@ function TagSearch({ onSearch, options, language, darkMode }) {
   const handleChange = (selectedOptions) => {
     const newSelected = selectedOptions || [];
     setSelected(newSelected);
-    onSearch(newSelected); // 그대로 넘기기만 하면 됨
+    onSearch(newSelected);
   };
-  
 
   const handleReset = () => {
     setSelected([]);
     onSearch([]);
   };
 
-  const customStyles = {
-    control: (provided, state) => ({
-      ...provided,
-      minHeight: '42px',
-      borderRadius: '8px',
-      boxShadow: state.isFocused ? '0 0 0 2px #90caf9' : 'none',
-      borderColor: state.isFocused ? '#90caf9' : '#ccc',
-      '&:hover': { borderColor: '#999' },
-      fontSize: '0.95rem',
-      paddingLeft: '4px',
-    }),
-    multiValue: (styles) => ({
-      ...styles,
-      backgroundColor: '#e0f7fa',
-      borderRadius: '6px',
-      padding: '2px 6px',
-      fontWeight: '500',
-    }),
-    multiValueLabel: (styles) => ({
-      ...styles,
-      color: '#00796b',
-    }),
-    placeholder: (styles) => ({
-      ...styles,
-      color: '#999',
-      fontWeight: '400',
-    }),
-  };
-  
-  
-
-  
-
-  
-
   return (
-    <div style={{ display: "flex", gap: "10px", width: "100%", maxWidth: "700px" }}>
-      <div style={{ flex: 1, textAlign: "center" }}>
-
+    <div style={{ display: "flex", gap: "8px", width: "100%" }}>
+      <div style={{ flex: 1 }}>
         <Select
           options={options}
           isMulti
           onChange={handleChange}
           value={selected}
-          placeholder={language === 'en' ? 'Type or select ingredients' : '재료를 입력하거나 선택하세요'}
+          placeholder={language === 'en' ? 'Search ingredients...' : '재료를 검색하세요...'}
           classNamePrefix="react-select"
-          menuShouldScrollIntoView={false}  // ✅ 이거 추가
-
+          menuShouldScrollIntoView={false}
           theme={(theme) => ({
             ...theme,
-            borderRadius: 6,
+            borderRadius: 10,
             colors: {
               ...theme.colors,
-              primary25: darkMode ? "#334155" : "#e2e8f0",   // hover background
-              primary: darkMode ? "#3b82f6" : "#2563eb",      // active border
-              neutral0: darkMode ? "#1e293b" : "#ffffff",     // input background
-              neutral80: darkMode ? "#f1f5f9" : "#1e293b",     // input text
-              neutral20: darkMode ? "#475569" : "#cbd5e1",    // border color
-              neutral30: darkMode ? "#64748b" : "#94a3b8",    // arrow
+              primary25: darkMode ? "#252525" : "#f4f4f4",
+              primary: darkMode ? "#555" : "#111",
+              neutral0: darkMode ? "#1a1a1a" : "#ffffff",
+              neutral80: darkMode ? "#eee" : "#111",
+              neutral20: darkMode ? "#333" : "#e0e0e0",
+              neutral30: darkMode ? "#444" : "#ccc",
             },
           })}
-          
           styles={{
-            control: (base) => ({
+            control: (base, state) => ({
               ...base,
-              backgroundColor: darkMode ? "#1e293b" : "#ffffff",
-              borderColor: darkMode ? "#475569" : "#cbd5e1",
-              color: darkMode ? "#f1f5f9" : "#1e293b",
+              minHeight: '44px',
+              backgroundColor: darkMode ? "#1a1a1a" : "#ffffff",
+              borderColor: state.isFocused
+                ? (darkMode ? "#555" : "#999")
+                : (darkMode ? "#333" : "#e0e0e0"),
+              boxShadow: state.isFocused
+                ? `0 0 0 1px ${darkMode ? "#555" : "#999"}`
+                : "0 1px 3px rgba(0,0,0,0.04)",
+              borderRadius: '10px',
+              fontSize: '0.9rem',
+              '&:hover': {
+                borderColor: darkMode ? "#444" : "#bbb",
+              },
             }),
             menu: (base) => ({
               ...base,
-              backgroundColor: darkMode ? "#1e293b" : "#ffffff",
-              color: darkMode ? "#f1f5f9" : "#1e293b",
+              backgroundColor: darkMode ? "#1a1a1a" : "#ffffff",
+              border: `1px solid ${darkMode ? "#333" : "#e0e0e0"}`,
+              borderRadius: '10px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+              overflow: 'hidden',
+            }),
+            option: (base, state) => ({
+              ...base,
+              fontSize: '0.85rem',
+              backgroundColor: state.isFocused
+                ? (darkMode ? "#252525" : "#f4f4f4")
+                : "transparent",
+              color: darkMode ? "#eee" : "#111",
+              '&:active': {
+                backgroundColor: darkMode ? "#333" : "#e8e8e8",
+              },
             }),
             multiValue: (base) => ({
               ...base,
-              backgroundColor: darkMode ? "#334155" : "#e2e8f0",
+              backgroundColor: darkMode ? "#252525" : "#f0f0f0",
+              borderRadius: '6px',
             }),
             multiValueLabel: (base) => ({
               ...base,
-              color: darkMode ? "#f1f5f9" : "#1e293b",
+              color: darkMode ? "#ddd" : "#333",
+              fontSize: '0.82rem',
+              fontWeight: 500,
+            }),
+            multiValueRemove: (base) => ({
+              ...base,
+              color: darkMode ? "#888" : "#999",
+              borderRadius: '0 6px 6px 0',
+              '&:hover': {
+                backgroundColor: darkMode ? "#333" : "#e0e0e0",
+                color: darkMode ? "#eee" : "#111",
+              },
             }),
             placeholder: (base) => ({
               ...base,
-              color: darkMode ? "#cbd5e1" : "#94a3b8",
+              color: darkMode ? "#666" : "#aaa",
+              fontSize: '0.9rem',
+            }),
+            input: (base) => ({
+              ...base,
+              color: darkMode ? "#eee" : "#111",
             }),
           }}
-          
         />
       </div>
-      <button onClick={handleReset} className="search-button">Reset</button>
-      
+      {selected.length > 0 && (
+        <button
+          onClick={handleReset}
+          className="dark-toggle"
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          Reset
+        </button>
+      )}
     </div>
   );
 }

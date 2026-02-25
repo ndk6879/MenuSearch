@@ -1,339 +1,617 @@
-/* ✅ Base Styles */
-body {
-  font-family: 'Noto Sans', sans-serif;
-  margin: 0;
+/* ===== Base ===== */
+* {
+  box-sizing: border-box;
 }
 
-.app.dark {
-  background-color: #121212;
-  color: white;
+body {
+  font-family: 'Noto Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
 .app.light {
-  background-color: #f5f5f5;
-  color: black;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1.25rem 1rem;
-  transition: background-color 0.3s ease, color 0.3s ease;
-  position: relative; /* ✨ Ensure this is present for absolute positioning later if needed */
-}
-
-.title {
-  font-size: 2rem;
-  font-weight: bold;
-  margin: 20px 0;
-  text-align: center;
-}
-
-/* section.container + section.container {
-  margin-top: 0.5rem;
-} */ /* Remove or comment this out as individual section margins will be controlled in App.js */
-
-.search-button {
-  padding: 6px 10px;
-  font-size: 0.9rem;
-  border: none;
-  border-radius: 4px;
-  background-color: #eeeeee;
-  color: #111;
-  font-weight: 600;
-  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.05);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.app.light .search-button {
-  background-color: #e6e6e6;
+  background-color: #fafafa;
   color: #111;
 }
 
-.app.light .search-button:hover {
-  background-color: #d5d5d5;
+.app.dark {
+  background-color: #0a0a0a;
+  color: #eee;
 }
 
-.app.dark .search-button {
-  background-color: #333;
-  color: white;
-  box-shadow: inset 0 0 2px rgba(255, 255, 255, 0.05);
-}
-
-.app.dark .search-button:hover {
-  background-color: #444;
-}
-
-.grid-list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(240px, 1fr));
-  gap: 32px;
-  padding: 0;
-  list-style: none;
-}
-
-.menu-card {
-  background-color: #2c2c2c;
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.menu-card:hover {
-  transform: scale(1.02);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-}
-
-.menu-thumbnail {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 8px;
-  transition: transform 0.3s ease;
-}
-
-.menu-card:hover .menu-thumbnail {
-  transform: scale(1.03);
-}
-
-.menu-text {
-  width: 100%;
-  text-align: center;
-  margin-top: 10px;
-}
-
-.menu-name {
-  font-weight: bold;
-  font-size: 1.1rem;
-  margin-bottom: 6px;
-}
-
-.menu-ingredients {
-  font-size: 0.9rem;
-  color: #ccc;
-  word-break: break-word;
-}
-
-.app.light .menu-card {
-  background-color: #ffffff;
-  color: #222;
-}
-
-.app.dark .menu-card {
-  background-color: #2c2c2c;
-  color: white;
-}
-
-.app.light .menu-name,
-.app.light .menu-ingredients {
-  color: #222;
-}
-
-.app.dark .menu-name,
-.app.dark .menu-ingredients {
-  color: white;
-}
-
-/* ✅ Header */
-header {
+/* ===== Header ===== */
+.header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
+  padding: 12px 24px;
+  position: sticky;
   top: 0;
-  background-color: white;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   z-index: 100;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.app.dark header {
-  background-color: #1e1e1e;
+.app.light .header {
+  background-color: rgba(250, 250, 250, 0.85);
+}
+
+.app.dark .header {
+  background-color: rgba(10, 10, 10, 0.85);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 20px;
+}
+
+.header-logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.app.light .header-logo {
+  color: #111;
+}
+
+.app.dark .header-logo {
+  color: #eee;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .header-link {
   all: unset;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  color: #444;
-  padding: 4px 6px;
+  padding: 6px 12px;
   border-radius: 6px;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 
-.header-link:hover {
+.app.light .header-link {
+  color: #555;
+}
+
+.app.light .header-link:hover {
   background-color: #f0f0f0;
 }
 
 .app.dark .header-link {
-  color: #ccc;
+  color: #999;
 }
 
 .app.dark .header-link:hover {
+  background-color: #1a1a1a;
+}
+
+.dark-toggle {
+  all: unset;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 20px;
+  transition: all 0.15s ease;
+}
+
+.app.light .dark-toggle {
+  background-color: #f0f0f0;
+  color: #555;
+}
+
+.app.light .dark-toggle:hover {
+  background-color: #e4e4e4;
+}
+
+.app.dark .dark-toggle {
+  background-color: #1a1a1a;
+  color: #999;
+}
+
+.app.dark .dark-toggle:hover {
+  background-color: #252525;
+}
+
+/* ===== Hero Section ===== */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 5rem 1.5rem 4rem;
+}
+
+.hero-badge {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 999px;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.02em;
+}
+
+.app.light .hero-badge {
+  background-color: #f0f0f0;
+  color: #555;
+}
+
+.app.dark .hero-badge {
+  background-color: #1a1a1a;
+  color: #999;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  margin: 0 0 1rem;
+  max-width: 700px;
+}
+
+.app.light .hero-title {
+  color: #111;
+}
+
+.app.dark .hero-title {
+  color: #eee;
+}
+
+.hero-subtitle {
+  font-size: 1.1rem;
+  margin: 0 0 2.5rem;
+  font-weight: 400;
+}
+
+.app.light .hero-subtitle {
+  color: #888;
+}
+
+.app.dark .hero-subtitle {
+  color: #666;
+}
+
+.hero-search {
+  width: 100%;
+  max-width: 600px;
+}
+
+/* ===== Sections ===== */
+.section {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 3rem 0;
+}
+
+.app.dark .section {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+.app.light .section-title {
+  color: #111;
+}
+
+.app.dark .section-title {
+  color: #eee;
+}
+
+/* ===== Grid ===== */
+.menu-list {
+  padding: 0;
+  margin: 0;
+}
+
+.grid-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  list-style: none;
+}
+
+/* ===== Recipe Cards ===== */
+.menu-card {
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-card:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+
+.app.light .menu-card {
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.app.light .menu-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.app.dark .menu-card {
+  background-color: #1a1a1a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.app.dark .menu-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.menu-thumbnail {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+.menu-text {
+  padding: 14px 16px 16px;
+}
+
+.menu-name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.app.light .menu-name {
+  color: #111;
+}
+
+.app.dark .menu-name {
+  color: #eee;
+}
+
+.menu-uploader {
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+}
+
+.app.light .menu-uploader {
+  color: #999;
+}
+
+.app.dark .menu-uploader {
+  color: #666;
+}
+
+/* ===== Ingredient Pills ===== */
+.ingredient-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ingredient-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.app.light .ingredient-pill {
+  background-color: #f4f4f4;
+  color: #555;
+}
+
+.app.dark .ingredient-pill {
+  background-color: #252525;
+  color: #aaa;
+}
+
+.ingredient-pill-more {
+  font-weight: 600;
+}
+
+.app.light .ingredient-pill-more {
+  background-color: #e8e8e8;
+  color: #777;
+}
+
+.app.dark .ingredient-pill-more {
+  background-color: #303030;
+  color: #888;
+}
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+}
+
+.modal-content {
+  border-radius: 16px;
+  padding: 0;
+  max-width: 1200px;
+  width: 95%;
+  max-height: 92vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.app.light .modal-content,
+.modal-content.modal-light {
+  background-color: #ffffff;
+  color: #111;
+}
+
+.app.dark .modal-content,
+.modal-content.modal-dark {
+  background-color: #1a1a1a;
+  color: #eee;
+}
+
+.modal-close {
+  all: unset;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  z-index: 10;
+  transition: background-color 0.15s ease;
+}
+
+.modal-content.modal-light .modal-close {
+  color: #555;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.modal-content.modal-light .modal-close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.modal-content.modal-dark .modal-close {
+  color: #999;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.modal-content.modal-dark .modal-close:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+/* ===== Recipe Modal ===== */
+.recipe-modal-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 16px 16px 0 0;
+  display: block;
+}
+
+.recipe-modal {
+  padding-bottom: 8px;
+}
+
+.recipe-modal-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 20px 24px 6px;
+  letter-spacing: -0.02em;
+}
+
+.recipe-modal-uploader {
+  font-size: 0.85rem;
+  margin: 0 24px 4px;
+}
+
+.app.light .recipe-modal-uploader,
+.modal-content.modal-light .recipe-modal-uploader {
+  color: #999;
+}
+
+.app.dark .recipe-modal-uploader,
+.modal-content.modal-dark .recipe-modal-uploader {
+  color: #666;
+}
+
+.recipe-modal-source {
+  font-size: 0.78rem;
+  margin: 0 24px 12px;
+}
+
+.app.light .recipe-modal-source,
+.modal-content.modal-light .recipe-modal-source {
+  color: #bbb;
+}
+
+.app.dark .recipe-modal-source,
+.modal-content.modal-dark .recipe-modal-source {
+  color: #555;
+}
+
+.recipe-modal-ingredients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 24px;
+  margin-bottom: 20px;
+}
+
+.recipe-modal-steps {
+  padding: 0 24px;
+  margin-bottom: 16px;
+}
+
+.recipe-modal-steps h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.recipe-modal-steps ol {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.recipe-modal-steps li {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+
+.app.light .recipe-modal-steps li,
+.modal-content.modal-light .recipe-modal-steps li {
+  color: #444;
+}
+
+.app.dark .recipe-modal-steps li,
+.modal-content.modal-dark .recipe-modal-steps li {
+  color: #bbb;
+}
+
+.recipe-modal-no-steps {
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.app.light .recipe-modal-no-steps {
+  color: #999;
+}
+
+.app.dark .recipe-modal-no-steps {
+  color: #666;
+}
+
+.recipe-modal-yt-btn {
+  display: inline-block;
+  margin: 8px 24px 20px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.app.light .recipe-modal-yt-btn,
+.modal-content.modal-light .recipe-modal-yt-btn {
+  background-color: #111;
+  color: #fff;
+}
+
+.app.light .recipe-modal-yt-btn:hover,
+.modal-content.modal-light .recipe-modal-yt-btn:hover {
   background-color: #333;
 }
 
-.header-logo {
-  font-size: 1.7rem;
-  font-weight: 700;
-  margin-bottom: 0;
-  text-decoration: none;
-  color: #2e7d32;
+.app.dark .recipe-modal-yt-btn,
+.modal-content.modal-dark .recipe-modal-yt-btn {
+  background-color: #eee;
+  color: #111;
 }
 
-.app.dark .header-logo {
-  color: #90ee90;
+.app.dark .recipe-modal-yt-btn:hover,
+.modal-content.modal-dark .recipe-modal-yt-btn:hover {
+  background-color: #ccc;
 }
 
-/* ✅ Responsive */
+/* ===== No Results ===== */
+.no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 0;
+  font-size: 0.95rem;
+}
+
+.app.light .no-results {
+  color: #999;
+}
+
+.app.dark .no-results {
+  color: #666;
+}
+
+/* ===== Responsive ===== */
 @media (max-width: 1024px) {
   .grid-list {
-    grid-template-columns: repeat(2, minmax(200px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
 }
 
 @media (max-width: 640px) {
   .grid-list {
-    grid-template-columns: repeat(1, 1fr);
+    grid-template-columns: 1fr;
     gap: 16px;
   }
 
+  .hero {
+    padding: 3rem 1.25rem 2.5rem;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+  }
+
   .header {
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
+    padding: 10px 16px;
   }
 
-  .header-left,
   .header-right {
-    flex-direction: row;
-    justify-content: center;
-    flex-wrap: wrap;
     gap: 8px;
-  }
-
-  .search-button {
-    width: auto;
-    min-width: 40px;
-    padding: 5px 8px;
-    font-size: 0.85rem;
   }
 
   .header-link {
-    font-size: 0.85rem;
-  }
-}
-
-/* ✅ All 섹션 툴바 정렬 (수정됨) */
-.all-toolbar {
-  display: flex;
-  align-items: center; /* 세로 중앙 정렬 */
-  justify-content: space-between; /* 'All'과 검색 영역을 양 끝으로 분리 */
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 0.5rem; /* Adjusted for closer spacing */
-  padding: 0 1rem;
-}
-
-.all-toolbar h2 {
-  margin: 0;
-  flex-shrink: 0; /* 'All' 텍스트가 줄어들지 않도록 함 */
-  font-size: 1.5rem;
-}
-
-.tagsearch-wrapper {
-  display: flex;
-  align-items: center; /* 검색창과 리셋 버튼 세로 중앙 정렬 */
-  justify-content: center; /* 검색창과 리셋 버튼을 이 영역의 가운데로 정렬 */
-  flex-grow: 1; /* 남은 공간을 차지하도록 하여 가운데 정렬을 위한 공간 확보 */
-  max-width: 700px; /* TagSearch.js의 maxWidth와 일치 */
-  margin: 0 auto; /* tagsearch-wrapper 자체를 가운데 정렬 */
-  /* 부모인 .all-toolbar가 space-between이므로, 이 auto margin이 flex-grow와 함께 작동하여 중앙에 위치하게 됩니다. */
-}
-
-.carousel-slide {
-  /* ...다른 스타일... */
-  background-color: #ffffff; /* ✨ 흰색으로 변경 */
-  /* ...다른 스타일... */
-}
-
-/* New/Adjusted styles for all-section-header if still in use, otherwise remove */
-.all-section-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 10;
-  padding: 20px 1rem;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-sizing: border-box;
-  margin-bottom: 0;
-}
-
-.all-section-header h2 {
-  color: white;
-  margin: 0;
-  font-size: 1.8rem;
-}
-
-.all-section-header .tagsearch-wrapper {
-  flex-grow: 1;
-  max-width: 500px;
-  margin-left: 20px;
-}
-
-.tagsearch-wrapper button {
-  z-index: 11;
-}
-
-.app.dark .all-section-header {
-  background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0));
-}
-
-.app.dark .all-section-header h2 {
-  color: white;
-}
-
-@media (max-width: 768px) {
-  .all-section-header {
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 15px;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0));
+    font-size: 0.8rem;
+    padding: 4px 8px;
   }
 
-  .all-section-header h2 {
-      margin-bottom: 10px;
+  .section {
+    padding: 2rem 0;
   }
 
-  .all-section-header .tagsearch-wrapper {
-      margin-left: 0;
-      width: 100%;
-      max-width: none;
-  }
-
-  .container .menu-list.grid-list {
-      padding-top: 0;
+  .modal-content {
+    max-height: 90vh;
   }
 }

@@ -1,24 +1,20 @@
 import React from "react";
 
-export default function Modal({ open, onClose, children }) {
+export default function Modal({ open, onClose, darkMode, children }) {
   if (!open) return null;
 
   return (
     <div
+      className="modal-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.6)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-      }}
     >
-      <div style={{ background: "#fff", padding: 20, borderRadius: 8, minWidth: 400 }}>
-        <button onClick={onClose} style={{ float: "right" }}>×</button>
-        {children}
+      <div className={`modal-content ${darkMode ? "modal-dark" : "modal-light"}`}>
+        <button className="modal-close" onClick={onClose}>
+          &times;
+        </button>
+        <div className="modal-body">
+          {children}
+        </div>
       </div>
     </div>
   );

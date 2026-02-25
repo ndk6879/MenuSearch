@@ -13,6 +13,34 @@ load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 CHANNEL_ID = "UC2IIBYSTMSvJaK2UJzCC06g"
 
+
+# ✅ @handle 또는 채널 URL → channel_id 변환
+def resolve_channel_id(api_key, channel_url):
+    """
+    다양한 채널 URL 형식에서 channel_id를 추출한다.
+    - https://www.youtube.com/@handle → forHandle API 사용
+    - https://www.youtube.com/channel/UCxxxx → 그대로 사용
+    """
+    youtube = build("youtube", "v3", developerKey=api_key)
+
+    # @handle 형식
+    m = re.search(r"@([\w.-]+)", channel_url)
+    if m:
+        handle = m.group(1)
+        resp = youtube.channels().list(part="id", forHandle=handle).execute()
+        items = resp.get("items", [])
+        if items:
+            return items[0]["id"]
+        raise ValueError(f"채널을 찾을 수 없습니다: @{handle}")
+
+    # /channel/UCxxxx 형식
+    m = re.search(r"/channel/(UC[\w-]+)", channel_url)
+    if m:
+        return m.group(1)
+
+    raise ValueError(f"지원하지 않는 채널 URL 형식: {channel_url}")
+
+
 # ✅ 유니코드 문자 제거
 def sanitize(text):
     return ''.join(c for c in text if not (0xD800 <= ord(c) <= 0xDFFF))
