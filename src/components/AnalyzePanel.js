@@ -167,6 +167,14 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
       const data = await resp.json();
       if (data.ok) {
         setVideoList(data.videos);
+        // 새 채널 프로필 썸네일을 channelData.js에 저장
+        if (data.channel_title && data.channel_thumbnail) {
+          fetch(`${base}/update-channel-profile`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uploader: data.channel_title, thumbnail: data.channel_thumbnail }),
+          }).catch(() => {});
+        }
       } else {
         setChError(data.error || "영상 목록 가져오기 실패");
       }

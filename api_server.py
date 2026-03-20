@@ -267,10 +267,27 @@ def channel_videos():
         return jsonify({"ok": False, "error": str(e)}), 400
 
     try:
+        from googleapiclient.discovery import build as yt_build
+        youtube = yt_build("youtube", "v3", developerKey=api_key)
+        ch_resp = youtube.channels().list(part="snippet", id=channel_id).execute()
+        ch_items = ch_resp.get("items", [])
+        channel_title = ch_items[0]["snippet"]["title"] if ch_items else ""
+        channel_thumbnail = (
+            ch_items[0]["snippet"]["thumbnails"].get("medium", {}).get("url")
+            or ch_items[0]["snippet"]["thumbnails"].get("default", {}).get("url")
+            if ch_items else ""
+        )
+    except Exception:
+        channel_title = ""
+        channel_thumbnail = ""
+
+    try:
         videos = get_video_list(api_key, channel_id, max_results=start_index + max_results - 1)
         videos = videos[start_index - 1:][:max_results]
         return jsonify({
             "ok": True,
+            "channel_title": channel_title,
+            "channel_thumbnail": channel_thumbnail,
             "videos": [
                 {
                     "video_id": v["video_id"],
@@ -284,6 +301,40 @@ def channel_videos():
         }), 200
     except Exception as e:
         return jsonify({"ok": False, "error": f"영상 목록 가져오기 실패: {e}"}), 500
+
+
+# ✅ 채널 프로필 업데이트 (channelData.js)
+CHANNEL_DATA_PATH = os.path.join(BASE_DIR, "src", "channelData.js")
+
+@app.post("/update-channel-profile")
+def update_channel_profile():
+    data = request.get_json() or {}
+    uploader = data.get("uploader", "").strip()
+    thumbnail = data.get("thumbnail", "").strip()
+    if not uploader or not thumbnail:
+        return jsonify({"ok": False, "error": "uploader 또는 thumbnail이 비어 있습니다."}), 400
+
+    try:
+        with open(CHANNEL_DATA_PATH, encoding="utf-8") as f:
+            content = f.read()
+
+        escaped = uploader.replace('"', '\\"')
+        new_entry = f'  "{escaped}": "{thumbnail}",'
+
+        # 이미 있으면 교체, 없으면 추가
+        import re as _re2
+        pattern = _re2.compile(r'^\s*"' + _re2.escape(escaped) + r'":\s*"[^"]*",?\s*$', _re2.MULTILINE)
+        if pattern.search(content):
+            content = pattern.sub(new_entry, content)
+        else:
+            content = content.replace("};", f"{new_entry}\n}};")
+
+        with open(CHANNEL_DATA_PATH, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ✅ 저장된 URL 목록 조회

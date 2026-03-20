@@ -352,17 +352,32 @@ body {
   color: #eee;
 }
 
+.menu-chef-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.menu-chef-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .menu-uploader {
-  font-size: 0.8rem;
-  margin-bottom: 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
 }
 
 .app.light .menu-uploader {
-  color: #999;
+  color: #444;
 }
 
 .app.dark .menu-uploader {
-  color: #666;
+  color: #bbb;
 }
 
 /* ===== Ingredient Pills ===== */
@@ -420,7 +435,7 @@ body {
 .modal-content {
   border-radius: 16px;
   padding: 0;
-  max-width: 1200px;
+  max-width: 760px;
   width: 95%;
   max-height: 92vh;
   overflow-y: auto;
@@ -524,25 +539,61 @@ body {
 }
 
 .recipe-modal-title {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  margin: 20px 24px 6px;
+  margin: 16px 24px 10px;
   letter-spacing: -0.02em;
+  line-height: 1.4;
+}
+
+.recipe-modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 24px 14px;
+}
+
+.recipe-modal-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.recipe-modal-meta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .recipe-modal-uploader {
   font-size: 0.85rem;
-  margin: 0 24px 4px;
+  font-weight: 500;
 }
 
 .app.light .recipe-modal-uploader,
 .modal-content.modal-light .recipe-modal-uploader {
-  color: #999;
+  color: #555;
 }
 
 .app.dark .recipe-modal-uploader,
 .modal-content.modal-dark .recipe-modal-uploader {
-  color: #666;
+  color: #aaa;
+}
+
+.recipe-modal-date {
+  font-size: 0.78rem;
+}
+
+.app.light .recipe-modal-date,
+.modal-content.modal-light .recipe-modal-date {
+  color: #777;
+}
+
+.app.dark .recipe-modal-date,
+.modal-content.modal-dark .recipe-modal-date {
+  color: #888;
 }
 
 .recipe-modal-source {
@@ -560,12 +611,28 @@ body {
   color: #555;
 }
 
+.recipe-modal-divider {
+  border: none;
+  border-top: 1px solid;
+  margin: 0 24px 16px;
+  opacity: 0.15;
+}
+
+.recipe-modal-section {
+  padding: 0 24px;
+  margin-bottom: 20px;
+}
+
+.recipe-modal-section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
 .recipe-modal-ingredients {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 0 24px;
-  margin-bottom: 20px;
 }
 
 .recipe-modal-steps {
@@ -573,7 +640,7 @@ body {
   margin-bottom: 16px;
 }
 
-.recipe-modal-steps h3 {
+.recipe-modal-steps .recipe-modal-section-title {
   font-size: 0.95rem;
   font-weight: 600;
   margin: 0 0 10px;

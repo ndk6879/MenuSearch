@@ -9,6 +9,7 @@ import { FaGithub, FaInstagram } from "react-icons/fa";
 import Modal from "./components/Modal";
 import AnalyzePanel from "./components/AnalyzePanel";
 import ChefAI from "./components/ChefAI";
+import channelProfiles from "./channelData";
 
 
 function extractYouTubeId(url) {
@@ -373,7 +374,15 @@ function App() {
         <div className="menu-text">
           <div className="menu-name">{item.name || "No Name"}</div>
           {item.uploader && (
-            <div className="menu-uploader">{item.uploader}</div>
+            <div className="menu-chef-row">
+              <img
+                src={channelProfiles[item.uploader] || ""}
+                alt={item.uploader}
+                className="menu-chef-avatar"
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
+              <span className="menu-uploader">{item.uploader}</span>
+            </div>
           )}
           <div className="ingredient-tags">
             {normalizedIngredients.slice(0, 6).map((ing, i) => (
@@ -456,19 +465,33 @@ function App() {
               )
             )}
             <h2 className="recipe-modal-title">{recipeModal.name}</h2>
-            {recipeModal.uploader && (
-              <p className="recipe-modal-uploader">{recipeModal.uploader}</p>
-            )}
-            {recipeModal.source && (
-              <p className="recipe-modal-source">{recipeModal.source}</p>
-            )}
-            <div className="recipe-modal-ingredients">
-              {[...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))].map((ing, i) => (
-                <span key={i} className="ingredient-pill">{ing}</span>
-              ))}
+            <div className="recipe-modal-meta">
+              <img
+                src={channelProfiles[recipeModal.uploader] || ""}
+                alt={recipeModal.uploader}
+                className="recipe-modal-avatar"
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
+              <div className="recipe-modal-meta-text">
+                {recipeModal.uploader && (
+                  <span className="recipe-modal-uploader">{recipeModal.uploader}</span>
+                )}
+                {recipeModal.upload_date && (
+                  <span className="recipe-modal-date">{recipeModal.upload_date}</span>
+                )}
+              </div>
+            </div>
+            <hr className="recipe-modal-divider" />
+            <div className="recipe-modal-section">
+              <h3 className="recipe-modal-section-title">재료</h3>
+              <div className="recipe-modal-ingredients">
+                {[...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))].map((ing, i) => (
+                  <span key={i} className="ingredient-pill">{ing}</span>
+                ))}
+              </div>
             </div>
             <div className="recipe-modal-steps">
-              <h3>Steps</h3>
+              <h3 className="recipe-modal-section-title">Steps</h3>
               {recipeModal.steps && recipeModal.steps.length > 0 ? (
                 <ol>
                   {recipeModal.steps.map((step, i) => (
