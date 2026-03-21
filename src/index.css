@@ -130,6 +130,7 @@ body {
   justify-content: center;
   text-align: center;
   padding: 5rem 1.5rem 4rem;
+  min-height: calc(100vh - 57px);
 }
 
 .app.light .hero {
@@ -720,10 +721,11 @@ body {
 
   .hero {
     padding: 3rem 1.25rem 2.5rem;
+    min-height: calc(100svh - 53px);
   }
 
   .hero-title {
-    font-size: 2rem;
+    font-size: 1.9rem;
   }
 
   .hero-subtitle {
@@ -735,20 +737,48 @@ body {
   }
 
   .header-right {
-    gap: 8px;
+    gap: 6px;
   }
 
   .header-link {
-    font-size: 0.8rem;
-    padding: 4px 8px;
+    font-size: 0.78rem;
+    padding: 4px 7px;
+  }
+
+  .dark-toggle {
+    font-size: 0.75rem;
+    padding: 4px 10px;
   }
 
   .section {
     padding: 2rem 0;
   }
 
+  /* 모달 모바일 최적화 */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
   .modal-content {
-    max-height: 90vh;
+    max-height: 92svh;
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+  }
+
+  .recipe-modal-iframe {
+    height: 210px;
+  }
+
+  .recipe-modal-title {
+    font-size: 1.1rem;
+  }
+
+  /* 섹션 헤더 모바일 */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 }
 
@@ -1347,3 +1377,66 @@ body {
 .app.light .about-cta-btn-secondary { background: #f0f0f0; color: #333; }
 .app.dark  .about-cta-btn-secondary { background: #2a2a2a; color: #ccc; }
 .chef-step-btn:disabled { opacity: 0.3; cursor: default; }
+
+/* ===== Search Result Count ===== */
+.search-result-count {
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin: 2px 0 0;
+}
+.app.light .search-result-count { color: #aaa; }
+.app.dark  .search-result-count { color: #555; }
+
+/* ===== Footer ===== */
+.site-footer {
+  border-top: 1px solid rgba(0,0,0,0.06);
+  padding: 32px 24px;
+  margin-top: 40px;
+}
+.app.dark .site-footer {
+  border-top-color: rgba(255,255,255,0.06);
+}
+.site-footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.site-footer-brand {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.app.light .site-footer-brand { color: #111; }
+.app.dark  .site-footer-brand { color: #eee; }
+
+.site-footer-copy {
+  font-size: 0.8rem;
+}
+.app.light .site-footer-copy { color: #bbb; }
+.app.dark  .site-footer-copy { color: #444; }
+
+.site-footer-links {
+  display: flex;
+  gap: 20px;
+}
+.site-footer-links a {
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.site-footer-links a:hover { opacity: 0.6; }
+.app.light .site-footer-links a { color: #888; }
+.app.dark  .site-footer-links a { color: #555; }
+
+@media (max-width: 640px) {
+  .site-footer-inner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+}

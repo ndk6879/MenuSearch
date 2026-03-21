@@ -577,7 +577,16 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           <section className="section">
             <div className="container">
               <div className="section-header">
-                <h2 className="section-title">{t.allRecipes}</h2>
+                <div>
+                  <h2 className="section-title">{t.allRecipes}</h2>
+                  {searchActive && (
+                    <p className="search-result-count">
+                      {language === "kr"
+                        ? `${sortedResults.length}개 레시피 발견`
+                        : `${sortedResults.length} recipe${sortedResults.length !== 1 ? "s" : ""} found`}
+                    </p>
+                  )}
+                </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <select
                     value={selectedChef}
@@ -626,6 +635,18 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             </div>
           </section>
 
+          {/* Footer */}
+          <footer className={`site-footer${darkMode ? " dark" : ""}`}>
+            <div className="site-footer-inner">
+              <span className="site-footer-brand">Findish</span>
+              <span className="site-footer-copy">© 2026 Findish. All rights reserved.</span>
+              <div className="site-footer-links">
+                <a href="https://github.com/ndk6879/MenuSearch" target="_blank" rel="noopener noreferrer">GitHub</a>
+                <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer">Instagram</a>
+                <a href="#about">About</a>
+              </div>
+            </div>
+          </footer>
         </>
       )}
     </div>

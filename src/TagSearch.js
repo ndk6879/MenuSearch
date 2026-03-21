@@ -23,7 +23,7 @@ function TagSearch({ onSearch, options, language, darkMode }) {
           isMulti
           onChange={handleChange}
           value={selected}
-          placeholder={language === 'en' ? 'Search ingredients...' : '재료를 검색하세요...'}
+          placeholder={language === 'en' ? 'e.g. egg, onion, pork...' : '예) 계란, 양파, 돼지고기...'}
           classNamePrefix="react-select"
           menuShouldScrollIntoView={false}
           theme={(theme) => ({
