@@ -10,6 +10,8 @@ import Modal from "./components/Modal";
 import AnalyzePanel from "./components/AnalyzePanel";
 import ChefAI from "./components/ChefAI";
 import channelProfiles from "./channelData";
+import AboutSection from "./components/AboutSection";
+import translations from "./i18n";
 
 
 function extractYouTubeId(url) {
@@ -29,7 +31,9 @@ function App() {
   const [playingVideo, setPlayingVideo] = useState(false);
   const [activeTab, setActiveTab] = useState("home"); // "home" | "chef"
 
-  const [language] = useState("kr");
+  const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
+  const [language, setLanguage] = useState(defaultLanguage);
+  const t = translations[language];
   const [darkMode, setDarkMode] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
 
@@ -104,8 +108,11 @@ function App() {
     // 파슬리
     "이탈리안 파슬리": "파슬리", "다진 파슬리": "파슬리", "파슬리잎": "파슬리",
     // 식초
-    "사과식초": "식초", "두배 사과식초": "식초", "쉐리식초": "식초",
+    "사과식초": "사과 식초", "두배 사과식초": "사과 식초", "쉐리식초": "식초",
     "발사믹식초": "발사믹 식초",
+    "발사믹 비네거": "발사믹 식초", "발사믹 비니거": "발사믹 식초",
+    "레드 와인 비네거": "레드 와인 식초", "레드와인 비네거": "레드와인 식초",
+    "와인식초": "와인 식초",
     // 화이트 발사믹
     "화이트 발사믹 식초": "화이트 발사믹", "화이트 발사믹식초": "화이트 발사믹",
     "화이트발사믹식초": "화이트 발사믹", "화이트발사믹": "화이트 발사믹",
@@ -121,6 +128,15 @@ function App() {
     "표고버섯": "표고 버섯", "잎새버섯": "잎새 버섯",
     // 랍스터
     "랍스터 테일": "랍스터", "랍스타": "랍스터",
+    // 채소 오타/표기
+    "살롯": "샬롯",
+    "래디시": "래디쉬", "레디시": "래디쉬",
+    "사프론": "사프란", "샤프론": "사프란",
+    "탈리아탈레": "탈리아텔레", "딸리아딸레": "탈리아텔레",
+    "만가닥버섯": "만가닥 버섯",
+    "옥수수콘": "옥수수 콘",
+    "그린빈": "그린 빈",
+    "궁채장아찌": "궁채 장아찌",
     // 무
     "무우": "무",
     // 라임
@@ -154,7 +170,9 @@ function App() {
     "리코타치즈": "리코타 치즈", "마스카포네치즈": "마스카포네 치즈",
     "마카포네 치즈": "마스카포네 치즈", "마스카포네 크림": "마스카포네 치즈",
     "모짜렐라 슈레드치즈": "모짜렐라 치즈", "프레시 모짜렐라 치즈": "모짜렐라 치즈",
+    "슈레드 모짜렐라": "모짜렐라 치즈",
     "폰탈치즈": "폰탈 치즈", "벨큐브치즈": "벨큐브 치즈",
+    "파다노": "그라나 파다노 치즈", "그라노파다노": "그라나 파다노 치즈",
     // 코인육수
     "꽃게 코인육수": "코인 육수", "디포리 코인육수": "코인 육수",
     "사골 코인육수": "코인 육수", "채소 코인육수": "코인 육수",
@@ -216,11 +234,18 @@ function App() {
     "간 돼지고기": "돼지고기", "돼지고기 등심": "돼지 등심",
     // 닭
     "닭 가슴살": "닭가슴살", "껍질 없는 닭 가슴살": "닭가슴살", "생닭": "닭고기",
+    // 케첩
+    "토마토 케찹": "케첩", "토마토케찹": "케첩", "토마토 케첩": "케첩",
+    // 전분
+    "전분 가루": "전분", "옥수수 전분 가루": "전분", "옥수수전분": "전분",
+    // 돼지 다짐육
+    "돼지고기 다짐육": "돼지 다짐육",
     // 소고기
     "호주산 안심": "안심", "안심 스테이크": "안심", "소고기 안심": "안심",
     "채끝 스테이크": "채끝살", "채끝": "채끝살",
     "등심 스테이크": "소고기 등심", "꽃등심": "소고기 등심",
-    "간 소고기": "다진 소고기", "다짐육": "다진 소고기", "얇은 소고기": "소고기",
+    "간 소고기": "소고기 다짐육", "다진소고기": "소고기 다짐육", "다진 소고기": "소고기 다짐육",
+    "다짐육": "소고기 다짐육", "얇은 소고기": "소고기",
     "한우 우둔": "우둔살",
     // 감자
     "삶은 감자": "감자", "두백감자": "감자", "마리스 파이퍼 감자": "감자",
@@ -313,13 +338,20 @@ function App() {
     .flatMap((item) => item.ingredients || [])
     .filter((ing) => typeof ing === "string" && ing !== "Only 제품 설명 OR 홍보");
 
-  const normalizedIngredientsSet = new Set();
-  const ingredientOptions = [];
-
+  // 정규화된 재료별 등장 횟수 집계
+  const ingredientFreq = {};
   for (const ing of allIngredientsRaw) {
     if (isNoisyIngredient(ing)) continue;
     const normalized = normalizeIng(ing);
     if (isNoisyIngredient(normalized)) continue;
+    ingredientFreq[normalized] = (ingredientFreq[normalized] || 0) + 1;
+  }
+
+  const normalizedIngredientsSet = new Set();
+  const ingredientOptions = [];
+
+  for (const [normalized, count] of Object.entries(ingredientFreq)) {
+    if (count <= 2) continue; // 2회 이하 재료는 드롭다운에서 제외
     if (!normalizedIngredientsSet.has(normalized)) {
       normalizedIngredientsSet.add(normalized);
       ingredientOptions.push({ value: normalized, label: normalized });
@@ -412,7 +444,7 @@ function App() {
             onClick={() => setActiveTab(activeTab === "chef" ? "home" : "chef")}
             className={`header-link${activeTab === "chef" ? " header-link-active" : ""}`}
           >
-            AI 셰프
+            {t.aiChef}
           </button>
           <button onClick={() => setAnalyzeOpen(true)} className="header-link">
             Analyze
@@ -424,6 +456,9 @@ function App() {
           <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer">
             <FaInstagram size={18} color={darkMode ? "#999" : "#555"} />
           </a>
+          <button onClick={() => setLanguage(language === "kr" ? "en" : "kr")} className="dark-toggle">
+            {language === "kr" ? "EN" : "KR"}
+          </button>
           <button onClick={toggleDarkMode} className="dark-toggle">
             {darkMode ? "Light" : "Dark"}
           </button>
@@ -436,33 +471,19 @@ function App() {
       </Modal>
 
       {/* Recipe Detail Modal */}
-      <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setPlayingVideo(false); }} darkMode={darkMode}>
+      <Modal open={!!recipeModal} onClose={() => setRecipeModal(null)} darkMode={darkMode}>
         {recipeModal && (
           <div className="recipe-modal">
             {extractYouTubeId(recipeModal.url) && (
-              playingVideo ? (
-                <div className="recipe-modal-thumb-link playing">
-                  <iframe
-                    className="recipe-modal-iframe"
-                    src={`https://www.youtube.com/embed/${extractYouTubeId(recipeModal.url)}?autoplay=1`}
-                    allow="autoplay; encrypted-media"
-                    allowFullScreen
-                    title={recipeModal.name}
-                  />
-                </div>
-              ) : (
-                <div
-                  className="recipe-modal-thumb-link"
-                  onClick={() => setPlayingVideo(true)}
-                >
-                  <img
-                    src={`https://img.youtube.com/vi/${extractYouTubeId(recipeModal.url)}/maxresdefault.jpg`}
-                    alt={recipeModal.name}
-                    className="recipe-modal-thumb"
-                    onError={(e) => { e.target.src = `https://img.youtube.com/vi/${extractYouTubeId(recipeModal.url)}/hqdefault.jpg`; }}
-                  />
-                </div>
-              )
+              <div className="recipe-modal-thumb-link playing">
+                <iframe
+                  className="recipe-modal-iframe"
+                  src={`https://www.youtube.com/embed/${extractYouTubeId(recipeModal.url)}?autoplay=0&rel=0`}
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                  title={recipeModal.name}
+                />
+              </div>
             )}
             <h2 className="recipe-modal-title">{recipeModal.name}</h2>
             <div className="recipe-modal-meta">
@@ -483,7 +504,7 @@ function App() {
             </div>
             <hr className="recipe-modal-divider" />
             <div className="recipe-modal-section">
-              <h3 className="recipe-modal-section-title">재료</h3>
+              <h3 className="recipe-modal-section-title">{t.ingredients}</h3>
               <div className="recipe-modal-ingredients">
                 {[...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))].map((ing, i) => (
                   <span key={i} className="ingredient-pill">{ing}</span>
@@ -491,7 +512,7 @@ function App() {
               </div>
             </div>
             <div className="recipe-modal-steps">
-              <h3 className="recipe-modal-section-title">Steps</h3>
+              <h3 className="recipe-modal-section-title">{t.steps}</h3>
               {recipeModal.steps && recipeModal.steps.length > 0 ? (
                 <ol>
                   {recipeModal.steps.map((step, i) => (
@@ -500,7 +521,7 @@ function App() {
                 </ol>
               ) : (
                 <p className="recipe-modal-no-steps">
-                  {language === "en" ? "Recipe coming soon" : "레시피 준비 중"}
+                  {t.noSteps}
                 </p>
               )}
             </div>
@@ -514,11 +535,13 @@ function App() {
         <>
           {/* Hero Section */}
           <section className="hero">
-            <div className="hero-badge">{recipeCount}+ Recipes Available</div>
+            <div className="hero-badge">{t.heroBadge(recipeCount)}</div>
             <h1 className="hero-title">
-              Find the perfect recipe<br />based on what you already have
+              {t.heroTitle.split("\n").map((line, i) => (
+                <span key={i}>{line}{i === 0 && <br />}</span>
+              ))}
             </h1>
-            <p className="hero-subtitle">Transform the way you search recipes</p>
+            <p className="hero-subtitle">{t.heroSubtitle}</p>
             <div className="hero-search">
               <TagSearch
                 onSearch={handleSearch}
@@ -529,25 +552,14 @@ function App() {
             </div>
           </section>
 
-          {/* 최근 추가된 레시피 - 검색 중에는 숨김 */}
-          {!searchActive && (
-            <section className="section">
-              <div className="container">
-                <h2 className="section-title">최근 추가된 레시피</h2>
-                <ul className="menu-list grid-list">
-                  {recentRecipes.map((item, idx) => (
-                    <RecipeCard key={`recent-${idx}`} item={item} />
-                  ))}
-                </ul>
-              </div>
-            </section>
-          )}
+          {/* About Section - 검색 중에는 숨김 */}
+          {!searchActive && <AboutSection darkMode={darkMode} language={language} t={t} />}
 
           {/* All Menu */}
           <section className="section">
             <div className="container">
               <div className="section-header">
-                <h2 className="section-title">전체 메뉴</h2>
+                <h2 className="section-title">{t.allRecipes}</h2>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <select
                     value={selectedChef}
@@ -563,7 +575,7 @@ function App() {
                       maxWidth: 160,
                     }}
                   >
-                    <option value="all">셰프 전체</option>
+                    <option value="all">{t.allChefs}</option>
                     {chefOptions.map((chef) => (
                       <option key={chef} value={chef}>{chef}</option>
                     ))}
@@ -573,13 +585,13 @@ function App() {
                       className={`sort-btn ${allMenuSort === "name" ? "active" : ""}`}
                       onClick={() => setAllMenuSort("name")}
                     >
-                      이름순
+                      {t.nameSort}
                     </button>
                     <button
                       className={`sort-btn ${allMenuSort === "date" ? "active" : ""}`}
                       onClick={() => setAllMenuSort("date")}
                     >
-                      최신순
+                      {t.dateSort}
                     </button>
                   </div>
                 </div>
@@ -590,11 +602,12 @@ function App() {
                     <RecipeCard key={`all-${idx}`} item={item} />
                   ))
                 ) : (
-                  <p className="no-results">No matching menu found.</p>
+                  <p className="no-results">{t.noResults}</p>
                 )}
               </ul>
             </div>
           </section>
+
         </>
       )}
     </div>
