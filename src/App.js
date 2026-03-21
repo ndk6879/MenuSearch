@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
@@ -51,6 +51,14 @@ function App() {
 
   const [searchResults, setSearchResults] = useState(sortedData);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
+
+  // 언어 변경 시 검색 결과 및 선택 재료 초기화
+  useEffect(() => {
+    setSearchResults(sortedData);
+    setSelectedIngredients([]);
+    setSearchActive(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
