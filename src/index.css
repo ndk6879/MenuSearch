@@ -1217,6 +1217,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 80px;
+  text-align: center;
 }
 
 .about-section-label {
@@ -1254,6 +1255,7 @@ body {
   font-size: 1rem;
   line-height: 1.8;
   max-width: 600px;
+  margin: 0 auto;
 }
 
 .app.light .about-story-body { color: #444; }
@@ -1311,7 +1313,7 @@ body {
 .about-cta-body {
   font-size: 0.95rem;
   line-height: 1.8;
-  margin: 0 0 28px;
+  margin: 0 auto 28px;
   max-width: 560px;
 }
 
@@ -1322,6 +1324,7 @@ body {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .about-cta-btn {

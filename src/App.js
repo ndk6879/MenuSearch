@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
@@ -50,6 +50,7 @@ function App() {
   const validRecipes = sortedData.filter(isValidRecipe);
 
   const [searchResults, setSearchResults] = useState(sortedData);
+  const [selectedIngredients, setSelectedIngredients] = useState([]);
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
@@ -322,6 +323,7 @@ function App() {
   };
 
   const handleSearch = (selected) => {
+    setSelectedIngredients(selected);
     setSearchActive(selected.length > 0);
     if (selected.length === 0) {
       setSearchResults(sortedData);
@@ -364,6 +366,27 @@ function App() {
   }
 
   ingredientOptions.sort((a, b) => a.label.localeCompare(b.label, "ko"));
+
+  // 선택된 재료가 있으면, 그 재료들이 포함된 레시피에 있는 재료만 드롭다운에 표시
+  const availableIngredientOptions = useMemo(() => {
+    if (selectedIngredients.length === 0) return ingredientOptions;
+    const matchingRecipes = filterMenusByIngredients(selectedIngredients);
+    const available = new Set();
+    for (const recipe of matchingRecipes) {
+      for (const ing of recipe.ingredients || []) {
+        if (isNoisyIngredient(ing)) continue;
+        const normalized = normalizeIng(ing);
+        if (!isNoisyIngredient(normalized)) available.add(normalized);
+      }
+    }
+    for (const parent of Object.keys(parentMap)) {
+      if (parentMap[parent].some(child => available.has(normalizeIng(child)))) {
+        available.add(parent);
+      }
+    }
+    return ingredientOptions.filter(opt => available.has(opt.value));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIngredients]);
 
 const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
   const [selectedChef, setSelectedChef] = useState("all");
@@ -540,7 +563,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             <div className="hero-search">
               <TagSearch
                 onSearch={handleSearch}
-                options={ingredientOptions}
+                options={availableIngredientOptions}
                 language={language}
                 darkMode={darkMode}
               />
