@@ -28,7 +28,6 @@ const isValidRecipe = (item) =>
 function App() {
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
-  const [playingVideo, setPlayingVideo] = useState(false);
   const [activeTab, setActiveTab] = useState("home"); // "home" | "chef"
 
   const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
@@ -120,7 +119,7 @@ function App() {
     "화이트 와인 비네거": "화이트 발사믹", "화이트 와인 비니거": "화이트 발사믹",
     "화이트와인 비네거": "화이트 발사믹", "화이트 와인식초": "화이트 발사믹",
     // 레드와인 식초
-    "레드 와인 비네거": "레드와인 식초", "레드와인 비네거": "레드와인 식초",
+    "레드와인 비네거": "레드와인 식초",
     // 버섯류
     "양송이버섯": "양송이 버섯", "양송이": "양송이 버섯",
     "새송이버섯": "새송이 버섯", "느타리버섯": "느타리 버섯",
@@ -368,9 +367,7 @@ function App() {
 
   ingredientOptions.sort((a, b) => a.label.localeCompare(b.label, "ko"));
 
-  const recentRecipes = validRecipes.slice(0, 8);
-
-  const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
+const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
   const [selectedChef, setSelectedChef] = useState("all");
 
   const chefOptions = Array.from(
