@@ -294,8 +294,9 @@ function App() {
     return s.trim();
   };
 
-  // autoNormalize → synonymMap 순서로 정규화
+  // autoNormalize → synonymMap 순서로 정규화 (EN 모드는 영어 그대로 사용)
   const normalizeIng = (ing) => {
+    if (language === "en") return ing.trim();
     const auto = autoNormalize(ing);
     return synonymMap[auto] || synonymMap[ing] || auto;
   };
@@ -365,11 +366,13 @@ function App() {
     }
   }
 
-  // 상위어(돼지고기, 닭고기 등)도 검색 옵션에 추가
-  for (const parent of Object.keys(parentMap)) {
-    if (!normalizedIngredientsSet.has(parent)) {
-      normalizedIngredientsSet.add(parent);
-      ingredientOptions.push({ value: parent, label: parent });
+  // 상위어(돼지고기, 닭고기 등)는 KR 모드에서만 추가 (EN 모드는 영어 재료로 대체)
+  if (language === "kr") {
+    for (const parent of Object.keys(parentMap)) {
+      if (!normalizedIngredientsSet.has(parent)) {
+        normalizedIngredientsSet.add(parent);
+        ingredientOptions.push({ value: parent, label: parent });
+      }
     }
   }
 
