@@ -1,157 +1,730 @@
-import React, { useState, useRef } from "react";
-import axios from "axios";
+
+import React, { useState, useMemo, useEffect } from "react";
 import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
 import menuData_en from "./menuData_en";
-import menuTest from "./menuTest";
-import HeroSection from "./HeroSection";
 import { FaGithub, FaInstagram } from "react-icons/fa";
+
+import Modal from "./components/Modal";
+import AnalyzePanel from "./components/AnalyzePanel";
+import ChefAI from "./components/ChefAI";
+import channelProfiles from "./channelData";
+import AboutSection from "./components/AboutSection";
+import translations from "./i18n";
+
 
 function extractYouTubeId(url) {
   const match = url.match(/(?:\?v=|\/embed\/|\.be\/|\/v\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
   return match ? match[1] : null;
 }
 
+const isValidRecipe = (item) =>
+  item.name !== "Only 제품 설명 OR 홍보" &&
+  item.name !== "건너뜀 - 영상 너무 김" &&
+  item.name !== "분석 불가" &&
+  !(item.ingredients || []).includes("Only 제품 설명 OR 홍보");
+
 function App() {
-  const [language, setLanguage] = useState("en");
-  const [searchResults, setSearchResults] = useState(menuTest);
-  const [selectedUploader, setSelectedUploader] = useState("all");
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [recipeModal, setRecipeModal] = useState(null);
+  const [activeTab, setActiveTab] = useState("home"); // "home" | "chef"
+
+  const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
+  const [language, setLanguage] = useState(defaultLanguage);
+  const t = translations[language];
   const [darkMode, setDarkMode] = useState(false);
+  const [searchActive, setSearchActive] = useState(false);
 
-  const currentData = language === "en" ? menuTest : menuData_kr;
+  const currentRawData = language === "en" ? menuData_en : menuData_kr;
 
-  const allIngredients = Array.from(
-    new Set(currentData.flatMap((item) => item.ingredients || []))
-  );
+  const sortedData = [...currentRawData]
+    .sort((a, b) => new Date(b.upload_date) - new Date(a.upload_date))
+    .map(item => ({
+      ...item,
+      ingredients: Array.isArray(item.ingredients)
+        ? [...item.ingredients].sort()
+        : []
+    }));
 
-  const ingredientOptions = allIngredients
-    .map((ing) => ({ value: ing, label: ing }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  const validRecipes = sortedData.filter(isValidRecipe);
 
-  const handleSearch = async (selected) => {
+  const [searchResults, setSearchResults] = useState(sortedData);
+  const [selectedIngredients, setSelectedIngredients] = useState([]);
+
+  // 언어 변경 시 검색 결과 및 선택 재료 초기화
+  useEffect(() => {
+    setSearchResults(sortedData);
+    setSelectedIngredients([]);
+    setSearchActive(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
+
+  const toggleDarkMode = () => setDarkMode(prev => !prev);
+
+  // ── 동의어 맵: 같은 재료의 다른 표기 → 검색/표시 통일 ──
+  // (cleanup_ingredients.py와 동일한 규칙 유지)
+  const synonymMap = {
+    // 올리브 오일
+    "올리브오일": "올리브 오일", "올리브유": "올리브 오일",
+    "엑스트라 버진 올리브오일": "올리브 오일", "엑스트라버진 올리브오일": "올리브 오일",
+    "엑스트라버진 올리브 오일": "올리브 오일", "엑스트라버진 오일": "올리브 오일",
+    "엑스트라버진 올리브유": "올리브 오일", "엑스트라 버진오일": "올리브 오일",
+    "엑스트라버진오일": "올리브 오일", "엑스트라 버진 올리브 오일": "올리브 오일",
+    "퓨어 올리브 오일": "올리브 오일", "퓨어올리브오일": "올리브 오일",
+    "퓨어올리브유": "올리브 오일", "퓨어 올리브유": "올리브 오일",
+    "콩피오일": "올리브 오일", "콩피 오일": "올리브 오일",
+    // 올리브 열매
+    "그린올리브": "올리브", "그린 올리브": "올리브", "블랙올리브": "올리브",
+    "타쟈스카 올리브": "올리브", "패키지 올리브": "올리브",
+    // 고춧가루
+    "고추가루": "고춧가루", "청양고춧가루": "고춧가루",
+    "고운고추가루": "고춧가루", "굵은 고추가루": "고춧가루", "고운고춧가루": "고춧가루",
+    // 계란
+    "달걀": "계란", "감동란": "계란", "감 동란": "계란",
+    "계란 노른자": "계란", "달걀 노른자": "계란", "달걀 (노른자만)": "계란",
+    "노른자": "계란", "달걀 흰자": "계란", "반숙란": "계란",
+    // 계피
+    "계피가루": "계피", "계피스틱": "계피",
+    // 김치
+    "배추 김치": "김치", "배추김치": "김치", "신김치": "김치",
+    // 버터
+    "무염 버터": "버터", "무염버터": "버터", "기버터": "버터",
+    "가염버터": "버터", "버터(가염)": "버터",
+    // 대파
+    "대파 녹색부분": "대파", "대파 흰부분": "대파", "파": "대파",
+    // 양파
+    "양파분말": "양파", "적양파": "양파", "보라색 양파": "양파",
+    // 파마산 치즈
+    "파마산 치즈 가루": "파마산 치즈", "파마산치즈": "파마산 치즈",
+    "파마산": "파마산 치즈", "파르메산 치즈": "파마산 치즈", "레지아노 치즈": "파마산 치즈",
+    // 파프리카
+    "빨간 파프리카": "파프리카", "노란 파프리카": "파프리카",
+    "미니 파프리카": "파프리카", "초록 파프리카": "파프리카", "레드파프리카": "파프리카",
+    // 방울토마토
+    "방울 토마토": "방울토마토", "컬러방울토마토": "방울토마토",
+    "달짝이 토마토": "방울토마토", "달짝이토마토": "방울토마토", "무지개 방울토마토": "방울토마토",
+    // 선드라이토마토
+    "선드라이 토마토": "선드라이토마토", "썬드라이 토마토": "선드라이토마토", "썬드라이토마토": "선드라이토마토",
+    // 토마토홀
+    "캔 토마토": "토마토홀", "토마토캔": "토마토홀", "홀 토마토 캔": "토마토홀", "무띠 토마토홀": "토마토홀",
+    // 토마토퓨레
+    "토마토 퓨레": "토마토퓨레", "무띠 토마토퓨레": "토마토퓨레",
+    "토마토 페이스트": "토마토퓨레", "토마토페이스트": "토마토퓨레",
+    // 토마토소스
+    "토마토 소스": "토마토소스", "로제 토마토 소스": "토마토소스",
+    // 파슬리
+    "이탈리안 파슬리": "파슬리", "다진 파슬리": "파슬리", "파슬리잎": "파슬리",
+    // 식초
+    "사과식초": "사과 식초", "두배 사과식초": "사과 식초", "쉐리식초": "식초",
+    "발사믹식초": "발사믹 식초",
+    "발사믹 비네거": "발사믹 식초", "발사믹 비니거": "발사믹 식초",
+    "레드 와인 비네거": "레드 와인 식초", "레드와인 비네거": "레드와인 식초",
+    "와인식초": "와인 식초",
+    // 화이트 발사믹
+    "화이트 발사믹 식초": "화이트 발사믹", "화이트 발사믹식초": "화이트 발사믹",
+    "화이트발사믹식초": "화이트 발사믹", "화이트발사믹": "화이트 발사믹",
+    "화이트 발사믹 글레이즈": "화이트 발사믹", "화이트와인 비니거": "화이트 발사믹",
+    "화이트 와인 비네거": "화이트 발사믹", "화이트 와인 비니거": "화이트 발사믹",
+    "화이트와인 비네거": "화이트 발사믹", "화이트 와인식초": "화이트 발사믹",
+    // 버섯류
+    "양송이버섯": "양송이 버섯", "양송이": "양송이 버섯",
+    "새송이버섯": "새송이 버섯", "느타리버섯": "느타리 버섯",
+    "팽이버섯": "팽이 버섯", "포르치니버섯": "포르치니 버섯",
+    "표고버섯": "표고 버섯", "잎새버섯": "잎새 버섯",
+    // 랍스터
+    "랍스터 테일": "랍스터", "랍스타": "랍스터",
+    // 채소 오타/표기
+    "살롯": "샬롯",
+    "래디시": "래디쉬", "레디시": "래디쉬",
+    "사프론": "사프란", "샤프론": "사프란",
+    "탈리아탈레": "탈리아텔레", "딸리아딸레": "탈리아텔레",
+    "만가닥버섯": "만가닥 버섯",
+    "옥수수콘": "옥수수 콘",
+    "그린빈": "그린 빈",
+    "궁채장아찌": "궁채 장아찌",
+    // 무
+    "무우": "무",
+    // 라임
+    "라임 주스": "라임", "라임주스": "라임", "라임제스트": "라임",
+    "라임 제스트": "라임", "라임즙": "라임", "라임/레몬 제스트": "라임",
+    // 레몬
+    "레몬즙": "레몬", "레몬주스": "레몬", "레몬제스트": "레몬",
+    "레몬 제스트": "레몬", "레몬껍질": "레몬",
+    // 마늘
+    "마늘분말": "마늘", "흑마늘": "마늘", "다진마늘": "마늘",
+    "다진 마늘": "마늘", "통마늘": "마늘", "생마늘": "마늘",
+    // 연어
+    "노르웨이 생연어": "연어", "껍질 있는 연어": "연어", "껍질 없는 연어": "연어",
+    "훈제연어": "연어", "연어 스테이크": "연어", "동원 썸씽스페셜 훈제연어": "연어",
+    // 바질
+    "바질잎": "바질",
+    // 소금
+    "맛소금": "소금", "구운 소금": "소금", "죽염": "소금", "샐러리 소금": "소금",
+    // 간장
+    "맛간장": "간장", "양조간장": "간장", "진간장": "간장",
+    "국간장": "간장", "백간장": "간장", "어간장": "간장", "청장(맑은 간장)": "간장",
+    // 밥
+    "백미": "밥", "즉석밥": "밥", "통곡물밥": "밥", "쌀밥": "밥",
+    // 쌀
+    "생쌀": "쌀", "불린 쌀": "쌀", "이탈리아 쌀": "쌀", "한국 쌀": "쌀",
+    // 메밀가루
+    "통메밀가루": "메밀가루",
+    // 치즈류
+    "부라타치즈": "부라타 치즈", "블루치즈": "블루 치즈", "페타치즈": "페타 치즈",
+    "에멘탈치즈": "에멘탈 치즈", "그뤼에르치즈": "그뤼에르 치즈",
+    "리코타치즈": "리코타 치즈", "마스카포네치즈": "마스카포네 치즈",
+    "마카포네 치즈": "마스카포네 치즈", "마스카포네 크림": "마스카포네 치즈",
+    "모짜렐라 슈레드치즈": "모짜렐라 치즈", "프레시 모짜렐라 치즈": "모짜렐라 치즈",
+    "슈레드 모짜렐라": "모짜렐라 치즈",
+    "폰탈치즈": "폰탈 치즈", "벨큐브치즈": "벨큐브 치즈",
+    "파다노": "그라나 파다노 치즈", "그라노파다노": "그라나 파다노 치즈",
+    // 코인육수
+    "꽃게 코인육수": "코인 육수", "디포리 코인육수": "코인 육수",
+    "사골 코인육수": "코인 육수", "채소 코인육수": "코인 육수",
+    "채소육수코인": "코인 육수", "사골코인육수": "코인 육수",
+    "코인육수사골": "코인 육수", "코인육수": "코인 육수",
+    // 당근
+    "베이비당근": "당근",
+    // 생강
+    "생강가루": "생강", "다진 생강": "생강",
+    // 알룰로스
+    "알루로스": "알룰로스",
+    // 마요네즈
+    "비건 마요네즈": "마요네즈",
+    // 치킨스톡
+    "액상 치킨스톡": "치킨스톡", "치킨스톡파우더": "치킨스톡",
+    "치킨 육수": "치킨스톡", "치킨육수": "치킨스톡",
+    "닭 육수": "치킨스톡", "닭육수": "치킨스톡",
+    // 깨
+    "깨소금": "깨", "볶은깨": "깨", "볶음깨": "깨",
+    "검은깨": "깨", "검정깨": "깨", "참깨": "깨",
+    // 아보카도
+    "아보카도 퓨레": "아보카도", "아보카도퓨레": "아보카도",
+    // 빵
+    "통식빵": "식빵", "버거번": "빵",
+    // 기타
+    "청포도": "포도", "민트잎": "민트", "명란젓": "명란", "갈아만든배": "배",
+    "와사비잎": "와사비", "와사비플라워": "와사비", "전복내장": "전복",
+    "애플망고": "애플 망고", "물만두": "만두", "왕새우 만두": "만두", "냉동만두": "만두",
+    // 후추
+    "통후추": "후추", "후추 가루": "후추", "후추가루": "후추",
+    "후춧가루": "후추", "흰 후추": "후추", "흰후추": "후추",
+    // 트러플
+    "트러플 스프레이": "트러플", "트러플 페이스트": "트러플",
+    "트러플오일": "트러플", "트러플 오일": "트러플", "화이트 트러플 오일": "트러플",
+    // 후리카케
+    "후리가게": "후리카케", "후리카게": "후리카케", "후리가케": "후리카케",
+    // 와인
+    "화이트와인": "화이트 와인", "레드와인": "레드 와인",
+    // 페페론치노
+    "페퍼론치노": "페페론치노", "페퍼로치니": "페페론치노", "페퍼크러쉬": "페페론치노",
+    "페페론치니": "페페론치노", "크러쉬페퍼": "페페론치노",
+    "크러쉬드 페퍼": "페페론치노", "페퍼로치노": "페페론치노",
+    // 파스타
+    "스파게티면": "파스타", "건파스타": "파스타", "생면 파스타": "파스타",
+    "숏파스타": "파스타", "파스타 면": "파스타", "파스타 반죽": "파스타",
+    // 굴소스
+    "우스터소스": "굴소스",
+    // 식용유
+    "포도씨유": "식용유", "아보카도 오일": "식용유", "아보카도오일": "식용유",
+    // 바질 페스토
+    "바질페스토": "바질 페스토",
+    // 삼겹살
+    "K-바비큐 삼겹살": "삼겹살", "국내산 삼겹살": "삼겹살", "미국산 삼겹살": "삼겹살",
+    "스페인산 (이베리코) 삼겹살": "삼겹살", "캐나다산 삼겹살": "삼겹살",
+    "독일 삼겹살": "삼겹살", "칠레 삼겹살": "삼겹살",
+    // 목살
+    "목살 스테이크": "목살", "3일 돼지 목살": "목살", "돼지목살": "목살", "돼지 목살": "목살",
+    // 돼지고기
+    "간 돼지고기": "돼지고기", "돼지고기 등심": "돼지 등심",
+    // 닭
+    "닭 가슴살": "닭가슴살", "껍질 없는 닭 가슴살": "닭가슴살", "생닭": "닭고기",
+    // 케첩
+    "토마토 케찹": "케첩", "토마토케찹": "케첩", "토마토 케첩": "케첩",
+    // 전분
+    "전분 가루": "전분", "옥수수 전분 가루": "전분", "옥수수전분": "전분",
+    // 돼지 다짐육
+    "돼지고기 다짐육": "돼지 다짐육",
+    // 소고기
+    "호주산 안심": "안심", "안심 스테이크": "안심", "소고기 안심": "안심",
+    "채끝 스테이크": "채끝살", "채끝": "채끝살",
+    "등심 스테이크": "소고기 등심", "꽃등심": "소고기 등심",
+    "간 소고기": "소고기 다짐육", "다진소고기": "소고기 다짐육", "다진 소고기": "소고기 다짐육",
+    "다짐육": "소고기 다짐육", "얇은 소고기": "소고기",
+    "한우 우둔": "우둔살",
+    // 감자
+    "삶은 감자": "감자", "두백감자": "감자", "마리스 파이퍼 감자": "감자",
+    // 새우
+    "생새우": "새우", "냉동 새우 (적새우살)": "새우", "냉동 새우": "새우",
+    // 밀가루
+    "일반 밀가루": "밀가루", "프랑스 밀가루 T45": "밀가루",
+    // 생크림
+    "서울우유 생크림": "생크림", "매일우유 휘핑크림": "생크림",
+    // 설탕
+    "백설탕": "설탕", "고운 설탕": "설탕", "브라운 설탕": "설탕",
+    // 고추
+    "청고추": "고추", "홍고추": "고추", "아삭이고추": "고추",
+    // 토마토주스
+    "토마토 주스": "토마토주스",
+  };
+
+  // ── 상위어 맵: "돼지고기" 검색 시 삼겹살/목살 등 포함 레시피도 매칭 ──
+  // 하지만 삼겹살/목살은 여전히 개별 검색 가능
+  const parentMap = {
+    "돼지고기": ["삼겹살", "목살", "항정살", "돼지등갈비", "돼지 뒷다리살", "돼지 앞다리살", "돼지 등심", "돼지갈비", "듀록"],
+    "닭고기": ["닭가슴살", "닭다리", "닭다리살", "수비드 닭가슴살", "닭발", "닭뼈", "닭간", "토종닭 다리"],
+    "소고기": ["소고기 갈비살", "안심", "양갈비", "LA갈비", "소고기 등심", "한우패티", "토마호크", "채끝살", "우둔살", "우삼겹", "떡갈비"],
+    "치즈": ["파마산 치즈", "크림치즈", "페타 치즈", "부라타 치즈", "블루 치즈", "까망베르 치즈", "고르곤졸라 치즈", "리코타 치즈", "모짜렐라 치즈", "그뤼에르 치즈", "체다 치즈"],
+    "김치": ["묵은지", "백김치"],
+    "버섯": ["표고 버섯", "느타리 버섯", "팽이 버섯", "새송이 버섯", "포르치니 버섯", "양송이 버섯"],
+    "토마토": ["방울토마토", "선드라이토마토", "토마토소스", "토마토홀"],
+    "식초": ["발사믹 식초", "화이트 발사믹"],
+    "빵": ["식빵"],
+    "파스타": ["스파게티", "링귀네", "펜네", "부카티니", "카펠리니", "탈리아텔레"],
+  };
+
+  // ── 패턴 기반 자동 정규화: 산지 접두사 / 용량 제거 ──
+  const autoNormalize = (ing) => {
+    let s = ing.trim();
+    // 산지 접두사 제거: "국내산 삼겹살" → "삼겹살"
+    s = s.replace(/^(국내산|미국산|호주산|캐나다산|스페인산|독일산|칠레산|노르웨이산|프랑스산|이탈리아산|뉴질랜드산|중국산)\s+/, "");
+    // 끝부분 용량/수량 제거: "돼지 앞다리살 500g" → "돼지 앞다리살"
+    s = s.replace(/\s*\d+([./]\d+)?\s*(g|ml|kg|L|l|개|장|큰술|작은술|컵|스푼|tsp|tbsp|T)\s*$/, "");
+    return s.trim();
+  };
+
+  // autoNormalize → synonymMap 순서로 정규화 (EN 모드는 영어 그대로 사용)
+  const normalizeIng = (ing) => {
+    if (language === "en") return ing.trim();
+    const auto = autoNormalize(ing);
+    return synonymMap[auto] || synonymMap[ing] || auto;
+  };
+
+  // 드롭다운에서 제외할 기본 재료 (너무 흔해서 검색 의미 없음)
+  const EXCLUDED_INGREDIENTS = new Set([
+    "소금", "후추", "물", "설탕", "밀가루", "기름", "면수",
+    "salt", "pepper", "water", "sugar", "flour", "oil", "pasta water",
+  ]);
+
+  // 노이즈 재료 필터 (조리 설명 문장 등)
+  const isNoisyIngredient = (ing) => {
+    if (!ing || ing.length > 25) return true;
+    if (/[.。]/.test(ing)) return true;
+    if (/준비한다|구워준다|넣는다|볶는다|끓인다|만든다|섞는다|썬다|담는다|자른다|버린다|걸러서|우린다|벗겨|제거한다/.test(ing)) return true;
+    if (EXCLUDED_INGREDIENTS.has(ing.trim())) return true;
+    return false;
+  };
+
+  // 검색 필터: 상위어 선택 시 하위 재료도 매칭, 개별 재료는 정확 매칭
+  const filterMenusByIngredients = (selectedOptions) => {
+    return sortedData.filter(menu => {
+      const ingredients = menu.ingredients || [];
+      const normalizedMenuIngredients = ingredients.map(ing => normalizeIng(ing));
+
+      return selectedOptions.every(opt => {
+        const val = typeof opt === "string" ? opt : opt.value;
+        const normalizedVal = normalizeIng(val);
+
+        if (parentMap[normalizedVal]) {
+          // 상위어: 카테고리 자체 OR 하위 재료 중 하나라도 있으면 매칭
+          const allVariants = [normalizedVal, ...parentMap[normalizedVal].map(c => normalizeIng(c))];
+          return normalizedMenuIngredients.some(mi => allVariants.includes(mi));
+        }
+
+        // 일반 재료: 정규화 후 정확 매칭
+        return normalizedMenuIngredients.includes(normalizedVal);
+      });
+    });
+  };
+
+  const handleSearch = (selected) => {
+    setSelectedIngredients(selected);
+    setSearchActive(selected.length > 0);
     if (selected.length === 0) {
-      setSearchResults(currentData);
+      setSearchResults(sortedData);
       return;
     }
+    const filtered = filterMenusByIngredients(selected);
+    setSearchResults(filtered);
+  };
 
-    const selectedValues = selected.map((opt) => opt.value);
+  const allIngredientsRaw = sortedData
+    .flatMap((item) => item.ingredients || [])
+    .filter((ing) => typeof ing === "string" && ing !== "Only 제품 설명 OR 홍보");
 
-    try {
-      const res = await axios.post("/menus/_search", {
-        size: 1000,
-        query: {
-          bool: {
-            must: selectedValues.map((val) => ({
-              match: { ingredients: val },
-            })),
-          },
-        },
-      });
+  // 정규화된 재료별 등장 횟수 집계
+  const ingredientFreq = {};
+  for (const ing of allIngredientsRaw) {
+    if (isNoisyIngredient(ing)) continue;
+    const normalized = normalizeIng(ing);
+    if (isNoisyIngredient(normalized)) continue;
+    ingredientFreq[normalized] = (ingredientFreq[normalized] || 0) + 1;
+  }
 
-      const results = res.data.hits.hits.map((hit) => hit._source);
-      let filtered = results;
+  const normalizedIngredientsSet = new Set();
+  const ingredientOptions = [];
 
-      if (selectedUploader !== "all") {
-        filtered = filtered.filter((item) => item.uploader === selectedUploader);
-      }
-
-      setSearchResults(filtered);
-    } catch (error) {
-      let fallbackResults = currentData.filter((item) =>
-        selectedValues.every((val) => item.ingredients?.includes(val))
-      );
-      setSearchResults(fallbackResults);
+  for (const [normalized, count] of Object.entries(ingredientFreq)) {
+    if (count <= 2) continue; // 2회 이하 재료는 드롭다운에서 제외
+    if (!normalizedIngredientsSet.has(normalized)) {
+      normalizedIngredientsSet.add(normalized);
+      ingredientOptions.push({ value: normalized, label: normalized });
     }
+  }
+
+  // 상위어(돼지고기, 닭고기 등)는 KR 모드에서만 추가 (EN 모드는 영어 재료로 대체)
+  if (language === "kr") {
+    for (const parent of Object.keys(parentMap)) {
+      if (!normalizedIngredientsSet.has(parent)) {
+        normalizedIngredientsSet.add(parent);
+        ingredientOptions.push({ value: parent, label: parent });
+      }
+    }
+  }
+
+  ingredientOptions.sort((a, b) => a.label.localeCompare(b.label, "ko"));
+
+  // 선택된 재료가 있으면, 그 재료들이 포함된 레시피에 있는 재료만 드롭다운에 표시
+  const availableIngredientOptions = useMemo(() => {
+    if (selectedIngredients.length === 0) return ingredientOptions;
+    const matchingRecipes = filterMenusByIngredients(selectedIngredients);
+    const available = new Set();
+    for (const recipe of matchingRecipes) {
+      for (const ing of recipe.ingredients || []) {
+        if (isNoisyIngredient(ing)) continue;
+        const normalized = normalizeIng(ing);
+        if (!isNoisyIngredient(normalized)) available.add(normalized);
+      }
+    }
+    for (const parent of Object.keys(parentMap)) {
+      if (parentMap[parent].some(child => available.has(normalizeIng(child)))) {
+        available.add(parent);
+      }
+    }
+    return ingredientOptions.filter(opt => available.has(opt.value));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIngredients]);
+
+const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
+  const [selectedChef, setSelectedChef] = useState("all");
+
+  const chefOptions = Array.from(
+    new Set(validRecipes.map((r) => r.uploader).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, "ko"));
+
+  const filteredResults = searchResults.filter(isValidRecipe).filter((r) =>
+    selectedChef === "all" ? true : r.uploader === selectedChef
+  );
+
+  const sortedResults = [...filteredResults].sort((a, b) => {
+    if (allMenuSort === "name") {
+      return (a.name || "").localeCompare(b.name || "", "ko");
+    }
+    return new Date(b.upload_date) - new Date(a.upload_date);
+  });
+
+  const RecipeCard = ({ item }) => {
+    const ytId = extractYouTubeId(item.url);
+    const normalizedIngredients = [...new Set(
+      (item.ingredients || []).map(ing => normalizeIng(ing))
+    )];
+
+    return (
+      <li className="menu-card" onClick={() => setRecipeModal(item)}>
+        {ytId && (
+          <img
+            src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+            alt={item.name}
+            className="menu-thumbnail"
+          />
+        )}
+        <div className="menu-text">
+          <div className="menu-name">{item.name || "No Name"}</div>
+          {item.uploader && (
+            <div className="menu-chef-row">
+              <img
+                src={channelProfiles[item.uploader] || ""}
+                alt={item.uploader}
+                className="menu-chef-avatar"
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
+              <span className="menu-uploader">{item.uploader}</span>
+            </div>
+          )}
+          <div className="ingredient-tags">
+            {normalizedIngredients.slice(0, 6).map((ing, i) => {
+              const isHighlighted = selectedIngredients.some(
+                s => normalizeIng(s.value).toLowerCase() === ing.toLowerCase()
+              );
+              return (
+                <span key={i} className={`ingredient-pill${isHighlighted ? " ingredient-pill-highlight" : ""}`}>
+                  {ing}
+                </span>
+              );
+            })}
+            {normalizedIngredients.length > 6 && (
+              <span className="ingredient-pill ingredient-pill-more">
+                +{normalizedIngredients.length - 6}
+              </span>
+            )}
+          </div>
+        </div>
+      </li>
+    );
   };
 
-  const handleToggleLanguage = () => {
-    const newLang = language === "en" ? "kr" : "en";
-    setLanguage(newLang);
-    setSearchResults(newLang === "en" ? menuTest : menuData_kr);
-    setSelectedUploader("all");
-  };
-
-  const toggleDarkMode = () => setDarkMode((prev) => !prev);
-  const searchRef = useRef(null);
-  const scrollToSearch = () => searchRef.current?.scrollIntoView({ behavior: "smooth" });
+  const recipeCount = validRecipes.length;
 
   return (
     <div className={darkMode ? "app dark" : "app light"}>
-      {/* 🔥 Header Start */}
       <header className="header">
-        {/* 왼쪽: 로고 Findish */}
         <div className="header-left">
-          <span className="header-logo">Findish</span>
+          <a href="/" className="header-logo">Findish</a>
         </div>
-
-        {/* 오른쪽: 메뉴들 */}
         <div className="header-right">
+          <button
+            onClick={() => setActiveTab(activeTab === "chef" ? "home" : "chef")}
+            className={`header-link${activeTab === "chef" ? " header-link-active" : ""}`}
+          >
+            {t.aiChef}
+          </button>
+          <button onClick={() => setAnalyzeOpen(true)} className="header-link">
+            Analyze
+          </button>
           <a href="#about" className="header-link">About</a>
           <a href="https://github.com/ndk6879/MenuSearch" target="_blank" rel="noopener noreferrer">
-            <FaGithub size={20} color={darkMode ? "#ccc" : "#333"} />
+            <FaGithub size={18} color={darkMode ? "#999" : "#555"} />
           </a>
           <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer">
-            <FaInstagram size={20} color="#E1306C" />
+            <FaInstagram size={18} color={darkMode ? "#999" : "#555"} />
           </a>
-          
-          <button onClick={toggleDarkMode} className="search-button">
-            {darkMode ? "☀️" : "🌙"}
+          <button onClick={() => setLanguage(language === "kr" ? "en" : "kr")} className="dark-toggle">
+            {language === "kr" ? "EN" : "KR"}
+          </button>
+          <button onClick={toggleDarkMode} className="dark-toggle">
+            {darkMode ? "Light" : "Dark"}
           </button>
         </div>
       </header>
 
-      {/* 🔥 Header End */}
+      {/* Analyze Modal */}
+      <Modal open={analyzeOpen} onClose={() => setAnalyzeOpen(false)} darkMode={darkMode}>
+        <AnalyzePanel apiBase="http://localhost:8000" />
+      </Modal>
 
-      <HeroSection onScrollToSearch={scrollToSearch} />
-
-      <div className="container" ref={searchRef}>
-      <h1 className="title">🍽️ Findish</h1>
-
-        <div className="search-section">
-        <button onClick={handleToggleLanguage} className="search-button">
-            {language === "en" ? "🇰🇷 KR" : "🇺🇸 EN"}
-          </button>
-
-          <TagSearch
-            onSearch={handleSearch}
-            options={ingredientOptions}
-            language={language}
-            darkMode={darkMode}
-          />
-          
-        </div>
-
-        <p className="result-count">
-          {searchResults.length} of {currentData.length} results
-        </p>
-
-        <ul className="menu-list grid-list">
-          {searchResults.length > 0 ? (
-            searchResults.map((item, idx) => (
-              <li key={idx} className="menu-card">
-                {item.url && (
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    <img
-                      src={`https://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`}
-                      alt="thumbnail"
-                      className="menu-thumbnail"
-                    />
-                  </a>
+      {/* Recipe Detail Modal */}
+      <Modal open={!!recipeModal} onClose={() => setRecipeModal(null)} darkMode={darkMode}>
+        {recipeModal && (
+          <div className="recipe-modal">
+            {extractYouTubeId(recipeModal.url) && (
+              <div className="recipe-modal-thumb-link playing">
+                <iframe
+                  className="recipe-modal-iframe"
+                  src={`https://www.youtube.com/embed/${extractYouTubeId(recipeModal.url)}?autoplay=0&rel=0`}
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                  title={recipeModal.name}
+                />
+              </div>
+            )}
+            <h2 className="recipe-modal-title">{recipeModal.name}</h2>
+            <div className="recipe-modal-meta">
+              <img
+                src={channelProfiles[recipeModal.uploader] || ""}
+                alt={recipeModal.uploader}
+                className="recipe-modal-avatar"
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
+              <div className="recipe-modal-meta-text">
+                {recipeModal.uploader && (
+                  <span className="recipe-modal-uploader">{recipeModal.uploader}</span>
                 )}
-                <div className="menu-text">
-                  <div className="menu-name">🍽️ {item.name || "No Name"}</div>
-                  <div className="menu-ingredients">
-                    🥕 {item.ingredients?.join(", ") || "No Ingredients Info"}
+                {recipeModal.upload_date && (
+                  <span className="recipe-modal-date">{recipeModal.upload_date}</span>
+                )}
+              </div>
+            </div>
+            <hr className="recipe-modal-divider" />
+            <div className="recipe-modal-section">
+              <h3 className="recipe-modal-section-title">{t.ingredients}</h3>
+              <div className="recipe-modal-ingredients">
+                {[...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))].map((ing, i) => (
+                  <span key={i} className="ingredient-pill">{ing}</span>
+                ))}
+              </div>
+            </div>
+            <div className="recipe-modal-steps">
+              <h3 className="recipe-modal-section-title">{t.steps}</h3>
+              {recipeModal.steps && recipeModal.steps.length > 0 ? (
+                <ol>
+                  {recipeModal.steps.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="recipe-modal-no-steps">
+                  {t.noSteps}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {activeTab === "chef" ? (
+        <ChefAI darkMode={darkMode} />
+      ) : (
+        <>
+          {/* Hero Section */}
+          <section className="hero">
+            <div className="hero-badge">{t.heroBadge(recipeCount)}</div>
+            <h1 className="hero-title">
+              {t.heroTitle.split("\n").map((line, i) => (
+                <span key={i}>{line}{i === 0 && <br />}</span>
+              ))}
+            </h1>
+            <p className="hero-subtitle">{t.heroSubtitle}</p>
+            <div className="hero-search">
+              <TagSearch
+                onSearch={handleSearch}
+                options={availableIngredientOptions}
+                language={language}
+                darkMode={darkMode}
+                value={selectedIngredients}
+                onChange={setSelectedIngredients}
+              />
+            </div>
+
+            {/* 인기 재료 태그 */}
+            {!searchActive && (
+              <div className="hero-popular">
+                <span className="hero-popular-label">
+                  {language === "kr" ? "인기" : "Popular"}
+                </span>
+                {(language === "kr"
+                  ? ["계란", "삼겹살", "두부", "연어", "파스타", "새우", "소고기", "김치", "감자", "닭가슴살"]
+                  : ["Egg", "Pork belly", "Tofu", "Salmon", "Pasta", "Shrimp", "Beef", "Kimchi", "Potato", "Chicken breast"]
+                ).map((tag) => {
+                  const opt = { value: tag, label: tag };
+                  const isSelected = selectedIngredients.some(s => s.value === tag);
+                  return (
+                    <button
+                      key={tag}
+                      className={`hero-popular-tag${isSelected ? " selected" : ""}`}
+                      onClick={() => {
+                        if (isSelected) return;
+                        const next = [...selectedIngredients, opt];
+                        setSelectedIngredients(next);
+                        handleSearch(next);
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 검색 결과 수 */}
+            {searchActive && (
+              <div className="hero-result-msg">
+                {language === "kr"
+                  ? `${selectedIngredients.map(s => s.label).join(" + ")}(으)로 만들 수 있는 요리 ${sortedResults.length}가지`
+                  : `${sortedResults.length} recipe${sortedResults.length !== 1 ? "s" : ""} with ${selectedIngredients.map(s => s.label).join(" + ")}`}
+              </div>
+            )}
+
+            {!searchActive && (
+              <div className="hero-scroll-hint">
+                <span>{language === "kr" ? "스크롤" : "Scroll"}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+            )}
+          </section>
+
+          {/* About Section - 검색 중에는 숨김 */}
+          {!searchActive && <AboutSection darkMode={darkMode} language={language} t={t} />}
+
+
+          {/* All Menu */}
+          <section className="section">
+            <div className="container">
+              <div className="section-header">
+                <div>
+                  <h2 className="section-title">{t.allRecipes}</h2>
+                  {searchActive && (
+                    <p className="search-result-count">
+                      {language === "kr"
+                        ? `${sortedResults.length}개 레시피 발견`
+                        : `${sortedResults.length} recipe${sortedResults.length !== 1 ? "s" : ""} found`}
+                    </p>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <select
+                    value={selectedChef}
+                    onChange={(e) => setSelectedChef(e.target.value)}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      border: `1px solid ${darkMode ? "#444" : "#ddd"}`,
+                      background: darkMode ? "#222" : "#fff",
+                      color: darkMode ? "#eee" : "#222",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      maxWidth: 160,
+                    }}
+                  >
+                    <option value="all">{t.allChefs}</option>
+                    {chefOptions.map((chef) => (
+                      <option key={chef} value={chef}>{chef}</option>
+                    ))}
+                  </select>
+                  <div className="sort-toggle">
+                    <button
+                      className={`sort-btn ${allMenuSort === "name" ? "active" : ""}`}
+                      onClick={() => setAllMenuSort("name")}
+                    >
+                      {t.nameSort}
+                    </button>
+                    <button
+                      className={`sort-btn ${allMenuSort === "date" ? "active" : ""}`}
+                      onClick={() => setAllMenuSort("date")}
+                    >
+                      {t.dateSort}
+                    </button>
                   </div>
                 </div>
-              </li>
-            ))
-          ) : (
-            <p className="no-results">No matching menu found.</p>
-          )}
-        </ul>
-      </div>
+              </div>
+              <ul className="menu-list grid-list">
+                {sortedResults.length > 0 ? (
+                  sortedResults.map((item, idx) => (
+                    <RecipeCard key={`all-${idx}`} item={item} />
+                  ))
+                ) : (
+                  <p className="no-results">{t.noResults}</p>
+                )}
+              </ul>
+            </div>
+          </section>
+
+          {/* Footer */}
+          <footer className={`site-footer${darkMode ? " dark" : ""}`}>
+            <div className="site-footer-inner">
+              <span className="site-footer-brand">Findish</span>
+              <span className="site-footer-copy">© 2026 Findish. All rights reserved.</span>
+              <div className="site-footer-links">
+                <a href="https://github.com/ndk6879/MenuSearch" target="_blank" rel="noopener noreferrer">GitHub</a>
+                <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer">Instagram</a>
+                <a href="#about">About</a>
+              </div>
+            </div>
+          </footer>
+        </>
+      )}
     </div>
   );
 }
