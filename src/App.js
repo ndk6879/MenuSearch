@@ -343,7 +343,22 @@ function App() {
       setSearchResults(sortedData);
       return;
     }
-    const filtered = filterMenusByIngredients(selected);
+    const menuNameSelections = selected.filter(s => s.group === "menu");
+    const ingredientSelections = selected.filter(s => s.group !== "menu");
+
+    let filtered = sortedData;
+    if (menuNameSelections.length > 0) {
+      filtered = filtered.filter(item =>
+        menuNameSelections.every(s =>
+          (item.name || "").toLowerCase().includes(s.value.toLowerCase())
+        )
+      );
+    }
+    if (ingredientSelections.length > 0) {
+      filtered = filterMenusByIngredients(ingredientSelections).filter(item =>
+        filtered.includes(item)
+      );
+    }
     setSearchResults(filtered);
   };
 
@@ -383,10 +398,31 @@ function App() {
 
   ingredientOptions.sort((a, b) => a.label.localeCompare(b.label, "ko"));
 
+  // 메뉴명 옵션 (그룹 분리)
+  const menuNameOptions = validRecipes
+    .filter(r => r.name && r.name.trim())
+    .map(r => ({ value: r.name, label: r.name, group: "menu" }))
+    .filter((opt, idx, arr) => arr.findIndex(o => o.value === opt.value) === idx)
+    .sort((a, b) => a.label.localeCompare(b.label, "ko"));
+
+  const groupedSearchOptions = [
+    {
+      label: language === "kr" ? "재료" : "Ingredients",
+      options: ingredientOptions.map(o => ({ ...o, group: "ingredient" })),
+    },
+    {
+      label: language === "kr" ? "메뉴" : "Dishes",
+      options: menuNameOptions,
+    },
+  ];
+
   // 선택된 재료가 있으면, 그 재료들이 포함된 레시피에 있는 재료만 드롭다운에 표시
-  const availableIngredientOptions = useMemo(() => {
-    if (selectedIngredients.length === 0) return ingredientOptions;
-    const matchingRecipes = filterMenusByIngredients(selectedIngredients);
+  const availableGroupedOptions = useMemo(() => {
+    if (selectedIngredients.length === 0) return groupedSearchOptions;
+    const ingSelections = selectedIngredients.filter(s => s.group !== "menu");
+    if (ingSelections.length === 0) return groupedSearchOptions;
+
+    const matchingRecipes = filterMenusByIngredients(ingSelections);
     const available = new Set();
     for (const recipe of matchingRecipes) {
       for (const ing of recipe.ingredients || []) {
@@ -400,7 +436,13 @@ function App() {
         available.add(parent);
       }
     }
-    return ingredientOptions.filter(opt => available.has(opt.value));
+    return [
+      {
+        label: groupedSearchOptions[0].label,
+        options: groupedSearchOptions[0].options.filter(opt => available.has(opt.value)),
+      },
+      groupedSearchOptions[1],
+    ];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIngredients]);
 
@@ -422,11 +464,22 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
     return new Date(b.upload_date) - new Date(a.upload_date);
   });
 
+  const selectedIngredientValues = new Set(
+    selectedIngredients.map(s => normalizeIng(s.value).toLowerCase())
+  );
+
   const RecipeCard = ({ item }) => {
     const ytId = extractYouTubeId(item.url);
-    const normalizedIngredients = [...new Set(
+    const allNormalized = [...new Set(
       (item.ingredients || []).map(ing => normalizeIng(ing))
     )];
+
+    // 선택한 재료 앞으로, 나머지 뒤로
+    const highlighted = allNormalized.filter(ing => selectedIngredientValues.has(ing.toLowerCase()));
+    const rest = allNormalized.filter(ing => !selectedIngredientValues.has(ing.toLowerCase()));
+    const sortedIngredients = [...highlighted, ...rest];
+    const matchCount = highlighted.length;
+    const totalCount = allNormalized.length;
 
     return (
       <li className="menu-card" onClick={() => setRecipeModal(item)}>
@@ -448,22 +501,23 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 onError={(e) => { e.target.style.display = "none"; }}
               />
               <span className="menu-uploader">{item.uploader}</span>
+              {matchCount > 0 && (
+                <span className="menu-match-badge">{matchCount}/{totalCount}</span>
+              )}
             </div>
           )}
           <div className="ingredient-tags">
-            {normalizedIngredients.slice(0, 6).map((ing, i) => {
-              const isHighlighted = selectedIngredients.some(
-                s => normalizeIng(s.value).toLowerCase() === ing.toLowerCase()
-              );
+            {sortedIngredients.slice(0, 6).map((ing, i) => {
+              const isHighlighted = selectedIngredientValues.has(ing.toLowerCase());
               return (
                 <span key={i} className={`ingredient-pill${isHighlighted ? " ingredient-pill-highlight" : ""}`}>
                   {ing}
                 </span>
               );
             })}
-            {normalizedIngredients.length > 6 && (
+            {allNormalized.length > 6 && (
               <span className="ingredient-pill ingredient-pill-more">
-                +{normalizedIngredients.length - 6}
+                +{allNormalized.length - 6}
               </span>
             )}
           </div>
@@ -541,9 +595,14 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             <div className="recipe-modal-section">
               <h3 className="recipe-modal-section-title">{t.ingredients}</h3>
               <div className="recipe-modal-ingredients">
-                {[...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))].map((ing, i) => (
-                  <span key={i} className="ingredient-pill">{ing}</span>
-                ))}
+                {(() => {
+                  const all = [...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))];
+                  const hi = all.filter(ing => selectedIngredientValues.has(ing.toLowerCase()));
+                  const rest = all.filter(ing => !selectedIngredientValues.has(ing.toLowerCase()));
+                  return [...hi, ...rest].map((ing, i) => (
+                    <span key={i} className={`ingredient-pill${selectedIngredientValues.has(ing.toLowerCase()) ? " ingredient-pill-highlight" : ""}`}>{ing}</span>
+                  ));
+                })()}
               </div>
             </div>
             <div className="recipe-modal-steps">
@@ -577,7 +636,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             <div className="hero-search">
               <TagSearch
                 onSearch={handleSearch}
-                options={availableIngredientOptions}
+                options={availableGroupedOptions}
                 language={language}
                 darkMode={darkMode}
                 value={selectedIngredients}

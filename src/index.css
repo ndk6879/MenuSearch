@@ -1426,13 +1426,13 @@ body {
   text-transform: uppercase;
   margin-right: 2px;
 }
-.app.light .hero-popular-label { color: #bbb; }
-.app.dark  .hero-popular-label { color: #444; }
+.app.light .hero-popular-label { color: #999; }
+.app.dark  .hero-popular-label { color: #555; }
 
 .hero-popular-tag {
   all: unset;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 500;
   padding: 5px 12px;
   border-radius: 999px;
@@ -1440,22 +1440,26 @@ body {
 }
 .app.light .hero-popular-tag {
   background: #f0f0f0;
-  color: #555;
+  color: #333;
+  border: 1px solid #e0e0e0;
 }
 .app.light .hero-popular-tag:hover {
-  background: #e0e0e0;
-  color: #111;
+  background: #111;
+  color: #fff;
+  border-color: #111;
 }
 .app.dark .hero-popular-tag {
   background: #1e1e1e;
-  color: #888;
+  color: #aaa;
+  border: 1px solid #2e2e2e;
 }
 .app.dark .hero-popular-tag:hover {
-  background: #2a2a2a;
-  color: #ccc;
+  background: #eee;
+  color: #111;
+  border-color: #eee;
 }
 .hero-popular-tag.selected {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: default;
 }
 
@@ -1480,6 +1484,26 @@ body {
 .app.dark .ingredient-pill-highlight {
   background: #eee !important;
   color: #111 !important;
+}
+
+/* ===== Recipe Card Match Badge ===== */
+.menu-match-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-left: auto;
+  letter-spacing: 0.02em;
+}
+.app.light .menu-match-badge {
+  background: #111;
+  color: #fff;
+}
+.app.dark .menu-match-badge {
+  background: #eee;
+  color: #111;
 }
 
 /* ===== Card Fade-in Animation ===== */
