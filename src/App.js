@@ -8,7 +8,6 @@ import { FaGithub, FaInstagram } from "react-icons/fa";
 
 import Modal from "./components/Modal";
 import AnalyzePanel from "./components/AnalyzePanel";
-import ChefAI from "./components/ChefAI";
 import channelProfiles from "./channelData";
 import AboutSection from "./components/AboutSection";
 import translations from "./i18n";
@@ -28,7 +27,6 @@ const isValidRecipe = (item) =>
 function App() {
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
-  const [activeTab, setActiveTab] = useState("home"); // "home" | "chef"
 
   const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
   const [language, setLanguage] = useState(defaultLanguage);
@@ -483,12 +481,6 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           <a href="/" className="header-logo">Findish</a>
         </div>
         <div className="header-right">
-          <button
-            onClick={() => setActiveTab(activeTab === "chef" ? "home" : "chef")}
-            className={`header-link${activeTab === "chef" ? " header-link-active" : ""}`}
-          >
-            {t.aiChef}
-          </button>
           <button onClick={() => setAnalyzeOpen(true)} className="header-link">
             Analyze
           </button>
@@ -572,10 +564,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
         )}
       </Modal>
 
-      {activeTab === "chef" ? (
-        <ChefAI darkMode={darkMode} />
-      ) : (
-        <>
+      <>
           {/* Hero Section */}
           <section className="hero">
             <div className="hero-badge">{t.heroBadge(recipeCount)}</div>
@@ -723,8 +712,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               </div>
             </div>
           </footer>
-        </>
-      )}
+      </>
     </div>
   );
 }
