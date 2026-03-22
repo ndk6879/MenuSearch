@@ -301,11 +301,18 @@ function App() {
     return synonymMap[auto] || synonymMap[ing] || auto;
   };
 
+  // 드롭다운에서 제외할 기본 재료 (너무 흔해서 검색 의미 없음)
+  const EXCLUDED_INGREDIENTS = new Set([
+    "소금", "후추", "물", "설탕", "밀가루", "기름", "면수",
+    "salt", "pepper", "water", "sugar", "flour", "oil", "pasta water",
+  ]);
+
   // 노이즈 재료 필터 (조리 설명 문장 등)
   const isNoisyIngredient = (ing) => {
     if (!ing || ing.length > 25) return true;
     if (/[.。]/.test(ing)) return true;
     if (/준비한다|구워준다|넣는다|볶는다|끓인다|만든다|섞는다|썬다|담는다|자른다|버린다|걸러서|우린다|벗겨|제거한다/.test(ing)) return true;
+    if (EXCLUDED_INGREDIENTS.has(ing.trim())) return true;
     return false;
   };
 
