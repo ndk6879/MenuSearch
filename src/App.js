@@ -453,9 +453,16 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             </div>
           )}
           <div className="ingredient-tags">
-            {normalizedIngredients.slice(0, 6).map((ing, i) => (
-              <span key={i} className="ingredient-pill">{ing}</span>
-            ))}
+            {normalizedIngredients.slice(0, 6).map((ing, i) => {
+              const isHighlighted = selectedIngredients.some(
+                s => normalizeIng(s.value).toLowerCase() === ing.toLowerCase()
+              );
+              return (
+                <span key={i} className={`ingredient-pill${isHighlighted ? " ingredient-pill-highlight" : ""}`}>
+                  {ing}
+                </span>
+              );
+            })}
             {normalizedIngredients.length > 6 && (
               <span className="ingredient-pill ingredient-pill-more">
                 +{normalizedIngredients.length - 6}
@@ -584,8 +591,50 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 options={availableIngredientOptions}
                 language={language}
                 darkMode={darkMode}
+                value={selectedIngredients}
+                onChange={setSelectedIngredients}
               />
             </div>
+
+            {/* 인기 재료 태그 */}
+            {!searchActive && (
+              <div className="hero-popular">
+                <span className="hero-popular-label">
+                  {language === "kr" ? "인기" : "Popular"}
+                </span>
+                {(language === "kr"
+                  ? ["계란", "삼겹살", "두부", "연어", "파스타", "새우", "소고기", "김치", "감자", "닭가슴살"]
+                  : ["Egg", "Pork belly", "Tofu", "Salmon", "Pasta", "Shrimp", "Beef", "Kimchi", "Potato", "Chicken breast"]
+                ).map((tag) => {
+                  const opt = { value: tag, label: tag };
+                  const isSelected = selectedIngredients.some(s => s.value === tag);
+                  return (
+                    <button
+                      key={tag}
+                      className={`hero-popular-tag${isSelected ? " selected" : ""}`}
+                      onClick={() => {
+                        if (isSelected) return;
+                        const next = [...selectedIngredients, opt];
+                        setSelectedIngredients(next);
+                        handleSearch(next);
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 검색 결과 수 */}
+            {searchActive && (
+              <div className="hero-result-msg">
+                {language === "kr"
+                  ? `${selectedIngredients.map(s => s.label).join(" + ")}(으)로 만들 수 있는 요리 ${sortedResults.length}가지`
+                  : `${sortedResults.length} recipe${sortedResults.length !== 1 ? "s" : ""} with ${selectedIngredients.map(s => s.label).join(" + ")}`}
+              </div>
+            )}
+
             {!searchActive && (
               <div className="hero-scroll-hint">
                 <span>{language === "kr" ? "스크롤" : "Scroll"}</span>

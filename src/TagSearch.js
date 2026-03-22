@@ -1,17 +1,16 @@
 import Select from "react-select";
-import { useState } from "react";
 
-function TagSearch({ onSearch, options, language, darkMode }) {
-  const [selected, setSelected] = useState([]);
+function TagSearch({ onSearch, options, language, darkMode, value, onChange }) {
+  const selected = value || [];
 
   const handleChange = (selectedOptions) => {
     const newSelected = selectedOptions || [];
-    setSelected(newSelected);
+    onChange(newSelected);
     onSearch(newSelected);
   };
 
   const handleReset = () => {
-    setSelected([]);
+    onChange([]);
     onSearch([]);
   };
 

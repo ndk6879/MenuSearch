@@ -1409,6 +1409,88 @@ body {
 .app.dark  .about-cta-btn-secondary { background: #2a2a2a; color: #ccc; }
 .chef-step-btn:disabled { opacity: 0.3; cursor: default; }
 
+/* ===== Popular Ingredient Tags ===== */
+.hero-popular {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.hero-popular-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-right: 2px;
+}
+.app.light .hero-popular-label { color: #bbb; }
+.app.dark  .hero-popular-label { color: #444; }
+
+.hero-popular-tag {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 999px;
+  transition: all 0.15s ease;
+}
+.app.light .hero-popular-tag {
+  background: #f0f0f0;
+  color: #555;
+}
+.app.light .hero-popular-tag:hover {
+  background: #e0e0e0;
+  color: #111;
+}
+.app.dark .hero-popular-tag {
+  background: #1e1e1e;
+  color: #888;
+}
+.app.dark .hero-popular-tag:hover {
+  background: #2a2a2a;
+  color: #ccc;
+}
+.hero-popular-tag.selected {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ===== Hero Result Message ===== */
+.hero-result-msg {
+  margin-top: 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.app.light .hero-result-msg { color: #333; }
+.app.dark  .hero-result-msg { color: #ccc; }
+
+/* ===== Ingredient Highlight ===== */
+.ingredient-pill-highlight {
+  font-weight: 700 !important;
+}
+.app.light .ingredient-pill-highlight {
+  background: #111 !important;
+  color: #fff !important;
+}
+.app.dark .ingredient-pill-highlight {
+  background: #eee !important;
+  color: #111 !important;
+}
+
+/* ===== Card Fade-in Animation ===== */
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.menu-card {
+  animation: cardFadeIn 0.25s ease both;
+}
+
 /* ===== Search Result Count ===== */
 .search-result-count {
   font-size: 0.8rem;
