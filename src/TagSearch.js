@@ -1,5 +1,8 @@
 import Select from "react-select";
 
+const INGREDIENT_COLOR = { light: { bg: "#f0f0f0", text: "#333" }, dark: { bg: "#252525", text: "#ddd" } };
+const MENU_COLOR       = { light: { bg: "#e8f0fe", text: "#1a56db" }, dark: { bg: "#1a2540", text: "#6fa3f7" } };
+
 function TagSearch({ onSearch, options, language, darkMode, value, onChange }) {
   const selected = value || [];
 
@@ -14,6 +17,43 @@ function TagSearch({ onSearch, options, language, darkMode, value, onChange }) {
     onSearch([]);
   };
 
+  const formatGroupLabel = (group) => {
+    const isMenu = group.label === "메뉴" || group.label === "Dishes";
+    return (
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "4px 0 2px",
+        fontSize: "0.7rem",
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: isMenu ? (darkMode ? "#6fa3f7" : "#1a56db") : (darkMode ? "#aaa" : "#555"),
+        borderTop: `1px solid ${darkMode ? "#2a2a2a" : "#f0f0f0"}`,
+      }}>
+        <span>{isMenu ? "🍽" : "🥕"}</span>
+        <span>{group.label}</span>
+        <span style={{ marginLeft: "auto", fontWeight: 400, opacity: 0.6 }}>{group.options.length}</span>
+      </div>
+    );
+  };
+
+  const formatOptionLabel = (opt) => {
+    const isMenu = opt.group === "menu";
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{
+          width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+          background: isMenu
+            ? (darkMode ? "#6fa3f7" : "#1a56db")
+            : (darkMode ? "#888" : "#bbb"),
+        }} />
+        <span>{opt.label}</span>
+      </div>
+    );
+  };
+
   return (
     <div style={{ display: "flex", gap: "8px", width: "100%" }}>
       <div style={{ flex: 1 }}>
@@ -25,6 +65,8 @@ function TagSearch({ onSearch, options, language, darkMode, value, onChange }) {
           placeholder={language === 'en' ? 'e.g. egg, onion, pork...' : '예) 계란, 양파, 돼지고기...'}
           classNamePrefix="react-select"
           menuShouldScrollIntoView={false}
+          formatGroupLabel={formatGroupLabel}
+          formatOptionLabel={formatOptionLabel}
           theme={(theme) => ({
             ...theme,
             borderRadius: 10,
@@ -63,6 +105,11 @@ function TagSearch({ onSearch, options, language, darkMode, value, onChange }) {
               boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
               overflow: 'hidden',
             }),
+            groupHeading: (base) => ({
+              ...base,
+              padding: "6px 12px 4px",
+              marginBottom: 0,
+            }),
             option: (base, state) => ({
               ...base,
               fontSize: '0.85rem',
@@ -74,26 +121,40 @@ function TagSearch({ onSearch, options, language, darkMode, value, onChange }) {
                 backgroundColor: darkMode ? "#333" : "#e8e8e8",
               },
             }),
-            multiValue: (base) => ({
-              ...base,
-              backgroundColor: darkMode ? "#252525" : "#f0f0f0",
-              borderRadius: '6px',
-            }),
-            multiValueLabel: (base) => ({
-              ...base,
-              color: darkMode ? "#ddd" : "#333",
-              fontSize: '0.82rem',
-              fontWeight: 500,
-            }),
-            multiValueRemove: (base) => ({
-              ...base,
-              color: darkMode ? "#888" : "#999",
-              borderRadius: '0 6px 6px 0',
-              '&:hover': {
-                backgroundColor: darkMode ? "#333" : "#e0e0e0",
-                color: darkMode ? "#eee" : "#111",
-              },
-            }),
+            multiValue: (base, { data }) => {
+              const isMenu = data.group === "menu";
+              const colors = isMenu ? MENU_COLOR : INGREDIENT_COLOR;
+              return {
+                ...base,
+                backgroundColor: darkMode ? colors.dark.bg : colors.light.bg,
+                borderRadius: '6px',
+              };
+            },
+            multiValueLabel: (base, { data }) => {
+              const isMenu = data.group === "menu";
+              const colors = isMenu ? MENU_COLOR : INGREDIENT_COLOR;
+              return {
+                ...base,
+                color: darkMode ? colors.dark.text : colors.light.text,
+                fontSize: '0.82rem',
+                fontWeight: 500,
+              };
+            },
+            multiValueRemove: (base, { data }) => {
+              const isMenu = data.group === "menu";
+              const colors = isMenu ? MENU_COLOR : INGREDIENT_COLOR;
+              return {
+                ...base,
+                color: darkMode ? colors.dark.text : colors.light.text,
+                opacity: 0.6,
+                borderRadius: '0 6px 6px 0',
+                '&:hover': {
+                  backgroundColor: darkMode ? "#333" : "#e0e0e0",
+                  color: darkMode ? "#eee" : "#111",
+                  opacity: 1,
+                },
+              };
+            },
             placeholder: (base) => ({
               ...base,
               color: darkMode ? "#666" : "#aaa",

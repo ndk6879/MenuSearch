@@ -600,33 +600,6 @@ const menuData_en = [
     ]
   },
   {
-    "name": "Cream Shrimp",
-    "url": "https://youtu.be/cRE0Gr0KtfU",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2024-10-12",
-    "ingredients": [
-      "Shrimp",
-      "Lettuce",
-      "Mayonnaise",
-      "Condensed milk",
-      "Honey",
-      "Lemon",
-      "Oil",
-      "Starch",
-      "Water"
-    ],
-    "steps": [
-      "Heat oil in a pan.",
-      "Tear lettuce into bite-sized pieces.",
-      "Mix starch and water to create a starch slurry.",
-      "Devein shrimp and trim the tail fan.",
-      "Combine mayonnaise, condensed milk, honey, and lemon juice in a bowl and mix well to make the cream shrimp sauce.",
-      "After some time, decant the clear water from the starch slurry.",
-      "Coat the prepared shrimp with the starch slurry and deep-fry.",
-      "Fry once, then fry again just before plating."
-    ]
-  },
-  {
     "name": "Lettuce Preparation and Storage",
     "url": "https://youtu.be/dLRsnGQOQhQ",
     "uploader": "셰프호윤 Chef Hoyoon",
@@ -1026,47 +999,6 @@ const menuData_en = [
       "Add the browned meatballs to the tomato sauce and simmer together.",
       "Simmer gently over medium-low heat for about 15 minutes.",
       "Sprinkle mozzarella cheese on top and let it melt.",
-      "Garnish with basil and Parmesan cheese."
-    ]
-  },
-  {
-    "name": "Tomato Meatballs",
-    "url": "https://youtu.be/qGTFFhO2ZZc",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2024-12-24",
-    "ingredients": [
-      "ground beef",
-      "ground pork",
-      "onion",
-      "garlic",
-      "basil",
-      "tomato sauce",
-      "Parmesan cheese",
-      "mozzarella cheese",
-      "salt",
-      "pepper",
-      "parsley",
-      "dried herbs",
-      "bread",
-      "milk",
-      "olive oil",
-      "water"
-    ],
-    "steps": [
-      "Trim crusts from bread slices and tear into pieces.",
-      "Soak the bread in milk.",
-      "In a bowl, combine ground beef, ground pork, minced garlic, parsley, Parmesan cheese, salt, and pepper.",
-      "Squeeze excess milk from the bread and add it to the meat mixture.",
-      "Knead the mixture, adding milk as needed, until well combined and sticky.",
-      "Form the mixture into large, round meatballs.",
-      "Heat olive oil in a pan.",
-      "Add chopped onion and garlic to the pan and sauté.",
-      "Add water to the tomato sauce and bring to a boil.",
-      "Add pepper, salt, parsley, and dried herbs, and continue to simmer.",
-      "Brown the meatballs over medium heat, making sure not to burn them.",
-      "Add the browned meatballs to the tomato sauce and simmer together.",
-      "Simmer over medium-low heat for about 15 minutes.",
-      "Sprinkle with shredded mozzarella and melt the cheese.",
       "Garnish with basil and Parmesan cheese."
     ]
   },
@@ -1553,44 +1485,6 @@ const menuData_en = [
     "steps": []
   },
   {
-    "name": "Oyster Jjamppong",
-    "url": "https://youtu.be/fe4lDzuzgb8",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-03-04",
-    "ingredients": [
-      "Fresh oysters",
-      "Garlic chives",
-      "Shiitake mushrooms",
-      "Cheongyang chili peppers",
-      "Green onions",
-      "Garlic",
-      "Ginger",
-      "Aromatic vegetables",
-      "Napa cabbage",
-      "Onion",
-      "Carrot",
-      "Chinese-style noodles",
-      "Soy sauce",
-      "Oyster sauce",
-      "MSG",
-      "Sugar",
-      "Salt",
-      "Sake",
-      "Chicken stock",
-      "Cooking oil",
-      "Sesame oil"
-    ],
-    "steps": [
-      "Slice shiitake mushrooms and Cheongyang chili peppers.",
-      "Heat cooking oil in a pot and stir-fry green onions, garlic, ginger, and aromatic vegetables.",
-      "Add soy sauce and stir-fry fresh oysters, then add sake and discard the oyster liquid.",
-      "Add the prepared shiitake mushrooms, napa cabbage, onion, carrot, and Cheongyang chili peppers, and stir-fry until the vegetables lose their moisture.",
-      "Pour in water, then add oyster sauce, MSG, chicken stock, salt, garlic chives, and sesame oil, and bring to a boil.",
-      "Cook Chinese-style noodles, rinse in cold water, then add to the oyster jjamppong broth.",
-      "Serve the finished oyster jjamppong in a bowl."
-    ]
-  },
-  {
     "name": "Mapo Tofu with Fish Roe and Milt",
     "url": "https://youtu.be/muKUuq5GdLM",
     "uploader": "셰프호윤 Chef Hoyoon",
@@ -1628,45 +1522,6 @@ const menuData_en = [
     ]
   },
   {
-    "name": "Roe and Milt Mapo Tofu",
-    "url": "https://youtu.be/Oo5i7ZEOkUk",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-03-11",
-    "ingredients": [
-      "Tofu",
-      "Ground Pork",
-      "Green Onion",
-      "Garlic",
-      "Ginger",
-      "Roe",
-      "Pollock Roe",
-      "Doubanjiang",
-      "Chili Oil",
-      "Soy Sauce",
-      "Cooking Wine",
-      "Oyster Sauce",
-      "Sichuan Peppercorns",
-      "Sugar",
-      "MSG",
-      "Chicken Broth",
-      "Cooking Oil",
-      "Water",
-      "Starch",
-      "Sesame Oil",
-      "Dark Soy Sauce"
-    ],
-    "steps": [
-      "Cut tofu into cubes and coat with starch.",
-      "Heat cooking oil in a pan and pan-fry the starch-coated tofu over medium heat.",
-      "In the same pan, stir-fry ground pork. Add chili oil, green onion, garlic, and ginger and continue to stir-fry.",
-      "Add cooking wine, soy sauce, water, doubanjiang, oyster sauce, sugar, MSG, chicken stock, and Sichuan peppercorns and bring to a boil.",
-      "Add roe, milt, and dark soy sauce and simmer.",
-      "Mix water and potato starch to make a slurry. Gradually add the slurry to the boiling sauce to adjust consistency.",
-      "Add the fried tofu and mix, then drizzle with sesame oil and chili oil.",
-      "Serve the finished Roe and Milt Mapo Tofu on a plate."
-    ]
-  },
-  {
     "name": "Four-Color Sirutteok",
     "url": "https://youtu.be/mXOjd2fXtJQ",
     "uploader": "셰프호윤 Chef Hoyoon",
@@ -1690,35 +1545,6 @@ const menuData_en = [
       "Cut the sweet pumpkin in half, remove the seeds, and microwave for 3 minutes.",
       "Thinly slice the microwaved sweet pumpkin and microwave again for 1 minute 30 seconds.",
       "Put the blended spinach into a cheesecloth, squeeze out the juice, and set aside."
-    ]
-  },
-  {
-    "name": "Four-Color Siru Tteok",
-    "url": "https://youtu.be/inD8uwzv6RA",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-03-18",
-    "ingredients": [
-      "red beans",
-      "spinach",
-      "pumpkin",
-      "lettuce",
-      "salt",
-      "sugar",
-      "non-glutinous rice flour",
-      "glutinous rice flour",
-      "gardenia powder",
-      "water"
-    ],
-    "steps": [
-      "Boil red beans, drain, add fresh water, boil again, then mash.",
-      "Blend spinach with water, then strain to make spinach juice.",
-      "Microwave pumpkin, deseed, slice thinly, then microwave again.",
-      "Mix non-glutinous and glutinous rice flour (8:2 ratio), then add salt and sugar.",
-      "Divide rice flour into three parts. Color one part yellow with gardenia powder and water, another part green with spinach juice, and leave the third part plain.",
-      "Sieve each colored rice flour.",
-      "Line a steamer with parchment paper and a cotton cloth, sprinkle sugar. Layer yellow rice flour, pumpkin, white rice flour, green rice flour, torn lettuce, and mashed red beans.",
-      "Steam for 25 minutes, then let rest for 5 minutes.",
-      "Plate the finished Siru Tteok."
     ]
   },
   {
@@ -1755,33 +1581,6 @@ const menuData_en = [
       "Add 30g of Parmigiano Reggiano cheese and 5 sage leaves, then mix.",
       "Plate the pasta, make a well in the center, and top with an egg yolk.",
       "Garnish with Parmigiano Reggiano cheese and pepper around the yolk, drizzle with truffle oil, and serve."
-    ]
-  },
-  {
-    "name": "Sage Butter Pasta",
-    "url": "https://youtu.be/q9kQBAS_FqE",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-03-25",
-    "ingredients": [
-      "all-purpose flour",
-      "egg",
-      "minced garlic",
-      "chicken broth",
-      "butter",
-      "Parmesan cheese",
-      "sage",
-      "flour for dusting",
-      "olive oil",
-      "salt",
-      "truffle oil"
-    ],
-    "steps": [
-      "Mix all-purpose flour and egg to form a dough, then wrap in plastic wrap and let rest for 20 minutes.",
-      "Cut the rested dough into appropriate pieces, roll out thinly with a pasta machine, dust with flour, and cut into noodles.",
-      "In a pan, sauté olive oil and minced garlic, then pour in chicken broth and bring to a boil.",
-      "Cook the pasta noodles in boiling salted water in another pot, and while the pasta cooks, add butter to the sauce pan and melt it.",
-      "Add the cooked pasta noodles to the sauce pan, then add butter, salt, Parmesan cheese, and sage, and mix well.",
-      "Plate the finished pasta, top with an egg yolk, then drizzle with olive oil and truffle oil, and sprinkle with Parmesan cheese to finish."
     ]
   },
   {
@@ -1895,28 +1694,6 @@ const menuData_en = [
       "After 2 minutes 30 seconds, add 3T perilla seed powder, julienned perilla leaves, and an egg, then stir gently to poach the egg.",
       "Transfer the ramen to a bowl, then garnish with remaining julienned perilla leaves and 1T perilla seed powder.",
       "Finish by drizzling 2 drops of Sichuan peppercorn oil and a pinch of black pepper."
-    ]
-  },
-  {
-    "name": "Mala Yeol Ramyun",
-    "url": "https://youtu.be/WgwiX9ByuSI",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-04-08",
-    "ingredients": [
-      "Yeol Ramyun",
-      "Perilla leaves",
-      "Egg",
-      "Mala sauce",
-      "Perilla seed powder",
-      "Sichuan peppercorn oil",
-      "Black pepper",
-      "Water"
-    ],
-    "steps": [
-      "Add water and Yeol Ramyun seasoning packet to a pot.",
-      "Prepare perilla leaves, add mala sauce, and bring the water to a boil.",
-      "Once boiling, add Yeol Ramyun noodles, perilla seed powder, chopped perilla leaves, and egg, then cook until done.",
-      "Serve the cooked ramen in a bowl, then top with perilla leaves, perilla seed powder, Sichuan peppercorn oil, and black pepper."
     ]
   },
   {
@@ -2105,32 +1882,6 @@ const menuData_en = [
     ]
   },
   {
-    "name": "Okra Shirasu Pasta",
-    "url": "https://youtu.be/341AR8gCf88",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-04-15",
-    "ingredients": [
-      "Okra",
-      "Anchovies",
-      "Shirasu",
-      "Pasta",
-      "Capers",
-      "Garlic",
-      "Chives",
-      "Lemon",
-      "Olive oil",
-      "Chicken stock",
-      "Water"
-    ],
-    "steps": [
-      "Trim okra ends, rub with salt, rinse, and slice diagonally.",
-      "In a pan, heat olive oil and sauté minced garlic, capers, and chopped anchovies.",
-      "Add prepared okra, water, pasta, and chicken stock. Simmer until pasta is cooked.",
-      "Stir in chopped chives and a drizzle of olive oil.",
-      "Serve pasta, topped with shirasu, chopped chives, grated lemon zest, and a drizzle of olive oil."
-    ]
-  },
-  {
     "name": "Pasta e Fagioli",
     "url": "https://youtu.be/e3DgSxDaUZM",
     "uploader": "미뇨끼",
@@ -2243,44 +1994,6 @@ const menuData_en = [
       "Evenly spread friarielli and Grana Padano on the pizza dough.",
       "Place the pizza with all ingredients into a pizza oven and bake until golden brown.",
       "Lightly drizzle olive oil over the baked pizza to finish."
-    ]
-  },
-  {
-    "name": "Ratatouille",
-    "url": "https://youtu.be/syN7srxIwUw",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-04-19",
-    "ingredients": [
-      "Onion",
-      "Bell pepper",
-      "Zucchini",
-      "Eggplant",
-      "Daejeo tomato",
-      "Rosemary",
-      "Thyme",
-      "Chives",
-      "Minced garlic",
-      "Tomato paste",
-      "Tomato sauce",
-      "Salt",
-      "Black pepper",
-      "Vinegar",
-      "Olive oil",
-      "Reggiano cheese"
-    ],
-    "steps": [
-      "Slice the onion and bell pepper.",
-      "Heat olive oil in a pan, add the sliced onion and bell pepper, and sauté.",
-      "Add a pinch of salt while sautéing, then add minced garlic and tomato paste.",
-      "Add tomato sauce and season with 5 turns of black pepper.",
-      "Thinly slice zucchini, eggplant, and Daejeo tomato with a slicer, then season with salt.",
-      "Transfer the sautéed sauce to a blender, add rosemary leaves, a pinch of salt, and a little black pepper, then blend.",
-      "Spread the blended sauce on an oven-safe pan, then layer the sliced vegetables on top.",
-      "Cover with parchment paper and bake in a 150°C oven for 20 minutes.",
-      "Remove the ratatouille from the oven and add Reggiano cheese.",
-      "Mix vinegar with tomato sauce to make a vinaigrette sauce.",
-      "Spread the vinaigrette sauce on a plate and plate the ratatouille using a ring mold.",
-      "Drizzle with more vinaigrette sauce, then garnish with chives and thyme."
     ]
   },
   {
@@ -2533,32 +2246,6 @@ const menuData_en = [
       "Stir in the butter and Parmesan cheese.",
       "Thinly slice and fry the remaining artichokes, then season with salt.",
       "Ladle the risotto onto plates and top with the fried artichokes."
-    ]
-  },
-  {
-    "name": "Tom Yum Shrimp Noodle Soup",
-    "url": "https://youtu.be/5OeV5GWY89Q",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-04-26",
-    "ingredients": [
-      "Cilantro",
-      "Lime",
-      "Tom Yum Paste",
-      "Powdered Soup Base",
-      "Flakes",
-      "Water",
-      "Milk"
-    ],
-    "steps": [
-      "Boil 550ml of water.",
-      "Pick cilantro leaves.",
-      "Add flakes and powdered soup base from the shrimp noodle packet.",
-      "Once water boils, add noodles.",
-      "Add 30g of Tom Yum paste.",
-      "Add 100ml of milk.",
-      "Chop and add cilantro stems.",
-      "Squeeze in half a lime.",
-      "Pour the finished noodles into a bowl and garnish with cilantro leaves."
     ]
   },
   {
@@ -3117,48 +2804,6 @@ const menuData_en = [
       "Cook orecchiette in salted water.",
       "Mix cherry tomatoes, pesto, and orecchiette, then transfer to a plate.",
       "Top with burrata cream and chopped basil, then finish with olive oil and pepper."
-    ]
-  },
-  {
-    "name": "Paella",
-    "url": "https://youtu.be/_qRM0Mj7aWQ",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-05-14",
-    "ingredients": [
-      "Shrimp",
-      "Cuttlefish",
-      "Squid",
-      "Clams",
-      "Tomato",
-      "Onion",
-      "Lemon",
-      "Garlic",
-      "Egg",
-      "Rice",
-      "Turmeric powder",
-      "Pimentón powder",
-      "Salt",
-      "Chicken stock",
-      "Whole peeled tomatoes",
-      "Cooking oil",
-      "Olive oil",
-      "Water"
-    ],
-    "steps": [
-      "In a blender, combine lemon juice, garlic, salt, and egg; blend until smooth.",
-      "Gradually add cold cooking oil in a steady stream while blending to create allioli.",
-      "Bring chicken stock and water to a boil to make broth.",
-      "Devein shrimp. Cut cuttlefish (or squid) into rice-grain sized pieces.",
-      "Chop whole peeled tomatoes, onion, and garlic.",
-      "Steam clams in the chicken broth until they open, then remove.",
-      "Heat olive oil in a pan. Lightly sear the prepared shrimp, then remove.",
-      "In the same pan, sauté chopped onion and garlic, then add pimentón powder, turmeric powder, and chopped whole peeled tomatoes.",
-      "Sauté over low heat to evaporate moisture, then add rice and cook, coating it in the mixture.",
-      "Add the prepared cuttlefish.",
-      "Gradually add chicken broth in three separate additions, continuing to cook.",
-      "Do not stir the rice with a spatula; instead, shake the pan to cook evenly.",
-      "Turn off the heat, cover the pan with foil and a damp cloth, and let it rest for about 10 minutes. Plate with the shrimp and clams.",
-      "Finally, place the pan back on the heat to create a crispy crust (socarrat) around the edges."
     ]
   },
   {
@@ -3796,43 +3441,6 @@ const menuData_en = [
       "Whisk together parsley, salt, pepper, white balsamic vinegar, and olive oil to make the dressing.",
       "Pour the dressing over the salad ingredients and mix thoroughly.",
       "Add croutons and mix again. Serve."
-    ]
-  },
-  {
-    "name": "Seaweed Soup",
-    "url": "https://youtu.be/KQEoOV_B0p0",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-05-28",
-    "ingredients": [
-      "Dried seaweed",
-      "Beef",
-      "Onion",
-      "Salt",
-      "Rice wine",
-      "Tuna sauce",
-      "Soy sauce",
-      "Minced garlic",
-      "Sesame oil",
-      "Water"
-    ],
-    "steps": [
-      "In a mixing bowl, add salt, water, and dried seaweed, then soak for about 30 minutes.",
-      "Place beef in cold water to firm up any excess fat.",
-      "Prepare the onion by making incisions instead of slicing; it will serve as a vegetable broth substitute.",
-      "Add beef to water and bring to a boil.",
-      "Once boiling, remove any impurities from the beef and simmer for about 45 minutes.",
-      "Add rice wine to the beef to remove any gamey smell.",
-      "Thoroughly rinse the soaked seaweed in cold water until the water runs clear.",
-      "Add tuna sauce to the beef broth.",
-      "In a pot, add the seaweed and stir-fry using only its moisture.",
-      "Continue stir-frying until most of the moisture has evaporated, then add water.",
-      "Add water and the incised onion (as a vegetable broth substitute), and boil for about 15 minutes.",
-      "Add soy sauce to the boiling seaweed.",
-      "Add salt.",
-      "When the onion is almost cooked, add the beef and broth.",
-      "Remove the cooked onion.",
-      "Add minced garlic.",
-      "Drizzle with sesame oil."
     ]
   },
   {
@@ -4529,50 +4137,6 @@ const menuData_en = [
     ]
   },
   {
-    "name": "Spicy Stir-fried Squid",
-    "url": "https://youtu.be/XzP5uvbABzg",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-06-28",
-    "ingredients": [
-      "Squid",
-      "Green onion",
-      "Cabbage",
-      "Onion",
-      "Perilla leaves",
-      "Cheongyang chili pepper",
-      "Red chili pepper",
-      "Sugar",
-      "Mirin",
-      "Corn syrup",
-      "Soy sauce",
-      "Gochujang",
-      "Doenjang",
-      "Garlic",
-      "Oyster sauce",
-      "Gochugaru",
-      "Black pepper",
-      "Tuna sauce",
-      "Chili oil",
-      "Sesame seeds",
-      "Sesame oil",
-      "Cooking oil"
-    ],
-    "steps": [
-      "Cut red chili peppers, Cheongyang chili peppers, green onions, and cabbage into bite-sized pieces.",
-      "Make the sauce by combining sugar, mirin, minced garlic, gochujang, doenjang, soy sauce, oyster sauce, cooking oil, and black pepper.",
-      "Heat a pan over high heat, add a generous amount of oil, then add squid and Cheongyang chili peppers. Stir-fry quickly over high heat until moisture is released.",
-      "Place a sieve over a mixing bowl and pour the stir-fried squid and chili broth into it.",
-      "Heat chili oil in a pan over high heat and stir-fry the cabbage.",
-      "Once the cabbage has softened, add onions and gochugaru.",
-      "Stir-fry over high heat until moisture evaporates, then add the sauce.",
-      "Taste and add more soy sauce if needed.",
-      "Add green onions, red chili peppers, squid, and the broth.",
-      "Add corn syrup and sesame oil.",
-      "Tear the perilla leaves into small pieces and add them.",
-      "Finally, sprinkle with sesame seeds."
-    ]
-  },
-  {
     "name": "Matcha Tiramisu",
     "url": "https://youtu.be/fivkdmgfeKo",
     "uploader": "미뇨끼",
@@ -4706,66 +4270,6 @@ const menuData_en = [
       "Roll the dough into long, rope-like strands and cut into thumb-sized pieces.",
       "Dust a gnocchi board with flour and roll each piece to create ridges.",
       "Add salt to boiling water and cook the gnocchi for 1-2 minutes until they float to the surface."
-    ]
-  },
-  {
-    "name": "Dumpling Wrapper Ravioli",
-    "url": "https://youtu.be/96r19gypik0",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-07-02",
-    "ingredients": [
-      "Bacon",
-      "Shrimp",
-      "Shrimp heads",
-      "Squid",
-      "Dumpling wrappers",
-      "Carrots",
-      "Garlic",
-      "Celery",
-      "Onions",
-      "Button mushrooms",
-      "Bay leaves",
-      "Tomatoes",
-      "Peperoncino",
-      "Shiitake mushrooms",
-      "Oyster sauce",
-      "Parmigiano Reggiano cheese",
-      "Salt",
-      "Chicken stock",
-      "Cayenne pepper",
-      "Tomato paste",
-      "Paprika powder",
-      "Black pepper",
-      "White wine",
-      "Chili oil",
-      "Water",
-      "Butter",
-      "Heavy cream",
-      "Olive oil",
-      "Parsley"
-    ],
-    "steps": [
-      "Add butter and heavy cream to a pot and bring to a boil.",
-      "Stir well with a spatula to prevent separation.",
-      "Once it reduces to a potato puree consistency, cool and solidify.",
-      "Chop celery, onions, tomatoes, mushrooms, and carrots. Pluck parsley leaves from the stems.",
-      "Finely chop the parsley leaves.",
-      "Drizzle olive oil into a pot.",
-      "Sauté onions, carrots, and celery over high heat until browned, then remove and set aside.",
-      "Add more olive oil to the pot and sauté shrimp heads over medium heat.",
-      "Add tomato paste.",
-      "Return the sautéed vegetables to the pot and stir-fry together.",
-      "Add water, bay leaves, black pepper, tomatoes, parsley stems, and peperoncino, then simmer for 30-40 minutes until reduced.",
-      "Coarsely chop shrimp and squid.",
-      "In a mixing bowl, combine shrimp and squid with white wine, garlic, black pepper, cayenne pepper, paprika powder, salt, and parsley, then mix and refrigerate.",
-      "Add a pinch of salt to water and bring it to a boil for cooking the dumplings.",
-      "Slightly widen dumpling wrappers with a round cutter, moisten the edges with water, add the prepared filling, and cover with another wrapper.",
-      "Create an air vent and press with a round cutter.",
-      "Heat chili oil in a pan, then add garlic, bacon, peperoncino, and mushrooms and sauté.",
-      "Once mushrooms and bacon are cooked, add heavy cream and three ladles of the prepared broth.",
-      "Add the dumplings to boiling water and cook for about 3 minutes.",
-      "Add the cooked dumplings and cheese to the prepared sauce and simmer until reduced.",
-      "Drizzle with a little olive oil and sprinkle with Parmigiano Reggiano cheese."
     ]
   },
   {
@@ -5060,56 +4564,6 @@ const menuData_en = [
     ]
   },
   {
-    "name": "Spicy Pork Gochujang Stew",
-    "url": "https://youtu.be/VmIC1aqaJF4",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-07-09",
-    "ingredients": [
-      "Pork",
-      "Potato",
-      "Green onion",
-      "Onion",
-      "Zucchini",
-      "Cheongyang chili pepper",
-      "Oyster mushrooms",
-      "Enoki mushrooms",
-      "Shiitake mushrooms",
-      "Soy sauce",
-      "Gochujang",
-      "Gochugaru",
-      "Oyster sauce",
-      "Minced garlic",
-      "Mirin",
-      "Salted shrimp paste",
-      "Sugar",
-      "Tuna sauce",
-      "Black pepper",
-      "Chili oil",
-      "Water",
-      "Cooking oil",
-      "Sesame oil"
-    ],
-    "steps": [
-      "Cut onion, zucchini, shiitake mushrooms, green onion, potato, oyster mushrooms, and enoki mushrooms into bite-sized pieces.",
-      "Blot pork dry and cut into desired pieces.",
-      "Heat 1T chili oil and 2T sesame oil in a pot.",
-      "Add pork and stir-fry.",
-      "Add 1T gochugaru; if oil is insufficient, add 1T cooking oil.",
-      "Once pork is stir-fried, add 500ml water.",
-      "Add 2T gochujang and 2 level T sugar.",
-      "Add potatoes first and bring to a boil.",
-      "Add shiitake mushroom stems to make broth.",
-      "Add 0.5T minced garlic.",
-      "Add shiitake mushrooms.",
-      "Add 1T mirin and add onion.",
-      "Add 1t salted shrimp paste.",
-      "Increase heat to high and add an additional 500ml water.",
-      "Remove shiitake mushroom stems and add oyster mushrooms, zucchini, and Cheongyang chili pepper.",
-      "Add 3T soy sauce and 1T tuna sauce.",
-      "Add enoki mushrooms 2-3 minutes before finishing."
-    ]
-  },
-  {
     "name": "Italian Brunch",
     "url": "https://youtu.be/18nlTRR1Izg",
     "uploader": "미뇨끼",
@@ -5222,38 +4676,6 @@ const menuData_en = [
     ]
   },
   {
-    "name": "Spicy Squid and Water Parsley Salad",
-    "url": "https://youtu.be/t18Rrxa7mcA",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-07-16",
-    "ingredients": [
-      "Squid",
-      "Onion",
-      "Water Parsley",
-      "Green Onion",
-      "Cheongyang Chili Pepper",
-      "Pear",
-      "Gochujang",
-      "Chojang",
-      "Sugar",
-      "Sesame Oil",
-      "Korean Chili Powder",
-      "Vinegar",
-      "Makgeolli",
-      "Garlic",
-      "Sesame Seeds",
-      "Citron Makgeolli"
-    ],
-    "steps": [
-      "Boil squid in rapidly boiling water for about 30 seconds, then transfer to ice water to cool.",
-      "Combine sugar, Korean chili powder, vinegar, sesame oil, garlic, sesame seeds, Chojang, Gochujang, and Makgeolli to make the seasoning sauce.",
-      "Add onion, water parsley, green onion, and Cheongyang chili pepper to the prepared seasoning sauce.",
-      "Peel and julienne the pear, then add.",
-      "Add the cooled squid and gently mix.",
-      "Plate and sprinkle with sesame seeds."
-    ]
-  },
-  {
     "name": "McToast",
     "url": "https://youtu.be/Peo-oZw4e0Y",
     "uploader": "미뇨끼",
@@ -5323,51 +4745,6 @@ const menuData_en = [
     ]
   },
   {
-    "name": "Samgyetang (Ginseng Chicken Soup)",
-    "url": "https://youtu.be/ApPvFuu44bc",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-07-19",
-    "ingredients": [
-      "Cornish hen",
-      "Mung beans",
-      "Glutinous rice",
-      "Ginseng",
-      "Scorched rice",
-      "Fresh chestnuts",
-      "Garlic",
-      "Ginkgo nuts",
-      "Jujubes",
-      "Green onions",
-      "Shiitake mushrooms",
-      "Salt",
-      "Black pepper",
-      "Samgyetang broth pack",
-      "Water"
-    ],
-    "steps": [
-      "Soak glutinous rice and mung beans for about an hour.",
-      "Rinse the raw chicken under running water, scraping the inside.",
-      "Remove the tail and cut off the neck of the chicken.",
-      "Briefly blanch the chicken in boiling water.",
-      "Discard the blanched water and add 4L of fresh water.",
-      "Add the broth pack to the cold water.",
-      "Remove stems from garlic cloves.",
-      "Remove the stem from one shiitake mushroom and finely chop the cap.",
-      "Drain the mung beans and glutinous rice, then stuff them into the chicken.",
-      "Stuff 1 chestnut, the chopped shiitake mushroom, 1 jujube, 3 ginkgo nuts, and 2 garlic cloves into the chicken cavity.",
-      "Make a slit in the fatty part of one chicken leg and tuck the other leg through it to seal the cavity.",
-      "Place the chicken into the broth and bring to a boil.",
-      "Cut off only the head of the ginseng roots and add 4 roots to the pot.",
-      "Add the shiitake mushroom stems and two more jujubes to the pot.",
-      "Cover with a lid.",
-      "After about 40 minutes, open the lid and add 0.5 Tablespoon of salt.",
-      "Add green onions and 6 cloves of garlic.",
-      "Sprinkle with a pinch of black pepper.",
-      "Add 100g of scorched rice.",
-      "Cover again and simmer for another 15 minutes."
-    ]
-  },
-  {
     "name": "Basil Cheese Potato Pancake",
     "url": "https://youtu.be/yqb4NTkWWFo",
     "uploader": "셰프호윤 Chef Hoyoon",
@@ -5425,35 +4802,6 @@ const menuData_en = [
       "Pour in water and bring to a boil.",
       "Once boiling, add webfoot octopus and mussels, and continue to simmer.",
       "Cook until the spaghetti noodles are tender and the sauce has reduced."
-    ]
-  },
-  {
-    "name": "Basil Cheese Potato Pancake",
-    "url": "https://youtu.be/XHqo8CZiQ1M",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-07-23",
-    "ingredients": [
-      "Potato",
-      "Egg",
-      "Mozzarella cheese",
-      "Grana Padano cheese",
-      "Parmesan cheese",
-      "Basil rub",
-      "Peperoncino",
-      "Frying mix",
-      "Oil"
-    ],
-    "steps": [
-      "Wash and peel the potatoes.",
-      "Shred the potatoes.",
-      "Add a little basil rub and peperoncino to the shredded potatoes.",
-      "Add frying mix and Grana Padano cheese.",
-      "Add an egg and mix well.",
-      "Heat oil in a pan and cook over medium heat.",
-      "Sprinkle mozzarella cheese on top and continue to cook.",
-      "Sprinkle Parmesan cheese.",
-      "Add an additional sprinkle of basil rub on top.",
-      "Flip several times over low heat."
     ]
   },
   {
@@ -7340,42 +6688,6 @@ const menuData_en = [
       "Add Dashida.",
       "Add soft tofu and place the tuna meat on one side.",
       "Slice red chili pepper and use as a garnish."
-    ]
-  },
-  {
-    "name": "Tuna Soft Tofu Kimchi Stew",
-    "url": "https://youtu.be/FAVStTqQD6A",
-    "uploader": "셰프호윤 Chef Hoyoon",
-    "upload_date": "2025-09-17",
-    "ingredients": [
-      "Ramen noodles",
-      "Tuna",
-      "Soft tofu",
-      "Red chili pepper",
-      "Cheongyang chili pepper",
-      "Green onion",
-      "Onion",
-      "Shiitake mushrooms",
-      "Kimchi",
-      "Salt",
-      "Beef seasoning",
-      "Red chili powder",
-      "Sugar",
-      "Soy sauce",
-      "Tuna extract",
-      "Minced garlic",
-      "Water"
-    ],
-    "steps": [
-      "Pour oil from tuna can into a pot.",
-      "Slice green onion and onion, then stir-fry in the tuna oil.",
-      "When onion softens, add kimchi and stir-fry.",
-      "Add sugar and red chili powder, then stir-fry.",
-      "While kimchi stir-fries, slice shiitake mushrooms and Cheongyang chili peppers.",
-      "Add kimchi brine and simmer.",
-      "Add water and bring to a boil.",
-      "Add mushrooms and Cheongyang chili peppers.",
-      "Add soy sauce, tuna extract, and minced garlic."
     ]
   },
   {
@@ -17518,35 +16830,6 @@ const menuData_en = [
     ]
   },
   {
-    "name": "Barley-Aged Croaker Stuffed Rice",
-    "url": "https://youtu.be/t5kK8rmDrao",
-    "uploader": "강레오 걍레오",
-    "upload_date": "2026-02-20",
-    "ingredients": [
-      "Barley-aged croaker",
-      "Cooked rice",
-      "Pickled burdock",
-      "Gungchae",
-      "Green onions",
-      "Perilla oil",
-      "Rayu chili oil",
-      "Black sesame seeds"
-    ],
-    "steps": [
-      "Heat the barley-aged croaker in a microwave or oven.",
-      "Remove the fins from the barley-aged croaker.",
-      "Make an incision behind the gills, remove the bones and entrails, and debone the flesh.",
-      "Remove as many remaining small bones as possible from the rib cage and bloodline area.",
-      "Finely chop the pickled burdock, Gungchae, and green onions.",
-      "Add the chopped vegetables, perilla oil, and Rayu chili oil to the cooked rice and mix well.",
-      "Form the mixed rice into bite-sized portions, like rice balls.",
-      "Stuff the prepared barley-aged croaker with the rice balls.",
-      "Sprinkle black sesame seeds and green onions on top of the barley-aged croaker for garnish.",
-      "Sear the surface of the barley-aged croaker with a kitchen torch until golden brown and fragrant.",
-      "Drizzle perilla oil over the finished barley-aged croaker rice."
-    ]
-  },
-  {
     "name": "Carbonara",
     "url": "https://youtu.be/M_Muqh2cWv4",
     "uploader": "강레오 걍레오",
@@ -17573,36 +16856,6 @@ const menuData_en = [
       "Combine the warm linguine with the sabayon sauce and finely grated Pecorino cheese, mixing well.",
       "Plate the Carbonara and lightly char the surface with a kitchen torch.",
       "Top the torched Carbonara with remaining Pecorino cheese, parsley, crispy guanciale, black pepper, and a drizzle of olive oil."
-    ]
-  },
-  {
-    "name": "Carbonara",
-    "url": "https://youtu.be/ylsqzr4JhBs",
-    "uploader": "강레오 걍레오",
-    "upload_date": "2026-02-27",
-    "ingredients": [
-      "Pasta",
-      "Guanciale",
-      "Eggs",
-      "Pecorino cheese",
-      "Parsley",
-      "Peperoncino",
-      "Black pepper",
-      "Olive oil",
-      "Pasta water"
-    ],
-    "steps": [
-      "Cook the pasta.",
-      "Fry the guanciale until crispy, then drain the rendered fat.",
-      "In a bowl, combine egg yolks with pasta water to create a sabayon.",
-      "Gradually pour olive oil into the sabayon while whisking to emulsify.",
-      "Heat peperoncino in the reserved guanciale fat.",
-      "Add the cooked pasta to the heated fat and toss to warm thoroughly.",
-      "Transfer the warmed pasta to the sabayon sauce.",
-      "Add Pecorino cheese and mix the pasta and sauce until well combined.",
-      "Plate the pasta.",
-      "Garnish with parsley, the crispy guanciale, and black pepper.",
-      "Finish with a drizzle of olive oil."
     ]
   },
   {
