@@ -302,44 +302,74 @@ function App() {
   // 드롭다운에서 제외할 기본 재료 (너무 흔해서 검색 의미 없음)
   const EXCLUDED_INGREDIENTS = new Set([
     "소금", "후추", "물", "설탕", "밀가루", "기름", "면수",
-    // 물 파생형
-    "따뜻한 물", "쌀뜨물", "얼음물", "파스타 물", "파스타 삶은 물",
     // 육수류
-    "육수", "야채 육수", "채소 육수", "조개 육수",
+    "육수", "야채 육수", "채소 육수", "조개 육수", "해물 육수",
     // EN
     "salt", "pepper", "water", "sugar", "flour", "oil", "pasta water",
   ]);
 
-  // 양념류 정의 — 카드에선 숨기고 모달에서만 표시
+  // 양념류 정의 — 카드 pill에서 숨기고, 모달에서 "양념 & 소스" 섹션으로 분리 표시
   const SEASONINGS = new Set([
-    // 기름류
-    "올리브 오일", "식용유", "참기름", "들기름", "고추기름", "트러플", "오리 기름",
-    // 발효/간장류
+    // ── 기본 양념 ──
+    "소금", "후추", "설탕", "밀가루", "기름", "면수",
+    // 소금 파생형
+    "샐러리 소금",
+    // 후추 파생형 (synonymMap에 없는 것)
+    "백후추", "핑크 페퍼콘",
+    // 설탕 파생형
+    "슈가파우더", "아이싱 슈가",
+
+    // ── 기름/오일류 ──
+    "올리브 오일", "식용유", "참기름", "들기름", "고추기름", "오리 기름",
+    "트러플", "트러플 오일", "화이트 트러플 오일", "오일",
+
+    // ── 발효/간장류 ──
     "간장", "된장", "고추장", "고춧가루", "참치액", "연두", "새우젓", "액젓",
-    // 술류
-    "청주", "미림",
-    // 식초류
+
+    // ── 술류 ──
+    "청주", "미림", "유자청", "청하",
+
+    // ── 식초류 ──
     "식초", "발사믹 식초", "화이트 발사믹", "사과 식초", "와인 식초", "레드와인 식초",
-    // 당류
+    "화이트 와인 비니거",
+
+    // ── 당류 ──
     "꿀", "조청", "물엿", "올리고당", "매실청", "매실액",
-    // 소스/드레싱
+
+    // ── 소스/드레싱 ──
     "케첩", "마요네즈", "굴소스", "굴 소스", "우스터 소스",
     "타바스코", "타바스코 소스", "스리라차 소스",
     "디종 머스타드", "홀그레인 머스타드",
-    // 스톡
+
+    // ── 스톡/육수 ──
     "치킨스톡", "치킨 스톡", "코인 육수",
-    // 건허브/향신료
+    "야채 육수", "채소 육수", "조개 육수", "해물 육수",
+
+    // ── 건허브/향신료 ──
     "월계수잎", "타임", "로즈마리", "오레가노",
-    // 파우더류
+    "차이브", "민트",
+    "허브", "양꼬치 시즈닝",
+
+    // ── 파우더/가루류 ──
     "파프리카 파우더", "파프리카 가루", "스모크 파프리카", "넛맥", "계피",
-    // 기타
-    "전분", "베이킹 파우더",
-    // EN equivalents
-    "olive oil", "sesame oil", "vegetable oil", "soy sauce", "miso", "gochujang",
-    "red pepper flakes", "rice wine", "mirin", "vinegar", "honey", "corn syrup",
+
+    // ── 기타 조미료 ──
+    "전분", "베이킹 파우더", "MSG",
+
+    // ── EN equivalents ──
+    "salt", "pepper", "sugar", "flour", "oil",
+    "olive oil", "sesame oil", "vegetable oil", "perilla oil", "chili oil",
+    "truffle", "truffle oil", "white truffle oil",
+    "soy sauce", "miso", "gochujang", "red pepper flakes", "fish sauce", "salted shrimp",
+    "rice wine", "mirin", "yuja syrup", "cheongha",
+    "vinegar", "balsamic vinegar", "white balsamic", "apple cider vinegar", "wine vinegar",
+    "honey", "corn syrup", "rice syrup", "oligosaccharide", "plum syrup",
     "ketchup", "mayonnaise", "oyster sauce", "worcestershire sauce", "hot sauce",
-    "dijon mustard", "chicken stock", "bay leaf", "thyme", "rosemary", "oregano",
-    "cornstarch", "baking powder",
+    "tabasco", "sriracha", "dijon mustard", "whole grain mustard",
+    "chicken stock", "vegetable stock", "seafood stock",
+    "bay leaf", "thyme", "rosemary", "oregano", "chives", "mint", "herb",
+    "paprika powder", "smoked paprika", "nutmeg", "cinnamon",
+    "cornstarch", "baking powder", "msg",
   ]);
 
   // 노이즈 재료 필터 (조리 설명 문장 등)

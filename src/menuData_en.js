@@ -14,8 +14,7 @@ const menuData_en = [
       "Parsley",
       "Butter",
       "Olive oil",
-      "White wine",
-      "Pasta water"
+      "White wine"
     ],
     "steps": [
       "Boil water in a pot, add salt, and cook spaghetti.",
@@ -40,7 +39,6 @@ const menuData_en = [
       "Chicken stock",
       "Olive oil",
       "Spaghetti",
-      "Water",
       "Salt"
     ],
     "steps": [
@@ -66,8 +64,7 @@ const menuData_en = [
       "Chicken Stock",
       "Salt",
       "Black Pepper",
-      "Olive Oil",
-      "Water"
+      "Olive Oil"
     ],
     "steps": [
       "Boil water with salt in a pot and cook pasta for 6 minutes.",
@@ -232,7 +229,6 @@ const menuData_en = [
       "Black pepper",
       "Salt",
       "Chicken stock",
-      "Water",
       "Olive oil"
     ],
     "steps": [
@@ -288,8 +284,7 @@ const menuData_en = [
       "Oyster Sauce",
       "Olive Oil",
       "Salt",
-      "Black Pepper",
-      "Water"
+      "Black Pepper"
     ],
     "steps": [
       "Drizzle olive oil in a pan.",
@@ -320,9 +315,7 @@ const menuData_en = [
       "Black pepper",
       "Parmigiano Reggiano cheese",
       "Parsley",
-      "Pasta water",
-      "Butter",
-      "Water"
+      "Butter"
     ],
     "steps": [
       "Slice the bacon lengthwise and pan-fry until golden brown in a pan with olive oil.",
@@ -351,8 +344,7 @@ const menuData_en = [
       "Salt",
       "Black pepper",
       "Olive oil",
-      "Butter",
-      "Water"
+      "Butter"
     ],
     "steps": [
       "Pour olive oil into a pan.",
@@ -392,8 +384,7 @@ const menuData_en = [
       "Cheongyang chili powder",
       "Curry powder",
       "Black pepper",
-      "Cooking oil",
-      "Water"
+      "Cooking oil"
     ],
     "steps": [
       "Drizzle a suitable amount of oil in a pan and lightly grill the rice tteok.",
@@ -428,9 +419,7 @@ const menuData_en = [
       "Black pepper",
       "Butter",
       "Oil",
-      "Water",
-      "Bay leaf",
-      "Pasta water"
+      "Bay leaf"
     ],
     "steps": [
       "Heat oil in a pan and sear the pork until crispy and well browned.",
@@ -477,7 +466,6 @@ const menuData_en = [
       "Chicken stock",
       "Oyster sauce",
       "Parsley",
-      "Water",
       "White wine",
       "Olive oil"
     ],
@@ -554,7 +542,6 @@ const menuData_en = [
       "Pine Mushroom",
       "Salt",
       "Egg",
-      "Ice water",
       "Flour",
       "Cooking oil"
     ],
@@ -583,7 +570,6 @@ const menuData_en = [
       "Honey",
       "Lemon",
       "Starch",
-      "Water",
       "Cooking oil",
       "Parsley"
     ],
@@ -636,7 +622,6 @@ const menuData_en = [
       "Sugar",
       "Whole black peppercorns",
       "MSG",
-      "Water",
       "Sesame seeds"
     ],
     "steps": [
@@ -807,7 +792,6 @@ const menuData_en = [
       "Chapagetti soup base",
       "Seasoning oil",
       "Olive oil",
-      "Water",
       "Kelp (from Neoguri)",
       "Truffle oil"
     ],
@@ -838,8 +822,7 @@ const menuData_en = [
       "Scallions",
       "Chapagetti (instant black bean noodles)",
       "Neoguri (spicy seafood instant noodles)",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Sear the sirloin steak in a pan with olive oil, then remove and set aside.",
@@ -856,8 +839,7 @@ const menuData_en = [
     "upload_date": "2024-12-03",
     "ingredients": [
       "Jin Ramen",
-      "Egg",
-      "Water"
+      "Egg"
     ],
     "steps": [
       "Add water to a pot and bring to a boil.",
@@ -877,8 +859,7 @@ const menuData_en = [
     "ingredients": [
       "Jin Ramen",
       "Egg",
-      "Green Onion Kimchi",
-      "Water"
+      "Green Onion Kimchi"
     ],
     "steps": [
       "Boil water, add Jin Ramen noodles and soup base, and cook.",
@@ -947,8 +928,7 @@ const menuData_en = [
       "Snow Crab",
       "Kelp",
       "Ponzu Sauce",
-      "Sudachi",
-      "Water"
+      "Sudachi"
     ],
     "steps": [
       "Add kelp to water and gently heat to 70-80°C.",
@@ -981,8 +961,7 @@ const menuData_en = [
       "Mozzarella Cheese",
       "Basil",
       "Milk",
-      "Olive Oil",
-      "Water"
+      "Olive Oil"
     ],
     "steps": [
       "Trim the crusts from the bread and cut into pieces.",
@@ -1018,8 +997,7 @@ const menuData_en = [
       "Minced garlic",
       "Soy sauce",
       "Sesame oil",
-      "Sesame seeds",
-      "Water"
+      "Sesame seeds"
     ],
     "steps": [
       "Add kelp to cold water and slowly heat to 80°C to make a broth.",
@@ -1048,8 +1026,7 @@ const menuData_en = [
       "Powdered Soup Base",
       "Flakes",
       "Vegetable Seasoning Oil",
-      "Lamb Skewer Seasoning (Cumin Seasoning)",
-      "Water"
+      "Lamb Skewer Seasoning (Cumin Seasoning)"
     ],
     "steps": [
       "Thickly slice the Cheongyang chili pepper.",
@@ -1069,8 +1046,7 @@ const menuData_en = [
       "Shin Ramyun",
       "Egg",
       "Cheongyang Chili Pepper",
-      "Lamb Skewer Seasoning",
-      "Water"
+      "Lamb Skewer Seasoning"
     ],
     "steps": [
       "Slice the Cheongyang chili pepper to a moderate thickness.",
@@ -1091,8 +1067,7 @@ const menuData_en = [
       "Shin Ramyun",
       "Egg",
       "Cheongyang pepper",
-      "Cumin seasoning",
-      "Water"
+      "Cumin seasoning"
     ],
     "steps": [
       "Add Shin Ramyun soup base to boiling water.",
@@ -1120,7 +1095,6 @@ const menuData_en = [
       "Paprika",
       "Herbs",
       "Butter",
-      "Water",
       "Cooking oil",
       "Olive oil"
     ],
@@ -1155,7 +1129,6 @@ const menuData_en = [
       "Salt",
       "Pepper",
       "Dried Kelp",
-      "Water",
       "Olive Oil"
     ],
     "steps": [
@@ -1182,8 +1155,7 @@ const menuData_en = [
       "Shin Ramyun",
       "Egg",
       "Cheese",
-      "Scallions",
-      "Water"
+      "Scallions"
     ],
     "steps": [
       "Boil water.",
@@ -1247,8 +1219,7 @@ const menuData_en = [
       "Black Pepper",
       "Chili Oil",
       "Butter",
-      "Olive Oil",
-      "Ice Water"
+      "Olive Oil"
     ],
     "steps": [
       "Slice the red onion into rings and soak in ice water.",
@@ -1283,7 +1254,6 @@ const menuData_en = [
       "Black pepper",
       "Olive oil",
       "Heavy cream",
-      "Water",
       "White wine",
       "Breadcrumbs"
     ],
@@ -1325,7 +1295,6 @@ const menuData_en = [
       "Black pepper",
       "Breadcrumbs",
       "Olive oil",
-      "Water",
       "Herbs"
     ],
     "steps": [
@@ -1368,8 +1337,7 @@ const menuData_en = [
       "Mozzarella cheese",
       "Reggiano cheese",
       "Parsley",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Sauté bacon in chili oil.",
@@ -1400,8 +1368,7 @@ const menuData_en = [
       "Salt",
       "Pepper",
       "Butter",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Prepare and finely chop the parsley.",
@@ -1435,8 +1402,7 @@ const menuData_en = [
       "Salt",
       "Black pepper",
       "Butter",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Clean and finely chop fresh parsley.",
@@ -1509,8 +1475,7 @@ const menuData_en = [
       "Sugar",
       "Sesame Oil",
       "Cooking Oil",
-      "Potato Starch",
-      "Water"
+      "Potato Starch"
     ],
     "steps": [
       "Cut tofu into bite-sized pieces, pat dry with paper towels, then coat lightly with potato starch.",
@@ -1535,8 +1500,7 @@ const menuData_en = [
       "Glutinous rice flour",
       "Non-glutinous rice flour",
       "Sugar",
-      "Salt",
-      "Water"
+      "Salt"
     ],
     "steps": [
       "Wash the red beans, soak them in water, boil for 3 minutes, and discard the first water.",
@@ -1682,8 +1646,7 @@ const menuData_en = [
       "Perilla seed powder",
       "Egg",
       "Sichuan peppercorn oil",
-      "Black pepper",
-      "Water"
+      "Black pepper"
     ],
     "steps": [
       "Pour 600ml water into a pot and bring to a boil.",
@@ -1709,8 +1672,7 @@ const menuData_en = [
       "Mafaldine pasta",
       "Parmesan cheese",
       "Salt",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Add macadamia nuts, spinach, olive oil, salt, and cream cheese to a blender and process.",
@@ -1754,8 +1716,7 @@ const menuData_en = [
       "Sugar",
       "Butter",
       "Parsley",
-      "Olive Oil",
-      "Water"
+      "Olive Oil"
     ],
     "steps": [
       "Add 10g of salt to 1L of water and boil 1kg of baby potatoes for 20 minutes.",
@@ -1785,8 +1746,7 @@ const menuData_en = [
       "Parsley",
       "Pepper",
       "Butter",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Wash the small potatoes thoroughly.",
@@ -1812,7 +1772,6 @@ const menuData_en = [
       "Capers",
       "Salt",
       "Olive oil",
-      "Water",
       "Chicken stock",
       "Parsley",
       "Lemon"
@@ -1843,8 +1802,6 @@ const menuData_en = [
       "Bacon",
       "Saffron",
       "Parmesan cheese",
-      "Water",
-      "Pasta water",
       "Olive oil"
     ],
     "steps": [
@@ -1867,7 +1824,6 @@ const menuData_en = [
       "Yeast",
       "Salt",
       "Dried oregano",
-      "Water",
       "Semolina flour"
     ],
     "steps": [
@@ -1962,7 +1918,6 @@ const menuData_en = [
       "Black pepper",
       "White wine",
       "Olive oil",
-      "Water",
       "Bread"
     ],
     "steps": [
@@ -2011,8 +1966,7 @@ const menuData_en = [
       "Tomato sauce",
       "Parmesan cheese",
       "Salt",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Combine ground beef with chopped parsley, ricotta cheese, Parmesan cheese, raisins, and pine nuts. Mix well and form into meatballs.",
@@ -2043,8 +1997,7 @@ const menuData_en = [
       "Parmigiano Reggiano cheese",
       "Lemon",
       "Parsley",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Remove the tough adductor muscle from the scallops.",
@@ -2075,8 +2028,7 @@ const menuData_en = [
       "Pasta",
       "Parmigiano Reggiano",
       "Salt",
-      "Butter",
-      "Water"
+      "Butter"
     ],
     "steps": [
       "Boil water in a pot and add salt.",
@@ -2137,7 +2089,6 @@ const menuData_en = [
       "Salt",
       "Black Pepper",
       "Olive Oil",
-      "Water",
       "Parmigiano Reggiano Cheese"
     ],
     "steps": [
@@ -2160,8 +2111,7 @@ const menuData_en = [
       "Pecorino cheese",
       "Eggs",
       "Pepper",
-      "Rendered guanciale fat",
-      "Water"
+      "Rendered guanciale fat"
     ],
     "steps": [
       "Cook guanciale until crispy, then strain and collect the rendered fat.",
@@ -2183,8 +2133,7 @@ const menuData_en = [
       "Tom Yum paste",
       "Powdered soup base",
       "Flakes",
-      "Milk",
-      "Water"
+      "Milk"
     ],
     "steps": [
       "Add 550ml of water to a pot, then add the flakes and powdered soup base and bring to a boil.",
@@ -2304,8 +2253,7 @@ const menuData_en = [
       "Parmesan cheese",
       "Black pepper",
       "Olive oil",
-      "Butter",
-      "Pasta water"
+      "Butter"
     ],
     "steps": [
       "Sauté minced garlic in olive oil.",
@@ -2355,7 +2303,6 @@ const menuData_en = [
       "Salt",
       "Starch flour",
       "Frying mix",
-      "Water",
       "Oil"
     ],
     "steps": [
@@ -2384,8 +2331,7 @@ const menuData_en = [
       "Egg",
       "Belcube cheese",
       "Mozzarella",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Slice eggplant thinly, then dice finely.",
@@ -2436,8 +2382,7 @@ const menuData_en = [
       "Chicken Stock",
       "Salt",
       "Pepper",
-      "Olive Oil",
-      "Water"
+      "Olive Oil"
     ],
     "steps": [
       "Separate and prepare 2 egg yolks.",
@@ -2468,8 +2413,6 @@ const menuData_en = [
       "Basil",
       "Salt",
       "Olive Oil",
-      "Water",
-      "Pasta Water",
       "Ricotta Salata",
       "Pecorino",
       "Parmesan"
@@ -2532,8 +2475,7 @@ const menuData_en = [
       "Black pepper",
       "Salt",
       "Chicken stock",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Separate egg yolks and whites.",
@@ -2662,8 +2604,7 @@ const menuData_en = [
       "Green beans",
       "Basil pesto",
       "Parmesan cheese",
-      "Salt",
-      "Water"
+      "Salt"
     ],
     "steps": [
       "Peel and dice the potatoes.",
@@ -2689,8 +2630,7 @@ const menuData_en = [
       "Garlic Chives",
       "Salt",
       "Chicken Stock",
-      "Olive Oil",
-      "Water"
+      "Olive Oil"
     ],
     "steps": [
       "Slice the baguette diagonally.",
@@ -2728,7 +2668,6 @@ const menuData_en = [
       "Egg",
       "Cooking oil",
       "Olive oil",
-      "Water",
       "Rice"
     ],
     "steps": [
@@ -2981,8 +2920,7 @@ const menuData_en = [
       "Parmesan cheese",
       "Butter",
       "Olive oil",
-      "White wine",
-      "Water"
+      "White wine"
     ],
     "steps": [
       "Remove the root from the pine mushrooms, separate the cap and stem, then slice thinly.",
@@ -3067,8 +3005,7 @@ const menuData_en = [
       "Cream",
       "Pepper",
       "Salt",
-      "Olive Oil",
-      "Pasta Water"
+      "Olive Oil"
     ],
     "steps": [
       "Chop the onion and parsley, and season and cut the smoked salmon into bite-sized pieces.",
@@ -3174,7 +3111,6 @@ const menuData_en = [
       "Sugar",
       "Tomato paste",
       "Tomato puree",
-      "Water",
       "Olive oil"
     ],
     "steps": [
@@ -3252,9 +3188,7 @@ const menuData_en = [
       "pepper",
       "butter",
       "short pasta",
-      "olive oil",
-      "water",
-      "pasta water"
+      "olive oil"
     ],
     "steps": [
       "Sauté shrimp in butter and drizzle with lemon juice.",
@@ -3299,8 +3233,7 @@ const menuData_en = [
       "Soy Sauce",
       "Minced Garlic",
       "Salt",
-      "Sesame Oil",
-      "Water"
+      "Sesame Oil"
     ],
     "steps": [
       "Soak dried seaweed in a mixing bowl with salt and water.",
@@ -3339,8 +3272,7 @@ const menuData_en = [
       "Sugar",
       "Soju",
       "Sesame Seeds",
-      "Rice",
-      "Water"
+      "Rice"
     ],
     "steps": [
       "Clean blue crabs thoroughly, scrubbing off impurities. Separate the top shell and cut the crab into bite-sized pieces.",
@@ -3406,7 +3338,6 @@ const menuData_en = [
       "Vinegar",
       "Corn Syrup",
       "Cooking Wine",
-      "Water",
       "Sesame Seeds"
     ],
     "steps": [
@@ -3457,7 +3388,6 @@ const menuData_en = [
       "Parsley",
       "Lemon Zest",
       "Olive Oil",
-      "Water",
       "Salt"
     ],
     "steps": [
@@ -3546,8 +3476,7 @@ const menuData_en = [
       "Salt",
       "Pepper",
       "White balsamic vinegar",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Add salt and olive oil to couscous.",
@@ -3615,7 +3544,6 @@ const menuData_en = [
       "Pepper",
       "Nutmeg",
       "Olive oil",
-      "Water",
       "Basil"
     ],
     "steps": [
@@ -3691,8 +3619,7 @@ const menuData_en = [
       "Lemon zest",
       "Parsley",
       "Salt",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Boil dried pollock, potatoes, and salt in boiling water.",
@@ -3738,8 +3665,7 @@ const menuData_en = [
       "Salt",
       "Butter",
       "Parmesan cheese",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Combine water, lemon, and lemon peel.",
@@ -3802,8 +3728,7 @@ const menuData_en = [
       "Sugar",
       "Powdered sugar",
       "Salt",
-      "Milk",
-      "Water"
+      "Milk"
     ],
     "steps": [
       "Mix ricotta, powdered sugar, and milk.",
@@ -3865,9 +3790,7 @@ const menuData_en = [
       "Pasta",
       "Salt",
       "Pepper",
-      "Olive oil",
-      "Water",
-      "Pasta water"
+      "Olive oil"
     ],
     "steps": [
       "Sauté onion, carrot, and celery in olive oil. Add tomato puree, then pour in water and bring to a boil.",
@@ -3975,8 +3898,7 @@ const menuData_en = [
       "Cow milk curds",
       "Heavy cream",
       "Olive oil",
-      "Pepper",
-      "Water"
+      "Pepper"
     ],
     "steps": [
       "Place buffalo milk curds and cow milk curds in a bowl.",
@@ -4003,8 +3925,6 @@ const menuData_en = [
       "Tomato paste",
       "Olive oil",
       "Scallions",
-      "Pasta water",
-      "Water",
       "Parsley"
     ],
     "steps": [
@@ -4029,8 +3949,7 @@ const menuData_en = [
       "Parsley",
       "White wine",
       "Salt",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Chop the parsley.",
@@ -4099,8 +4018,7 @@ const menuData_en = [
       "Lemon Zest",
       "Bay Leaf",
       "Salt",
-      "Olive Oil",
-      "Water"
+      "Olive Oil"
     ],
     "steps": [
       "Boil water with lemon peel, bay leaf, and salt, then cook the octopus.",
@@ -4148,8 +4066,7 @@ const menuData_en = [
       "Ladyfingers",
       "Matcha powder",
       "Sugar",
-      "Vanilla extract",
-      "Water"
+      "Vanilla extract"
     ],
     "steps": [
       "Whisk egg yolks and sugar until well combined and pale.",
@@ -4191,7 +4108,6 @@ const menuData_en = [
       "Black Pepper",
       "White Wine",
       "Chili Oil",
-      "Water",
       "Butter",
       "Olive Oil",
       "Parsley"
@@ -4319,9 +4235,7 @@ const menuData_en = [
       "Chicken stock",
       "Black pepper",
       "Red pepper flakes",
-      "Water",
       "Cooking oil",
-      "Pasta water",
       "Olive oil",
       "Butter",
       "Doritos"
@@ -4377,8 +4291,7 @@ const menuData_en = [
       "Flour",
       "Egg",
       "Cream",
-      "Salt",
-      "Water"
+      "Salt"
     ],
     "steps": [
       "Blanch mugwort in boiling water, squeeze out water, and finely grind.",
@@ -4440,8 +4353,7 @@ const menuData_en = [
       "Salt",
       "Olive oil",
       "Butter",
-      "Cooking oil",
-      "Pasta water"
+      "Cooking oil"
     ],
     "steps": [
       "Bring salted water to a boil for pasta.",
@@ -4486,7 +4398,6 @@ const menuData_en = [
       "Sugar",
       "Tuna sauce",
       "Chili oil",
-      "Water",
       "Cooking oil",
       "Sesame oil"
     ],
@@ -4718,8 +4629,7 @@ const menuData_en = [
       "Shiitake mushrooms",
       "Salt",
       "Pepper",
-      "Samgyetang broth pack",
-      "Water"
+      "Samgyetang broth pack"
     ],
     "steps": [
       "Soak the sweet rice and mung beans for about an hour.",
@@ -4791,8 +4701,7 @@ const menuData_en = [
       "Mussels",
       "Red pepper powder",
       "Gochujang",
-      "Soy sauce",
-      "Water"
+      "Soy sauce"
     ],
     "steps": [
       "Chop carrot, green onion, and zucchini.",
@@ -4880,8 +4789,7 @@ const menuData_en = [
       "Parsley",
       "Salt",
       "Olive oil",
-      "Breadcrumbs",
-      "Water"
+      "Breadcrumbs"
     ],
     "steps": [
       "Slice garlic and prepare peperoncino and parsley.",
@@ -5297,8 +5205,7 @@ const menuData_en = [
       "Parsley",
       "Whole black peppercorns",
       "Thyme",
-      "Cloves",
-      "Water"
+      "Cloves"
     ],
     "steps": [
       "Remove excess fat and skin from chicken bones.",
@@ -5433,8 +5340,7 @@ const menuData_en = [
       "garlic",
       "cherry tomatoes",
       "white wine",
-      "olive oil",
-      "water"
+      "olive oil"
     ],
     "steps": [
       "Chop shrimp heads and shells into small pieces with scissors.",
@@ -5472,8 +5378,7 @@ const menuData_en = [
       "Salt",
       "Pepper",
       "Olive oil",
-      "Vinegar",
-      "Water"
+      "Vinegar"
     ],
     "steps": [
       "Prepare only the broccoli florets and julienne the onion.",
@@ -5555,7 +5460,6 @@ const menuData_en = [
       "Salt",
       "Vinegar",
       "Black pepper",
-      "Water",
       "Olive oil"
     ],
     "steps": [
@@ -5586,7 +5490,6 @@ const menuData_en = [
       "Classic Vinaigrette",
       "Shrimp Stock",
       "Olive Oil",
-      "Water",
       "Egg Yolk"
     ],
     "steps": [
@@ -6306,8 +6209,7 @@ const menuData_en = [
       "salt",
       "pepper",
       "flour",
-      "cooking oil",
-      "water"
+      "cooking oil"
     ],
     "steps": [
       "Season raw peanuts with salt.",
@@ -6600,8 +6502,7 @@ const menuData_en = [
       "Tare sauce",
       "Sesame seeds",
       "Betamix",
-      "Butter",
-      "Water"
+      "Butter"
     ],
     "steps": [
       "Soak kelp in yakju.",
@@ -6671,8 +6572,7 @@ const menuData_en = [
       "Salt",
       "Tuna Extract",
       "Oil from Canned Tuna",
-      "Kimchi Juice",
-      "Water"
+      "Kimchi Juice"
     ],
     "steps": [
       "Pour the oil from the canned tuna into a pot.",
@@ -6706,8 +6606,7 @@ const menuData_en = [
       "Minced garlic",
       "Tuna sauce",
       "Sesame oil",
-      "Chili oil",
-      "Water"
+      "Chili oil"
     ],
     "steps": [
       "Cut green onions and Cheongyang chili.",
@@ -6735,9 +6634,7 @@ const menuData_en = [
       "Sea urchin roe",
       "Soy sauce",
       "Clam seasoning powder",
-      "Seawater",
-      "Sesame oil",
-      "Rice water"
+      "Sesame oil"
     ],
     "steps": [
       "Rinse and separate the sea urchin with seawater or salt water.",
@@ -6765,7 +6662,6 @@ const menuData_en = [
       "Red pepper powder",
       "Parsley",
       "Black pepper",
-      "Water",
       "Olive oil"
     ],
     "steps": [
@@ -6798,7 +6694,6 @@ const menuData_en = [
       "soy sauce",
       "sake",
       "buckwheat flour",
-      "warm water",
       "sansho pepper"
     ],
     "steps": [
@@ -6830,7 +6725,6 @@ const menuData_en = [
       "Soba noodles",
       "Butter",
       "Salt",
-      "Water",
       "Oil"
     ],
     "steps": [
@@ -6871,7 +6765,6 @@ const menuData_en = [
       "Tomato paste",
       "Olive oil",
       "White wine",
-      "Water",
       "Pernod"
     ],
     "steps": [
@@ -6957,8 +6850,7 @@ const menuData_en = [
       "Black pepper",
       "Sesame oil",
       "Sesame seeds",
-      "Cooking oil",
-      "Water"
+      "Cooking oil"
     ],
     "steps": [
       "Score the washed pork, heat cooking oil in a pan, and sear until golden brown.",
@@ -7015,8 +6907,7 @@ const menuData_en = [
       "Salt",
       "Crushed pine nuts",
       "Rice wine",
-      "Canola oil",
-      "Water"
+      "Canola oil"
     ],
     "steps": [
       "Julienne cucumber and eggplant, then salt them.",
@@ -7053,8 +6944,7 @@ const menuData_en = [
       "Salt",
       "Sesame Oil",
       "Cream Cheese",
-      "Flour",
-      "Water"
+      "Flour"
     ],
     "steps": [
       "Make an egg crepe, slice it into long strips, and season with mirin.",
@@ -7106,8 +6996,7 @@ const menuData_en = [
       "Parsley",
       "Lemon zest",
       "Butter",
-      "Salt",
-      "Water"
+      "Salt"
     ],
     "steps": [
       "Boil spaghetti.",
@@ -7135,8 +7024,7 @@ const menuData_en = [
       "Cream Cheese",
       "Salt",
       "Eggs",
-      "Flour",
-      "Water"
+      "Flour"
     ],
     "steps": [
       "Slice zucchini and place in a measuring cup.",
@@ -7162,8 +7050,7 @@ const menuData_en = [
       "Spaghetti",
       "Olive oil",
       "Parmesan cheese",
-      "Salt",
-      "Water"
+      "Salt"
     ],
     "steps": [
       "Blend pine nuts, garlic, and salt in a blender.",
@@ -7191,8 +7078,7 @@ const menuData_en = [
       "Capellini",
       "Salt",
       "Basil",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Score the stem end of tomatoes and blanch in boiling water for 30 seconds.",
@@ -7217,7 +7103,6 @@ const menuData_en = [
       "Vinegar",
       "Salt",
       "Pepper",
-      "Water",
       "Bay leaf",
       "Olive oil",
       "Sunflower oil"
@@ -7280,8 +7165,7 @@ const menuData_en = [
       "Rice",
       "Salt",
       "Pepper",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Wash rice, add water and salt, and cook for 16 minutes after it starts boiling.",
@@ -7408,8 +7292,7 @@ const menuData_en = [
       "Tomato sauce",
       "Salt",
       "Parsley",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Brown the bacon in olive oil.",
@@ -7487,8 +7370,7 @@ const menuData_en = [
       "Tomato sauce",
       "Butter",
       "Parmesan cheese",
-      "Salt",
-      "Water"
+      "Salt"
     ],
     "steps": [
       "Pour water into a pot and bring to a boil.",
@@ -7515,7 +7397,6 @@ const menuData_en = [
       "Parmesan cheese",
       "Parsley",
       "Olive oil",
-      "Pasta water",
       "Flour",
       "Eggs"
     ],
@@ -7543,8 +7424,7 @@ const menuData_en = [
       "Garlic",
       "Parmesan cheese",
       "Cream",
-      "Olive oil",
-      "Pasta water"
+      "Olive oil"
     ],
     "steps": [
       "Boil water and cook pasta.",
@@ -7595,8 +7475,7 @@ const menuData_en = [
       "Pasta",
       "Eggs",
       "Parmesan cheese",
-      "Black pepper",
-      "Pasta water"
+      "Black pepper"
     ],
     "steps": [
       "Cut guanciale into small cubes.",
@@ -7628,8 +7507,7 @@ const menuData_en = [
       "Lemon",
       "Salt",
       "Black pepper",
-      "Olive oil",
-      "Pasta water"
+      "Olive oil"
     ],
     "steps": [
       "Drain the oil from the canned tuna.",
@@ -7697,8 +7575,7 @@ const menuData_en = [
       "Olive oil",
       "Salt",
       "Pepper",
-      "Garlic",
-      "Water"
+      "Garlic"
     ],
     "steps": [
       "Lightly rinse the octopus.",
@@ -7769,8 +7646,7 @@ const menuData_en = [
       "Salt",
       "Pepper",
       "Fennel",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Slit the salsiccia casing.",
@@ -7797,8 +7673,7 @@ const menuData_en = [
       "Garlic",
       "Peperoncino",
       "Salt",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Trim and prepare the root ends of the Cheonggat greens.",
@@ -7827,8 +7702,7 @@ const menuData_en = [
       "Cheongyang Chili Peppers",
       "Salt",
       "Parmesan Cheese",
-      "Olive Oil",
-      "Pasta Water"
+      "Olive Oil"
     ],
     "steps": [
       "Cook orecchiette in salted boiling water.",
@@ -7854,8 +7728,7 @@ const menuData_en = [
       "Sugar",
       "Vanilla",
       "Lemon juice",
-      "Cookies",
-      "Water"
+      "Cookies"
     ],
     "steps": [
       "Slice strawberries into small pieces and marinate with sugar and lemon juice.",
@@ -7884,7 +7757,6 @@ const menuData_en = [
       "Parmesan cheese rind",
       "Parmesan cheese",
       "Small pasta",
-      "Water",
       "Olive oil"
     ],
     "steps": [
@@ -7917,7 +7789,6 @@ const menuData_en = [
       "Salt",
       "Olive oil",
       "Pasta",
-      "Pasta water",
       "Parsley"
     ],
     "steps": [
@@ -7945,8 +7816,7 @@ const menuData_en = [
       "Parsley",
       "Butter",
       "Lemon",
-      "Salt",
-      "Pasta Water"
+      "Salt"
     ],
     "steps": [
       "Separate the pollack roe from its membrane.",
@@ -8030,8 +7900,7 @@ const menuData_en = [
       "Parmesan cheese",
       "Olive oil",
       "White wine",
-      "Butter",
-      "Water"
+      "Butter"
     ],
     "steps": [
       "Sauté carrot, onion, and green onion in a pot with olive oil.",
@@ -8085,8 +7954,7 @@ const menuData_en = [
       "Canned Tuna",
       "Basil",
       "Salt",
-      "Olive Oil",
-      "Water"
+      "Olive Oil"
     ],
     "steps": [
       "Cook farro, water, and salt in an electric rice cooker.",
@@ -8141,8 +8009,7 @@ const menuData_en = [
       "Ladyfingers",
       "Sugar",
       "Vanilla",
-      "Mugwort powder",
-      "Water"
+      "Mugwort powder"
     ],
     "steps": [
       "Combine egg yolks and sugar in a double boiler and whisk until thick.",
@@ -8334,7 +8201,6 @@ const menuData_en = [
       "Sugar",
       "Cherry Blossom Cordial",
       "Beetroot Powder",
-      "Warm Water",
       "Cherry Blossoms"
     ],
     "steps": [
@@ -8452,8 +8318,7 @@ const menuData_en = [
       "Lemon juice",
       "Salt",
       "Olive oil",
-      "Butter",
-      "Water"
+      "Butter"
     ],
     "steps": [
       "Cut off the carrot greens.",
@@ -8538,7 +8403,6 @@ const menuData_en = [
       "Sesame seeds",
       "Pine nuts",
       "Soy milk",
-      "Water",
       "Salt",
       "Olive oil"
     ],
@@ -8595,8 +8459,7 @@ const menuData_en = [
       "Basil",
       "Salt",
       "Couscous",
-      "Olive oil",
-      "Hot water"
+      "Olive oil"
     ],
     "steps": [
       "Place couscous in a bowl.",
@@ -8725,8 +8588,7 @@ const menuData_en = [
       "Garlic",
       "Peperoncino",
       "White wine",
-      "Olive oil",
-      "Pasta water"
+      "Olive oil"
     ],
     "steps": [
       "Trim the samphire and cut off the leafy parts.",
@@ -8787,8 +8649,7 @@ const menuData_en = [
       "Parmesan cheese",
       "Cream",
       "Olive oil",
-      "Black pepper",
-      "Pasta water"
+      "Black pepper"
     ],
     "steps": [
       "Slice the pancetta.",
@@ -8818,8 +8679,7 @@ const menuData_en = [
       "Parmesan cheese",
       "Vegetable broth",
       "Butter",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Cut the pumpkin in half.",
@@ -8854,8 +8714,7 @@ const menuData_en = [
       "Salt",
       "Tomato paste",
       "Parmesan cheese",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Cut bell peppers, eggplant, and zucchini into bite-sized pieces.",
@@ -8885,8 +8744,7 @@ const menuData_en = [
       "Olive Oil",
       "Flour",
       "Butter",
-      "White Wine",
-      "Water"
+      "White Wine"
     ],
     "steps": [
       "Cut the base off oyster mushrooms and tear them into strands.",
@@ -8913,8 +8771,7 @@ const menuData_en = [
       "Pumpkin flower stems",
       "Anchovies",
       "Olive oil",
-      "Butter",
-      "Pasta water"
+      "Butter"
     ],
     "steps": [
       "Cut the calyx of the pumpkin flower and remove the stamen.",
@@ -8983,8 +8840,7 @@ const menuData_en = [
       "Parmesan cheese",
       "Pesto",
       "Salt",
-      "Tomato sauce",
-      "Water"
+      "Tomato sauce"
     ],
     "steps": [
       "Add water and salt to a pot.",
@@ -9037,8 +8893,7 @@ const menuData_en = [
       "Pecorino cheese",
       "Salt",
       "Pepper",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Sauté onion with salt in a pan with olive oil.",
@@ -9087,7 +8942,6 @@ const menuData_en = [
       "cloves",
       "cinnamon",
       "orange peel",
-      "water",
       "vanilla ice cream",
       "cookies"
     ],
@@ -9172,8 +9026,7 @@ const menuData_en = [
       "Kelp",
       "Blue crab",
       "Radish",
-      "Soybean paste",
-      "Water"
+      "Soybean paste"
     ],
     "steps": [
       "Cut the zucchini, green onion, spicy green chili, red chili, onion, potato, and tofu into bite-sized pieces.",
@@ -9294,8 +9147,7 @@ const menuData_en = [
       "Mascarpone",
       "Parmesan cheese",
       "Butter",
-      "White wine",
-      "Water"
+      "White wine"
     ],
     "steps": [
       "Prepare the cuttlefish.",
@@ -9370,8 +9222,7 @@ const menuData_en = [
       "Tomato paste",
       "Chicken stock",
       "Black pepper",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Sauté onion, carrot, and celery in olive oil.",
@@ -9398,8 +9249,7 @@ const menuData_en = [
       "Pear",
       "Salt",
       "Black sesame seeds",
-      "Flour",
-      "Water"
+      "Flour"
     ],
     "steps": [
       "Toast pine nuts in a pan.",
@@ -9540,8 +9390,7 @@ const menuData_en = [
       "White wine",
       "Lemon zest",
       "Parsley",
-      "Olive oil",
-      "Pasta water"
+      "Olive oil"
     ],
     "steps": [
       "Cut the monkfish into bite-sized pieces.",
@@ -9633,8 +9482,7 @@ const menuData_en = [
       "Red wine",
       "Taleggio cheese",
       "Parmesan cheese",
-      "Butter",
-      "Water"
+      "Butter"
     ],
     "steps": [
       "Remove outer leaves of radicchio and chop the rest.",
@@ -9810,8 +9658,7 @@ const menuData_en = [
       "Butter",
       "Olive oil",
       "Duck fat",
-      "Duck broth",
-      "Water"
+      "Duck broth"
     ],
     "steps": [
       "Pat duck legs dry.",
@@ -9840,8 +9687,7 @@ const menuData_en = [
       "Barley Croaker",
       "Pine nuts",
       "Black sesame seeds",
-      "Dried laver",
-      "Water"
+      "Dried laver"
     ],
     "steps": [
       "Measure rice into a bowl and wash thoroughly until the starch is removed.",
@@ -9872,8 +9718,7 @@ const menuData_en = [
       "Soy sauce",
       "Sugar",
       "Oyster sauce",
-      "White wine vinegar",
-      "Water"
+      "White wine vinegar"
     ],
     "steps": [
       "Remove outer leaves from the napa cabbage, cut it in half, and fan it out to resemble a flower.",
@@ -10003,7 +9848,6 @@ const menuData_en = [
       "White pepper",
       "Olive oil",
       "White truffle oil",
-      "Water",
       "Mint"
     ],
     "steps": [
@@ -10204,8 +10048,7 @@ const menuData_en = [
       "Black pepper",
       "Tabasco sauce",
       "Pink peppercorns",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Thinly slice radishes and soak in water to remove pungency.",
@@ -10360,7 +10203,6 @@ const menuData_en = [
       "Onion",
       "Salt",
       "Sichuan peppercorn powder",
-      "Water",
       "Butter",
       "Olive oil",
       "Olive oil",
@@ -11075,7 +10917,6 @@ const menuData_en = [
       "Whipping cream",
       "Yeast",
       "Baking powder",
-      "Water",
       "Butter",
       "Milk"
     ],
@@ -11110,8 +10951,7 @@ const menuData_en = [
       "Ginger",
       "Yuzu",
       "Dried kelp",
-      "Salt",
-      "Water"
+      "Salt"
     ],
     "steps": [
       "Soak razor clams in saltwater to purge sand.",
@@ -11145,7 +10985,6 @@ const menuData_en = [
       "Sriracha sauce",
       "Flour",
       "Butter",
-      "Water",
       "Egg wash",
       "Cooking oil"
     ],
@@ -11206,7 +11045,6 @@ const menuData_en = [
       "Breadcrumbs",
       "Tomato Radish",
       "Cooking oil",
-      "Water",
       "Ice"
     ],
     "steps": [
@@ -11240,8 +11078,7 @@ const menuData_en = [
       "Salt",
       "Pepper",
       "Milk",
-      "Butter",
-      "Water"
+      "Butter"
     ],
     "steps": [
       "Stuff the whole chicken with garlic, shallots, thyme, mushrooms, and pancetta.",
@@ -11273,7 +11110,6 @@ const menuData_en = [
       "Baking powder",
       "Soju",
       "Beer",
-      "Water",
       "Oil"
     ],
     "steps": [
@@ -11304,8 +11140,7 @@ const menuData_en = [
       "Salt",
       "Parsley",
       "Butter",
-      "Oil",
-      "Water"
+      "Oil"
     ],
     "steps": [
       "Combine flour, egg yolks, and whole eggs.",
@@ -11425,7 +11260,6 @@ const menuData_en = [
       "Heavy cream",
       "Caraway",
       "Black pepper",
-      "Water",
       "Cornstarch"
     ],
     "steps": [
@@ -11457,8 +11291,7 @@ const menuData_en = [
       "Onion",
       "Soy Sauce",
       "Chili Powder",
-      "Sugar",
-      "Water"
+      "Sugar"
     ],
     "steps": [
       "Slice tripe into bite-sized pieces and render fat in a pan.",
@@ -11551,7 +11384,6 @@ const menuData_en = [
       "Red chili powder",
       "Kimchi juice",
       "Flour",
-      "Water",
       "Cooking oil"
     ],
     "steps": [
@@ -11585,7 +11417,6 @@ const menuData_en = [
       "Flour",
       "Butter",
       "Egg",
-      "Water",
       "Cooking oil"
     ],
     "steps": [
@@ -11623,7 +11454,6 @@ const menuData_en = [
       "Gardenia fruit",
       "Honey",
       "Orange",
-      "Water",
       "Corn starch",
       "Oil"
     ],
@@ -11664,7 +11494,6 @@ const menuData_en = [
       "Salt",
       "Crushed Seaweed",
       "Kelp",
-      "Water",
       "Cooking Oil",
       "Sesame Oil"
     ],
@@ -11698,7 +11527,6 @@ const menuData_en = [
       "Malt syrup",
       "Gochugaru",
       "Doenjang",
-      "Rice water",
       "Grapeseed oil",
       "Cooking oil"
     ],
@@ -11736,8 +11564,7 @@ const menuData_en = [
       "Mirin",
       "Black pepper",
       "Sesame oil",
-      "Sesame seeds",
-      "Water"
+      "Sesame seeds"
     ],
     "steps": [
       "Warm the corn syrup in the microwave for about 15 seconds.",
@@ -11767,8 +11594,7 @@ const menuData_en = [
       "Peanuts",
       "Parmesan cheese",
       "Ricotta cheese",
-      "Olive oil",
-      "Pasta water"
+      "Olive oil"
     ],
     "steps": [
       "Prepare bang-a leaves.",
@@ -11859,8 +11685,7 @@ const menuData_en = [
       "Tomato puree",
       "Pecorino cheese",
       "Salt",
-      "Olive oil",
-      "Pasta cooking water"
+      "Olive oil"
     ],
     "steps": [
       "Dice the eggplant into small, bite-sized pieces.",
@@ -11897,7 +11722,6 @@ const menuData_en = [
       "Sesame Seeds",
       "Rice",
       "Broth",
-      "Water",
       "Broth Tablet",
       "Cooking Oil",
       "Shiitake Mushroom Stems"
@@ -11931,8 +11755,7 @@ const menuData_en = [
       "Chili oil",
       "Chili powder",
       "Soy sauce",
-      "Sesame oil",
-      "Water"
+      "Sesame oil"
     ],
     "steps": [
       "Slice the green onions.",
@@ -12012,8 +11835,7 @@ const menuData_en = [
       "Basil",
       "Curry roux",
       "Olive oil",
-      "Butter",
-      "Water"
+      "Butter"
     ],
     "steps": [
       "Separate the chicken leg quarters.",
@@ -12044,9 +11866,7 @@ const menuData_en = [
       "Lemon",
       "Parsley",
       "Salt",
-      "Olive oil",
-      "Water",
-      "Pasta water"
+      "Olive oil"
     ],
     "steps": [
       "Rinse the oysters in cold salted water.",
@@ -12178,8 +11998,6 @@ const menuData_en = [
       "Fresh basil",
       "Olive oil",
       "Salt",
-      "Water",
-      "Pasta water",
       "Parmesan cheese"
     ],
     "steps": [
@@ -12265,8 +12083,7 @@ const menuData_en = [
       "Sugar",
       "Pickling Spice",
       "Garlic",
-      "Olive Oil",
-      "Water"
+      "Olive Oil"
     ],
     "steps": [
       "Pan Frying: Pat dry the chicken breast.",
@@ -12303,8 +12120,7 @@ const menuData_en = [
       "Garlic",
       "Sesame Seeds",
       "Sesame Oil",
-      "Olive Oil",
-      "Water"
+      "Olive Oil"
     ],
     "steps": [
       "Briefly blanch the rapeseed greens, then rinse them in cold water and set aside.",
@@ -12350,8 +12166,7 @@ const menuData_en = [
     "uploader": "미뇨끼",
     "upload_date": "2025-08-06",
     "ingredients": [
-      "Tomatoes",
-      "Water"
+      "Tomatoes"
     ],
     "steps": [
       "Sterilize glass jars in hot water.",
@@ -12472,8 +12287,7 @@ const menuData_en = [
       "Perilla Oil",
       "Butter",
       "Perilla Seed Powder",
-      "Salt",
-      "Water"
+      "Salt"
     ],
     "steps": [
       "Wash bracken fern and squeeze out excess water.",
@@ -12524,8 +12338,7 @@ const menuData_en = [
       "Black pepper",
       "Rice",
       "Cooking oil",
-      "Sesame oil",
-      "Water"
+      "Sesame oil"
     ],
     "steps": [
       "Grate radish and squeeze out the juice.",
@@ -12626,9 +12439,7 @@ const menuData_en = [
       "pepper",
       "white wine",
       "butter",
-      "olive oil",
-      "water",
-      "pasta water"
+      "olive oil"
     ],
     "steps": [
       "Finely chop the anchovies.",
@@ -12706,7 +12517,6 @@ const menuData_en = [
       "Salt",
       "Pepper",
       "Cream",
-      "Water",
       "Garlic",
       "Butter",
       "Flour"
@@ -12771,8 +12581,7 @@ const menuData_en = [
       "Pecorino Romano cheese",
       "Grana Padano cheese",
       "black pepper",
-      "salt",
-      "pasta cooking water"
+      "salt"
     ],
     "steps": [
       "Remove the rind from the Iberico guanciale and cut into thick strips.",
@@ -12891,9 +12700,7 @@ const menuData_en = [
       "Seaweed",
       "Soy sauce",
       "Clam seasoning",
-      "Sea water",
-      "Sesame oil",
-      "Rice washing water"
+      "Sesame oil"
     ],
     "steps": [
       "Rinse the sea urchin with sea water or salt water.",
@@ -12932,9 +12739,7 @@ const menuData_en = [
       "Corn flour",
       "All-purpose flour",
       "Baking powder",
-      "Warm water",
       "Frying mix",
-      "Sparkling water",
       "Oil"
     ],
     "steps": [
@@ -13019,7 +12824,6 @@ const menuData_en = [
       "Salt",
       "Sugar",
       "Cooking wine",
-      "Water",
       "Oil",
       "Butter",
       "Flour",
@@ -13057,8 +12861,7 @@ const menuData_en = [
       "Smoked Paprika Powder",
       "Black Pepper",
       "Butter",
-      "Oil",
-      "Water"
+      "Oil"
     ],
     "steps": [
       "Trim excess fat from the chicken and pat dry with paper towels.",
@@ -13090,7 +12893,6 @@ const menuData_en = [
       "Instant noodle seasoning packet",
       "Black pepper",
       "Olive oil",
-      "Water",
       "Milk",
       "Parsley"
     ],
@@ -13368,7 +13170,6 @@ const menuData_en = [
       "Gochugaru",
       "Tuna Extract",
       "Black Pepper",
-      "Rice Water",
       "Cooking Oil",
       "Sesame Oil",
       "Sesame Seeds",
@@ -13407,7 +13208,6 @@ const menuData_en = [
       "Salt",
       "Pepper",
       "Olive oil",
-      "Water",
       "Peperoncino",
       "Garlic",
       "Parsley",
@@ -13455,7 +13255,6 @@ const menuData_en = [
       "Perilla oil",
       "Bread flour",
       "Semolina",
-      "Water",
       "Whole egg"
     ],
     "steps": [
@@ -13603,8 +13402,7 @@ const menuData_en = [
       "Minced garlic",
       "Black pepper",
       "Sesame seeds",
-      "Cooking oil",
-      "Water"
+      "Cooking oil"
     ],
     "steps": [
       "Add sugar and plum extract and mix.",
@@ -13639,8 +13437,7 @@ const menuData_en = [
       "Thyme",
       "Caraway",
       "Cumin Seeds",
-      "Honey",
-      "Water"
+      "Honey"
     ],
     "steps": [
       "Remove silver skin from duck, score the skin, and dry in the refrigerator for two days.",
@@ -13717,8 +13514,7 @@ const menuData_en = [
       "Mara Powder",
       "Sesame Oil",
       "Cooking Oil",
-      "Sesame Seeds",
-      "Water"
+      "Sesame Seeds"
     ],
     "steps": [
       "Cut pork into bite-sized pieces.",
@@ -13785,9 +13581,7 @@ const menuData_en = [
       "Tomato sauce",
       "Salt",
       "Pepper",
-      "Olive oil",
-      "Water",
-      "Pasta water"
+      "Olive oil"
     ],
     "steps": [
       "Wash and destem cherry tomatoes.",
@@ -13825,8 +13619,7 @@ const menuData_en = [
       "Black Pepper",
       "Mirin",
       "Flour",
-      "Cooking Oil",
-      "Water"
+      "Cooking Oil"
     ],
     "steps": [
       "Clean and debone the Spanish mackerel.",
@@ -13888,8 +13681,7 @@ const menuData_en = [
       "Pepper",
       "Spaghetti",
       "Butter",
-      "Olive Oil",
-      "Water"
+      "Olive Oil"
     ],
     "steps": [
       "Slice garlic thinly.",
@@ -13925,7 +13717,6 @@ const menuData_en = [
       "Salt",
       "Ssamjang",
       "Minced Garlic",
-      "Water",
       "Oil"
     ],
     "steps": [
@@ -13952,8 +13743,7 @@ const menuData_en = [
       "soy sauce",
       "salt",
       "sesame oil",
-      "cooking oil",
-      "water"
+      "cooking oil"
     ],
     "steps": [
       "Cut the brisket into bite-sized pieces.",
@@ -14022,7 +13812,6 @@ const menuData_en = [
       "Black Pepper",
       "Crushed Red Pepper",
       "Cooking Oil",
-      "Water",
       "Olive Oil"
     ],
     "steps": [
@@ -14049,8 +13838,7 @@ const menuData_en = [
       "Pumpkin",
       "Bacon",
       "Hazelnuts",
-      "Basil leaves",
-      "Water"
+      "Basil leaves"
     ],
     "steps": [
       "Cook fresh bigoli pasta in boiling water.",
@@ -14106,8 +13894,7 @@ const menuData_en = [
       "Chiferri pasta",
       "Salt",
       "Pepper",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Blend canned kidney beans and their liquid until smooth.",
@@ -14141,8 +13928,7 @@ const menuData_en = [
       "Salt",
       "Butter",
       "Perilla oil",
-      "Olive oil",
-      "Water"
+      "Olive oil"
     ],
     "steps": [
       "Boil oatmeal with water.",
@@ -14207,8 +13993,7 @@ const menuData_en = [
       "Chamnamul",
       "Korean rice wine",
       "Kaeshi",
-      "katsuobushi",
-      "water"
+      "katsuobushi"
     ],
     "steps": [
       "Simmer chicken bones, chicken feet, kelp, katsuobushi, Korean rice wine, and water to make a broth.",
@@ -14297,8 +14082,7 @@ const menuData_en = [
       "Frozen peas",
       "Pickles",
       "Mayonnaise",
-      "Salt",
-      "Water"
+      "Salt"
     ],
     "steps": [
       "Cut carrots into bite-sized pieces.",
@@ -14326,7 +14110,6 @@ const menuData_en = [
       "Perilla oil",
       "Chili powder",
       "Grain syrup",
-      "Water",
       "Sesame seeds"
     ],
     "steps": [
@@ -14453,7 +14236,6 @@ const menuData_en = [
       "salt",
       "pepper",
       "herbs",
-      "water",
       "beef broth",
       "olive oil"
     ],
@@ -14493,7 +14275,6 @@ const menuData_en = [
       "Parmesan cheese",
       "Knorr chicken stock powder",
       "Olive oil",
-      "Water",
       "White wine",
       "Pepper"
     ],
@@ -14558,7 +14339,6 @@ const menuData_en = [
       "Parmesan cheese",
       "Cheese blend powder",
       "Onion powder",
-      "Water",
       "Bay leaf",
       "Frying mix",
       "Cooking oil"
@@ -14592,8 +14372,7 @@ const menuData_en = [
       "Mushrooms",
       "Noodles",
       "Salt",
-      "Kelp",
-      "Water"
+      "Kelp"
     ],
     "steps": [
       "Add mussels, kelp, burdock root, and Jerusalem artichoke to water and boil to make broth.",
@@ -14652,8 +14431,7 @@ const menuData_en = [
       "Mirin",
       "Yeondu",
       "Rice syrup",
-      "Sesame oil",
-      "Water"
+      "Sesame oil"
     ],
     "steps": [
       "Debone the chicken, reserving the meat for garnish.",
@@ -14685,7 +14463,6 @@ const menuData_en = [
       "Soy Sauce",
       "Sansho Oil",
       "Chicken Broth",
-      "Water",
       "Starch",
       "Cooking Oil"
     ],
@@ -14713,8 +14490,7 @@ const menuData_en = [
       "Pepper",
       "Thyme",
       "Olive oil",
-      "White wine",
-      "Water"
+      "White wine"
     ],
     "steps": [
       "Brush button mushrooms clean and quarter them.",
@@ -14748,7 +14524,6 @@ const menuData_en = [
       "Honey",
       "Powdered sugar",
       "Flour",
-      "Water",
       "Vanilla bean"
     ],
     "steps": [
@@ -14843,8 +14618,7 @@ const menuData_en = [
       "Tuna sauce",
       "Rice wine",
       "Star anise",
-      "Bay leaf",
-      "Water"
+      "Bay leaf"
     ],
     "steps": [
       "Sear pork ribs in a pan until browned on both sides.",
@@ -14928,7 +14702,6 @@ const menuData_en = [
       "Mirin",
       "Powdered broth",
       "Sesame seeds",
-      "Water",
       "Sesame oil"
     ],
     "steps": [
@@ -14960,7 +14733,6 @@ const menuData_en = [
       "Salt",
       "Potato starch",
       "Frying mix",
-      "Water",
       "Sesame seeds",
       "Cooking oil"
     ],
@@ -15013,7 +14785,6 @@ const menuData_en = [
       "MSG",
       "Oil",
       "Starch",
-      "Water",
       "Perilla oil"
     ],
     "steps": [
@@ -15070,8 +14841,7 @@ const menuData_en = [
     "uploader": "한신희",
     "upload_date": "2026-02-25",
     "ingredients": [
-      "Mussels",
-      "Water"
+      "Mussels"
     ],
     "steps": [
       "Rinse mussels several times until the water runs clear.",
@@ -15159,7 +14929,6 @@ const menuData_en = [
       "Sesame Oil",
       "Plum Extract",
       "Egg",
-      "Water",
       "Cooked Rice",
       "Sesame Seeds"
     ],
@@ -15188,7 +14957,6 @@ const menuData_en = [
       "Plum Extract",
       "Tuna Sauce",
       "Sesame Oil",
-      "Water",
       "Sesame Seeds"
     ],
     "steps": [
@@ -15241,7 +15009,6 @@ const menuData_en = [
       "Buldak powdered soup base",
       "Buldak vegetable flakes",
       "Buldak noodles",
-      "Water",
       "Sesame seeds",
       "Sesame oil"
     ],
@@ -15329,8 +15096,7 @@ const menuData_en = [
       "Onion",
       "Salt",
       "Olive oil",
-      "Tomato paste",
-      "Water"
+      "Tomato paste"
     ],
     "steps": [
       "Slice the cotechino sausage.",
@@ -15383,8 +15149,7 @@ const menuData_en = [
       "Beef seaweed soup",
       "Ramyeon noodles",
       "Buldak liquid sauce",
-      "Buldak powdered seasoning",
-      "Water"
+      "Buldak powdered seasoning"
     ],
     "steps": [
       "Add water to a pot.",
@@ -15454,8 +15219,7 @@ const menuData_en = [
     "upload_date": "2026-03-10",
     "ingredients": [
       "rice",
-      "wheat",
-      "water"
+      "wheat"
     ],
     "steps": [
       "Cook rice, then spread it thinly and widely on a clean cloth to cool quickly.",
@@ -15483,8 +15247,7 @@ const menuData_en = [
       "Salt",
       "White Wine",
       "Olive Oil",
-      "Parmesan Cheese",
-      "Pasta Water"
+      "Parmesan Cheese"
     ],
     "steps": [
       "Separate outer spring cabbage leaves, halve them, then cut into bite-sized pieces (about three segments).",
@@ -15513,8 +15276,7 @@ const menuData_en = [
       "Spaghetti",
       "Parmesan cheese",
       "Parsley",
-      "Olive oil",
-      "Pasta water"
+      "Olive oil"
     ],
     "steps": [
       "Heat olive oil in a pan and sauté the garlic.",
@@ -15640,8 +15402,7 @@ const menuData_en = [
       "Salt",
       "Sesame Oil",
       "Cooked Rice",
-      "Egg",
-      "Water"
+      "Egg"
     ],
     "steps": [
       "Combine oligosaccharide syrup, chili powder, gochujang, plum extract, soy sauce, mirin, water, lemon juice, sugar, minced garlic, grated pear, sesame seeds, and black pepper to create the all-purpose yukhoe bibimbap sauce.",
@@ -15673,7 +15434,6 @@ const menuData_en = [
       "Anchovies",
       "Grana Padano cheese",
       "Oil",
-      "Water",
       "Egg yolk",
       "Olive oil"
     ],
@@ -15711,8 +15471,7 @@ const menuData_en = [
       "Parmesan Cheese",
       "Parsley",
       "Olive Oil",
-      "Butter",
-      "Water"
+      "Butter"
     ],
     "steps": [
       "Slice the oyster mushrooms, shimeji mushrooms, button mushrooms, and shiitake mushrooms into various shapes and sizes.",
@@ -15892,8 +15651,7 @@ const menuData_en = [
       "Sugar",
       "Salt",
       "Pepper",
-      "Chives",
-      "Water"
+      "Chives"
     ],
     "steps": [
       "Wash rice and soak for about 20 minutes.",
@@ -15958,7 +15716,6 @@ const menuData_en = [
       "White wine vinegar",
       "Extra virgin olive oil",
       "Cheongju",
-      "Water",
       "Bread"
     ],
     "steps": [
@@ -16107,8 +15864,7 @@ const menuData_en = [
       "Clams",
       "Ganghwa Island Shrimp",
       "Scallions",
-      "Cheongju",
-      "Water"
+      "Cheongju"
     ],
     "steps": [
       "Place clams in a pan.",
@@ -16470,8 +16226,7 @@ const menuData_en = [
       "Salt",
       "Black pepper",
       "Peperoncino",
-      "Olive oil",
-      "Pasta water"
+      "Olive oil"
     ],
     "steps": [
       "Cut garlic cloves in half and remove the bitter germ.",
@@ -16538,8 +16293,7 @@ const menuData_en = [
       "Honey",
       "White vinegar",
       "Sesame seeds",
-      "Perilla oil",
-      "Water"
+      "Perilla oil"
     ],
     "steps": [
       "Mince or chop garlic and green onions.",
@@ -16655,7 +16409,6 @@ const menuData_en = [
       "ketchup",
       "Tabasco sauce",
       "olive oil",
-      "water",
       "caviar",
       "baguette"
     ],
@@ -16818,8 +16571,7 @@ const menuData_en = [
       "Peperoncino",
       "Black pepper",
       "Olive oil",
-      "Salt",
-      "Water"
+      "Salt"
     ],
     "steps": [
       "Boil linguine in salted boiling water.",
@@ -16898,8 +16650,7 @@ const menuData_en = [
       "Salt",
       "Pepper",
       "Chili flakes",
-      "Olive oil",
-      "Pasta cooking water"
+      "Olive oil"
     ],
     "steps": [
       "Add salt and olive oil to the pasta cooking water.",
@@ -16931,8 +16682,7 @@ const menuData_en = [
     "uploader": "미뇨끼",
     "upload_date": "2024-10-31",
     "ingredients": [
-      "Espresso",
-      "Ice water"
+      "Espresso"
     ],
     "steps": [
       "Prepare ice water.",
@@ -16948,7 +16698,6 @@ const menuData_en = [
     "ingredients": [
       "Buckwheat flour",
       "Wheat flour",
-      "Water",
       "Potatoes",
       "Cabbage",
       "Cheese",
