@@ -23,6 +23,7 @@ function TagSearch({ onSearch, options, language, darkMode, value, onChange }) {
       <div style={{
         display: "flex",
         alignItems: "center",
+        justifyContent: "center",
         gap: 6,
         padding: "4px 0 2px",
         fontSize: "0.7rem",
@@ -34,7 +35,7 @@ function TagSearch({ onSearch, options, language, darkMode, value, onChange }) {
       }}>
         <span>{isMenu ? "🍽" : "🥕"}</span>
         <span>{group.label}</span>
-        <span style={{ marginLeft: "auto", fontWeight: 400, opacity: 0.6 }}>{group.options.length}</span>
+        <span style={{ fontWeight: 400, opacity: 0.6 }}>({group.options.length})</span>
       </div>
     );
   };
@@ -42,7 +43,7 @@ function TagSearch({ onSearch, options, language, darkMode, value, onChange }) {
   const formatOptionLabel = (opt) => {
     const isMenu = opt.group === "menu";
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
         <span style={{
           width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
           background: isMenu
@@ -105,14 +106,16 @@ function TagSearch({ onSearch, options, language, darkMode, value, onChange }) {
               boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
               overflow: 'hidden',
             }),
-            groupHeading: (base) => ({
+                    groupHeading: (base) => ({
               ...base,
               padding: "6px 12px 4px",
               marginBottom: 0,
+              textAlign: 'center',
             }),
             option: (base, state) => ({
               ...base,
               fontSize: '0.85rem',
+              textAlign: 'center',
               backgroundColor: state.isFocused
                 ? (darkMode ? "#252525" : "#f4f4f4")
                 : "transparent",

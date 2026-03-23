@@ -302,7 +302,44 @@ function App() {
   // 드롭다운에서 제외할 기본 재료 (너무 흔해서 검색 의미 없음)
   const EXCLUDED_INGREDIENTS = new Set([
     "소금", "후추", "물", "설탕", "밀가루", "기름", "면수",
+    // 물 파생형
+    "따뜻한 물", "쌀뜨물", "얼음물", "파스타 물", "파스타 삶은 물",
+    // 육수류
+    "육수", "야채 육수", "채소 육수", "조개 육수",
+    // EN
     "salt", "pepper", "water", "sugar", "flour", "oil", "pasta water",
+  ]);
+
+  // 양념류 정의 — 카드에선 숨기고 모달에서만 표시
+  const SEASONINGS = new Set([
+    // 기름류
+    "올리브 오일", "식용유", "참기름", "들기름", "고추기름", "트러플", "오리 기름",
+    // 발효/간장류
+    "간장", "된장", "고추장", "고춧가루", "참치액", "연두", "새우젓", "액젓",
+    // 술류
+    "청주", "미림",
+    // 식초류
+    "식초", "발사믹 식초", "화이트 발사믹", "사과 식초", "와인 식초", "레드와인 식초",
+    // 당류
+    "꿀", "조청", "물엿", "올리고당", "매실청", "매실액",
+    // 소스/드레싱
+    "케첩", "마요네즈", "굴소스", "굴 소스", "우스터 소스",
+    "타바스코", "타바스코 소스", "스리라차 소스",
+    "디종 머스타드", "홀그레인 머스타드",
+    // 스톡
+    "치킨스톡", "치킨 스톡", "코인 육수",
+    // 건허브/향신료
+    "월계수잎", "타임", "로즈마리", "오레가노",
+    // 파우더류
+    "파프리카 파우더", "파프리카 가루", "스모크 파프리카", "넛맥", "계피",
+    // 기타
+    "전분", "베이킹 파우더",
+    // EN equivalents
+    "olive oil", "sesame oil", "vegetable oil", "soy sauce", "miso", "gochujang",
+    "red pepper flakes", "rice wine", "mirin", "vinegar", "honey", "corn syrup",
+    "ketchup", "mayonnaise", "oyster sauce", "worcestershire sauce", "hot sauce",
+    "dijon mustard", "chicken stock", "bay leaf", "thyme", "rosemary", "oregano",
+    "cornstarch", "baking powder",
   ]);
 
   // 노이즈 재료 필터 (조리 설명 문장 등)
@@ -474,12 +511,16 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
       (item.ingredients || []).map(ing => normalizeIng(ing))
     )];
 
-    // 선택한 재료 앞으로, 나머지 뒤로
-    const highlighted = allNormalized.filter(ing => selectedIngredientValues.has(ing.toLowerCase()));
-    const rest = allNormalized.filter(ing => !selectedIngredientValues.has(ing.toLowerCase()));
-    const sortedIngredients = [...highlighted, ...rest];
-    const matchCount = highlighted.length;
-    const totalCount = allNormalized.length;
+    // 주재료 vs 양념 분리
+    const mainIngs = allNormalized.filter(ing => !SEASONINGS.has(ing));
+    const seasoningIngs = allNormalized.filter(ing => SEASONINGS.has(ing));
+
+    // 주재료 중 선택한 것 앞으로
+    const highlightedMain = mainIngs.filter(ing => selectedIngredientValues.has(ing.toLowerCase()));
+    const restMain = mainIngs.filter(ing => !selectedIngredientValues.has(ing.toLowerCase()));
+    const cardIngredients = [...highlightedMain, ...restMain];
+
+    const matchCount = allNormalized.filter(ing => selectedIngredientValues.has(ing.toLowerCase())).length;
 
     return (
       <li className="menu-card" onClick={() => setRecipeModal(item)}>
@@ -502,12 +543,12 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               />
               <span className="menu-uploader">{item.uploader}</span>
               {matchCount > 0 && (
-                <span className="menu-match-badge">{matchCount}/{totalCount}</span>
+                <span className="menu-match-badge">{matchCount}/{allNormalized.length}</span>
               )}
             </div>
           )}
           <div className="ingredient-tags">
-            {sortedIngredients.slice(0, 6).map((ing, i) => {
+            {cardIngredients.slice(0, 5).map((ing, i) => {
               const isHighlighted = selectedIngredientValues.has(ing.toLowerCase());
               return (
                 <span key={i} className={`ingredient-pill${isHighlighted ? " ingredient-pill-highlight" : ""}`}>
@@ -515,9 +556,9 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 </span>
               );
             })}
-            {allNormalized.length > 6 && (
+            {(cardIngredients.length > 5 || seasoningIngs.length > 0) && (
               <span className="ingredient-pill ingredient-pill-more">
-                +{allNormalized.length - 6}
+                +{(cardIngredients.length > 5 ? cardIngredients.length - 5 : 0) + seasoningIngs.length}
               </span>
             )}
           </div>
@@ -593,17 +634,37 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             </div>
             <hr className="recipe-modal-divider" />
             <div className="recipe-modal-section">
-              <h3 className="recipe-modal-section-title">{t.ingredients}</h3>
-              <div className="recipe-modal-ingredients">
-                {(() => {
-                  const all = [...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))];
-                  const hi = all.filter(ing => selectedIngredientValues.has(ing.toLowerCase()));
-                  const rest = all.filter(ing => !selectedIngredientValues.has(ing.toLowerCase()));
-                  return [...hi, ...rest].map((ing, i) => (
-                    <span key={i} className={`ingredient-pill${selectedIngredientValues.has(ing.toLowerCase()) ? " ingredient-pill-highlight" : ""}`}>{ing}</span>
-                  ));
-                })()}
-              </div>
+              {(() => {
+                const all = [...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))];
+                const mainList = all.filter(ing => !SEASONINGS.has(ing));
+                const seasoningList = all.filter(ing => SEASONINGS.has(ing));
+                const sortedMain = [
+                  ...mainList.filter(ing => selectedIngredientValues.has(ing.toLowerCase())),
+                  ...mainList.filter(ing => !selectedIngredientValues.has(ing.toLowerCase())),
+                ];
+                return (
+                  <>
+                    <h3 className="recipe-modal-section-title">{t.ingredients}</h3>
+                    <div className="recipe-modal-ingredients">
+                      {sortedMain.map((ing, i) => (
+                        <span key={i} className={`ingredient-pill${selectedIngredientValues.has(ing.toLowerCase()) ? " ingredient-pill-highlight" : ""}`}>{ing}</span>
+                      ))}
+                    </div>
+                    {seasoningList.length > 0 && (
+                      <>
+                        <h3 className="recipe-modal-section-title recipe-modal-section-title--seasoning">
+                          {language === "kr" ? "양념 & 소스" : "Seasonings"}
+                        </h3>
+                        <div className="recipe-modal-ingredients recipe-modal-ingredients--seasoning">
+                          {seasoningList.map((ing, i) => (
+                            <span key={i} className="ingredient-pill ingredient-pill--seasoning">{ing}</span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <div className="recipe-modal-steps">
               <h3 className="recipe-modal-section-title">{t.steps}</h3>

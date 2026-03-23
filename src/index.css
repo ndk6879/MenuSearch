@@ -642,6 +642,23 @@ body {
   gap: 6px;
 }
 
+/* 양념 섹션 */
+.recipe-modal-section-title--seasoning {
+  margin-top: 16px;
+  opacity: 0.55;
+  font-size: 0.8rem !important;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.recipe-modal-ingredients--seasoning {
+  opacity: 0.7;
+}
+.ingredient-pill--seasoning {
+  font-size: 0.75rem !important;
+  opacity: 0.8;
+}
+
 .recipe-modal-steps {
   padding: 0 24px;
   margin-bottom: 16px;

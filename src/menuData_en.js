@@ -16459,31 +16459,6 @@ const menuData_en = [
     ]
   },
   {
-    "name": "Spaghetti Aglio e Olio",
-    "url": "https://youtu.be/QgP_l-SOfd4",
-    "uploader": "강레오 걍레오",
-    "upload_date": "2026-01-16",
-    "ingredients": [
-      "Spaghetti",
-      "Garlic",
-      "Peperoncino",
-      "Parsley",
-      "Olive Oil",
-      "Butter",
-      "Salt"
-    ],
-    "steps": [
-      "Heat olive oil and peperoncino in a pan over low heat.",
-      "Slice or mince the garlic, add to the pan, and cook slowly over low heat.",
-      "Add sliced butter to the pan and melt to complete the sauce.",
-      "Boil spaghetti in salted water with olive oil, parsley stems, and garlic for 1 minute and 45 seconds.",
-      "Add the cooked spaghetti to the pan with the sauce and mix well until warmed through and coated.",
-      "Add chopped parsley and mix.",
-      "Serve the finished Aglio e Olio on a plate.",
-      "Optionally, add minced garlic or butter at the end to enhance flavor."
-    ]
-  },
-  {
     "name": "Aglio e Olio",
     "url": "https://youtu.be/Q_o23H9YVAU",
     "uploader": "강레오 걍레오",
