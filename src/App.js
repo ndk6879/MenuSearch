@@ -7,6 +7,7 @@ import menuData_en from "./menuData_en";
 import { FaGithub, FaInstagram } from "react-icons/fa";
 
 import Modal from "./components/Modal";
+import AnalyzePanel from "./components/AnalyzePanel";
 import channelProfiles from "./channelData";
 import AboutSection from "./components/AboutSection";
 import translations from "./i18n";
@@ -24,6 +25,7 @@ const isValidRecipe = (item) =>
   !(item.ingredients || []).includes("Only 제품 설명 OR 홍보");
 
 function App() {
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
 
   const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
@@ -667,6 +669,9 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           <a href="/" className="header-logo">Findish</a>
         </div>
         <div className="header-right">
+          <button onClick={() => setAnalyzeOpen(true)} className="header-link">
+            Analyze
+          </button>
           <a href="#about" className="header-link">About</a>
           <a href="https://github.com/ndk6879/MenuSearch" target="_blank" rel="noopener noreferrer">
             <FaGithub size={18} color={darkMode ? "#999" : "#555"} />
@@ -682,6 +687,11 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           </button>
         </div>
       </header>
+
+      {/* Analyze Modal */}
+      <Modal open={analyzeOpen} onClose={() => setAnalyzeOpen(false)} darkMode={darkMode}>
+        <AnalyzePanel apiBase="http://localhost:8000" />
+      </Modal>
 
       {/* Recipe Detail Modal */}
       <Modal open={!!recipeModal} onClose={() => setRecipeModal(null)} darkMode={darkMode}>
@@ -837,6 +847,14 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               </div>
             )}
 
+            {!searchActive && (
+              <div className="hero-scroll-hint">
+                <span>{language === "kr" ? "스크롤" : "Scroll"}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+            )}
           </section>
 
           {/* About Section - 검색 중에는 숨김 */}
