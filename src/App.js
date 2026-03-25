@@ -47,12 +47,14 @@ function App() {
 
   const [searchResults, setSearchResults] = useState(sortedData);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
+  const [searchInputValue, setSearchInputValue] = useState("");
 
   // 언어 변경 시 검색 결과 및 선택 재료 초기화
   useEffect(() => {
     setSearchResults(sortedData);
     setSelectedIngredients([]);
     setSearchActive(false);
+    setSearchInputValue("");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
@@ -87,6 +89,8 @@ function App() {
     // 버터
     "무염 버터": "버터", "무염버터": "버터", "기버터": "버터",
     "가염버터": "버터", "버터(가염)": "버터",
+    // 마늘
+    "다진 마늘": "마늘", "편마늘": "마늘", "마늘 파우더": "마늘",
     // 대파
     "대파 녹색부분": "대파", "대파 흰부분": "대파", "파": "대파",
     // 양파
@@ -345,8 +349,10 @@ function App() {
 
     // ── 건허브/향신료 ──
     "월계수잎", "타임", "로즈마리", "오레가노",
-    "차이브", "민트",
+    "차이브", "민트", "파슬리",
     "허브", "양꼬치 시즈닝",
+    // ── 고명/장식 ──
+    "깨", "흰깨", "검은깨", "통깨",
 
     // ── 파우더/가루류 ──
     "파프리카 파우더", "파프리카 가루", "스모크 파프리카", "넛맥", "계피",
@@ -409,7 +415,8 @@ function App() {
       return;
     }
     const menuNameSelections = selected.filter(s => s.group === "menu");
-    const ingredientSelections = selected.filter(s => s.group !== "menu");
+    const ingredientSelections = selected.filter(s => s.group === "ingredient");
+    const textSelections = selected.filter(s => s.group === "text");
 
     let filtered = sortedData;
     if (menuNameSelections.length > 0) {
@@ -422,6 +429,17 @@ function App() {
     if (ingredientSelections.length > 0) {
       filtered = filterMenusByIngredients(ingredientSelections).filter(item =>
         filtered.includes(item)
+      );
+    }
+    if (textSelections.length > 0) {
+      filtered = filtered.filter(item =>
+        textSelections.every(s => {
+          const q = s.value.toLowerCase();
+          return (
+            (item.name || "").toLowerCase().includes(q) ||
+            (item.ingredients || []).some(ing => normalizeIng(ing).toLowerCase().includes(q))
+          );
+        })
       );
     }
     setSearchResults(filtered);
@@ -481,13 +499,31 @@ function App() {
     },
   ];
 
-  // 선택된 재료가 있으면, 그 재료들이 포함된 레시피에 있는 재료만 드롭다운에 표시
+  // 선택된 태그(재료/텍스트)가 있으면, 해당 레시피에서만 드롭다운 옵션 추출
   const availableGroupedOptions = useMemo(() => {
     if (selectedIngredients.length === 0) return groupedSearchOptions;
-    const ingSelections = selectedIngredients.filter(s => s.group !== "menu");
-    if (ingSelections.length === 0) return groupedSearchOptions;
+    const ingSelections = selectedIngredients.filter(s => s.group === "ingredient");
+    const textSelections = selectedIngredients.filter(s => s.group === "text");
+    if (ingSelections.length === 0 && textSelections.length === 0) return groupedSearchOptions;
 
-    const matchingRecipes = filterMenusByIngredients(ingSelections);
+    // 재료 태그로 먼저 필터
+    let matchingRecipes = ingSelections.length > 0
+      ? filterMenusByIngredients(ingSelections)
+      : sortedData.filter(isValidRecipe);
+
+    // 텍스트 태그로 추가 필터
+    if (textSelections.length > 0) {
+      matchingRecipes = matchingRecipes.filter(item =>
+        textSelections.every(s => {
+          const q = s.value.toLowerCase();
+          return (
+            (item.name || "").toLowerCase().includes(q) ||
+            (item.ingredients || []).some(ing => normalizeIng(ing).toLowerCase().includes(q))
+          );
+        })
+      );
+    }
+
     const available = new Set();
     for (const recipe of matchingRecipes) {
       for (const ing of recipe.ingredients || []) {
@@ -501,12 +537,16 @@ function App() {
         available.add(parent);
       }
     }
+    const matchingMenuNames = new Set(matchingRecipes.map(r => r.name));
     return [
       {
         label: groupedSearchOptions[0].label,
         options: groupedSearchOptions[0].options.filter(opt => available.has(opt.value)),
       },
-      groupedSearchOptions[1],
+      {
+        label: groupedSearchOptions[1].label,
+        options: groupedSearchOptions[1].options.filter(opt => matchingMenuNames.has(opt.value)),
+      },
     ];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIngredients]);
@@ -518,7 +558,20 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
     new Set(validRecipes.map((r) => r.uploader).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b, "ko"));
 
-  const filteredResults = searchResults.filter(isValidRecipe).filter((r) =>
+  // 태그 미선택 + 타이핑 중일 때 라이브 필터링
+  const liveFilteredData = useMemo(() => {
+    if (searchActive || !searchInputValue.trim()) return null;
+    const q = searchInputValue.trim().toLowerCase();
+    return sortedData.filter(item =>
+      isValidRecipe(item) && (
+        (item.name || "").toLowerCase().includes(q) ||
+        (item.ingredients || []).some(ing => normalizeIng(ing).toLowerCase().includes(q))
+      )
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInputValue, searchActive]);
+
+  const filteredResults = (liveFilteredData || searchResults.filter(isValidRecipe)).filter((r) =>
     selectedChef === "all" ? true : r.uploader === selectedChef
   );
 
@@ -548,7 +601,17 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
     const restMain = mainIngs.filter(ing => !selectedIngredientValues.has(ing.toLowerCase()));
     const cardIngredients = [...highlightedMain, ...restMain];
 
-    const matchCount = allNormalized.filter(ing => selectedIngredientValues.has(ing.toLowerCase())).length;
+    const matchCount = mainIngs.filter(ing => {
+      const normalizedIng = normalizeIng(ing);
+      return selectedIngredients.filter(s => s.group !== "menu").some(opt => {
+        const normalizedVal = normalizeIng(opt.value);
+        if (parentMap[normalizedVal]) {
+          const allVariants = [normalizedVal, ...parentMap[normalizedVal].map(c => normalizeIng(c))];
+          return allVariants.includes(normalizedIng);
+        }
+        return normalizedIng.toLowerCase() === normalizedVal.toLowerCase();
+      });
+    }).length;
 
     return (
       <li className="menu-card" onClick={() => setRecipeModal(item)}>
@@ -571,7 +634,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               />
               <span className="menu-uploader">{item.uploader}</span>
               {matchCount > 0 && (
-                <span className="menu-match-badge">{matchCount}/{allNormalized.length}</span>
+                <span className="menu-match-badge">{matchCount}/{mainIngs.length}</span>
               )}
             </div>
           )}
@@ -722,11 +785,12 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 darkMode={darkMode}
                 value={selectedIngredients}
                 onChange={setSelectedIngredients}
+                onInputChange={setSearchInputValue}
               />
             </div>
 
             {/* 인기 재료 태그 */}
-            {!searchActive && (
+            {!searchActive && !searchInputValue.trim() && (
               <div className="hero-popular">
                 <span className="hero-popular-label">
                   {language === "kr" ? "인기" : "Popular"}
@@ -735,7 +799,9 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                   ? ["계란", "삼겹살", "두부", "연어", "파스타", "새우", "소고기", "김치", "감자", "닭가슴살"]
                   : ["Egg", "Pork belly", "Tofu", "Salmon", "Pasta", "Shrimp", "Beef", "Kimchi", "Potato", "Chicken breast"]
                 ).map((tag) => {
-                  const opt = { value: tag, label: tag };
+                  const opt = (tag === "파스타" || tag === "Pasta")
+                    ? { value: tag, label: tag, group: "menu" }
+                    : { value: tag, label: tag };
                   const isSelected = selectedIngredients.some(s => s.value === tag);
                   return (
                     <button
@@ -761,6 +827,13 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 {language === "kr"
                   ? `${selectedIngredients.map(s => s.label).join(" + ")}(으)로 만들 수 있는 요리 ${sortedResults.length}가지`
                   : `${sortedResults.length} recipe${sortedResults.length !== 1 ? "s" : ""} with ${selectedIngredients.map(s => s.label).join(" + ")}`}
+              </div>
+            )}
+            {!searchActive && searchInputValue.trim() && liveFilteredData && (
+              <div className="hero-result-msg">
+                {language === "kr"
+                  ? `"${searchInputValue}" 관련 요리 ${sortedResults.length}가지`
+                  : `${sortedResults.length} recipe${sortedResults.length !== 1 ? "s" : ""} for "${searchInputValue}"`}
               </div>
             )}
 
