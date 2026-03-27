@@ -12,6 +12,7 @@ from youtube_automation import (
     initialize_js_file_if_needed,
     finalize_js_file,
     get_existing_urls,
+    get_existing_url_name_pairs,
 )
 from youtube_fetch import resolve_channel_id, get_video_list
 
@@ -359,8 +360,8 @@ def save_recipe():
     os.makedirs(os.path.join(BASE_DIR, "src"), exist_ok=True)
     initialize_js_file_if_needed(SAVE_PATH)
 
-    existing = get_existing_urls(SAVE_PATH)
-    is_duplicate = r.get("video_url") in existing
+    existing_pairs = get_existing_url_name_pairs(SAVE_PATH)
+    is_duplicate = (r.get("video_url"), r.get("name")) in existing_pairs
 
     if is_duplicate and not overwrite:
         return jsonify({"ok": True, "saved": False, "reason": "duplicate"}), 200
