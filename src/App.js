@@ -4,14 +4,30 @@ import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
 import menuData_en from "./menuData_en";
-import { FaGithub, FaInstagram } from "react-icons/fa";
-
+import { FaGithub, FaBookmark, FaRegBookmark } from "react-icons/fa";
 import Modal from "./components/Modal";
 import AnalyzePanel from "./components/AnalyzePanel";
 import ChefAI from "./components/ChefAI";
 import channelProfiles from "./channelData";
 import AboutSection from "./components/AboutSection";
 import translations from "./i18n";
+
+const InstagramGradientIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
+    <defs>
+      <radialGradient id="ig-grad-header" cx="30%" cy="107%" r="150%">
+        <stop offset="0%" stopColor="#fdf497" />
+        <stop offset="5%" stopColor="#fdf497" />
+        <stop offset="45%" stopColor="#fd5949" />
+        <stop offset="60%" stopColor="#d6249f" />
+        <stop offset="90%" stopColor="#285AEB" />
+      </radialGradient>
+    </defs>
+    <rect x="2" y="2" width="20" height="20" rx="5.5" fill="url(#ig-grad-header)" />
+    <circle cx="12" cy="12" r="4.6" stroke="white" strokeWidth="1.8" fill="none" />
+    <circle cx="17.5" cy="6.5" r="1.2" fill="white" />
+  </svg>
+);
 
 
 function extractYouTubeId(url) {
@@ -28,7 +44,10 @@ const isValidRecipe = (item) =>
 function App() {
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
-  const [activeTab, setActiveTab] = useState("home"); // "home" | "chef"
+  const [activeTab, setActiveTab] = useState("home"); // "home" | "chef" | "saved"
+  const [savedRecipes, setSavedRecipes] = useState(
+    () => JSON.parse(localStorage.getItem("savedRecipes") || "[]")
+  );
 
   const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
   const [language, setLanguage] = useState(defaultLanguage);
@@ -63,6 +82,14 @@ function App() {
   }, [language]);
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
+
+  const toggleSave = (url) => {
+    setSavedRecipes(prev => {
+      const next = prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url];
+      localStorage.setItem("savedRecipes", JSON.stringify(next));
+      return next;
+    });
+  };
 
   // ── 동의어 맵: 같은 재료의 다른 표기 → 검색/표시 통일 ──
   // (cleanup_ingredients.py와 동일한 규칙 유지)
@@ -617,6 +644,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
       });
     }).length;
 
+    const isSaved = savedRecipes.includes(item.url);
     return (
       <li className="menu-card" onClick={() => setRecipeModal(item)}>
         {ytId && (
@@ -626,6 +654,13 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             className="menu-thumbnail"
           />
         )}
+        <button
+          className={`menu-card-save-btn${isSaved ? " saved" : ""}`}
+          onClick={(e) => { e.stopPropagation(); toggleSave(item.url); }}
+          title={isSaved ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
+        >
+          {isSaved ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
+        </button>
         <div className="menu-text">
           <div className="menu-name">{item.name || "No Name"}</div>
           {item.uploader && (
@@ -651,9 +686,14 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 </span>
               );
             })}
-            {(cardIngredients.length > 5 || seasoningIngs.length > 0) && (
+            {cardIngredients.length > 5 && (
               <span className="ingredient-pill ingredient-pill-more">
-                +{(cardIngredients.length > 5 ? cardIngredients.length - 5 : 0) + seasoningIngs.length}
+                +{cardIngredients.length - 5}
+              </span>
+            )}
+            {seasoningIngs.length > 0 && (
+              <span className="ingredient-pill ingredient-pill--seasoning ingredient-pill--seasoning-card">
+                +양념 {seasoningIngs.length}
               </span>
             )}
           </div>
@@ -677,15 +717,23 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           >
             {t.aiChef}
           </button>
-          <button onClick={() => setAnalyzeOpen(true)} className="header-link">
+          <button
+            onClick={() => setActiveTab(activeTab === "saved" ? "home" : "saved")}
+            className={`header-link header-link-saved${activeTab === "saved" ? " header-link-active" : ""}`}
+          >
+            <FaBookmark size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
+            {savedRecipes.length > 0 && (
+              <span className="saved-count-badge">{savedRecipes.length}</span>
+            )}
+            {language === "kr" ? "저장됨" : "Saved"}
+          </button>
+          <button onClick={() => setAnalyzeOpen(true)} className="header-link header-link-desktop">
             Analyze
           </button>
-          <a href="#about" className="header-link">About</a>
-          <a href="https://github.com/ndk6879/MenuSearch" target="_blank" rel="noopener noreferrer">
-            <FaGithub size={18} color={darkMode ? "#999" : "#555"} />
-          </a>
-          <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer">
-            <FaInstagram size={18} color={darkMode ? "#999" : "#555"} />
+          <a href="#about" className="header-link header-link-desktop">About</a>
+          <a href="mailto:ndk68790@gmail.com" style={{ fontSize: "1.1rem", lineHeight: 1 }}>✉️</a>
+          <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }}>
+            <InstagramGradientIcon size={18} />
           </a>
           <button onClick={() => setLanguage(language === "kr" ? "en" : "kr")} className="dark-toggle">
             {language === "kr" ? "EN" : "KR"}
@@ -716,7 +764,19 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 />
               </div>
             )}
-            <h2 className="recipe-modal-title">{recipeModal.name}</h2>
+            <div className="recipe-modal-header">
+              <h2 className="recipe-modal-title">{recipeModal.name}</h2>
+              <button
+                className={`recipe-modal-save-btn${savedRecipes.includes(recipeModal.url) ? " saved" : ""}`}
+                onClick={() => toggleSave(recipeModal.url)}
+                title={savedRecipes.includes(recipeModal.url) ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
+              >
+                {savedRecipes.includes(recipeModal.url)
+                  ? <><FaBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장됨" : "Saved"}</>
+                  : <><FaRegBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장하기" : "Save"}</>
+                }
+              </button>
+            </div>
             <div className="recipe-modal-meta">
               <img
                 src={channelProfiles[recipeModal.uploader] || ""}
@@ -733,7 +793,6 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 )}
               </div>
             </div>
-            <hr className="recipe-modal-divider" />
             <div className="recipe-modal-section">
               {(() => {
                 const all = [...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))];
@@ -744,26 +803,28 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                   ...mainList.filter(ing => !selectedIngredientValues.has(ing.toLowerCase())),
                 ];
                 return (
-                  <>
-                    <h3 className="recipe-modal-section-title">{t.ingredients}</h3>
-                    <div className="recipe-modal-ingredients">
-                      {sortedMain.map((ing, i) => (
-                        <span key={i} className={`ingredient-pill${selectedIngredientValues.has(ing.toLowerCase()) ? " ingredient-pill-highlight" : ""}`}>{ing}</span>
-                      ))}
-                    </div>
-                    {seasoningList.length > 0 && (
-                      <>
-                        <h3 className="recipe-modal-section-title recipe-modal-section-title--seasoning">
-                          {language === "kr" ? "양념 & 소스" : "Seasonings"}
-                        </h3>
-                        <div className="recipe-modal-ingredients recipe-modal-ingredients--seasoning">
-                          {seasoningList.map((ing, i) => (
-                            <span key={i} className="ingredient-pill ingredient-pill--seasoning">{ing}</span>
+                  <div className="recipe-modal-ingredients">
+                    {sortedMain.length > 0 && (
+                      <div className="ingredient-group">
+                        <span className="ingredient-group-label">{t.mainIngredients}</span>
+                        <div className="ingredient-group-pills">
+                          {sortedMain.map((ing, i) => (
+                            <span key={i} className={`ingredient-pill${selectedIngredientValues.has(ing.toLowerCase()) ? " ingredient-pill-highlight" : ""}`}>{ing}</span>
                           ))}
                         </div>
-                      </>
+                      </div>
                     )}
-                  </>
+                    {seasoningList.length > 0 && (
+                      <div className="ingredient-group">
+                        <span className="ingredient-group-label ingredient-group-label--seasoning">{t.seasonings}</span>
+                        <div className="ingredient-group-pills">
+                          {seasoningList.map((ing, i) => (
+                            <span key={`s${i}`} className="ingredient-pill ingredient-pill--seasoning">{ing}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               })()}
             </div>
@@ -787,6 +848,29 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
 
       {activeTab === "chef" ? (
         <ChefAI darkMode={darkMode} />
+      ) : activeTab === "saved" ? (
+        <div className="saved-tab-container">
+          <h2 className="saved-tab-title">
+            {language === "kr" ? "저장한 레시피" : "Saved Recipes"}
+          </h2>
+          {savedRecipes.length === 0 ? (
+            <div className="saved-tab-empty">
+              <FaRegBookmark size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
+              <p>{language === "kr" ? "저장된 레시피가 없습니다." : "No saved recipes yet."}</p>
+              <p style={{ fontSize: "0.85rem", opacity: 0.5 }}>
+                {language === "kr" ? "레시피 카드의 북마크 버튼을 눌러 저장해보세요." : "Click the bookmark icon on any recipe card to save it."}
+              </p>
+            </div>
+          ) : (
+            <ul className="menu-list grid-list">
+              {validRecipes
+                .filter(item => savedRecipes.includes(item.url))
+                .map((item, idx) => (
+                  <RecipeCard key={`saved-${idx}`} item={item} />
+                ))}
+            </ul>
+          )}
+        </div>
       ) : (
         <>
           {/* Hero Section */}
@@ -858,14 +942,6 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               </div>
             )}
 
-            {!searchActive && (
-              <div className="hero-scroll-hint">
-                <span>{language === "kr" ? "스크롤" : "Scroll"}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            )}
           </section>
 
           {/* About Section - 검색 중에는 숨김 */}
@@ -940,8 +1016,8 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               <span className="site-footer-brand">Findish</span>
               <span className="site-footer-copy">© 2026 Findish. All rights reserved.</span>
               <div className="site-footer-links">
-                <a href="https://github.com/ndk6879/MenuSearch" target="_blank" rel="noopener noreferrer">GitHub</a>
-                <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer">Instagram</a>
+                <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer">📸 andy_yeyo</a>
+                <a href="mailto:ndk68790@gmail.com">✉️ ndk68790@gmail.com</a>
                 <a href="#about">About</a>
               </div>
             </div>

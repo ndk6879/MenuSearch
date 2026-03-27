@@ -186,7 +186,9 @@ def analyze_and_save():
             "save_path": SAVE_PATH
         }), 400
 
-    r = out["result"]  # name / ingredients / steps / source / uploader / upload_date / video_url
+    r = (out.get("results") or [None])[0]  # name / ingredients / steps / source / uploader / upload_date / video_url
+    if not r:
+        return jsonify({"ok": False, "saved": False, "error": "결과 없음", "save_path": SAVE_PATH}), 400
 
     # 1️⃣ 스킵 규칙 (프로모션/분석불가는 저장 안 함)
     if (r.get("name") in ["분석 불가", "Only 제품 설명 OR 홍보"]) or \

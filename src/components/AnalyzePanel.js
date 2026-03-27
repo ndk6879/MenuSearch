@@ -13,13 +13,13 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
   // === 공통 ===
   const [tab, setTab] = useState("video"); // "video" | "channel"
 
-  // === 영상 분석 탭 ===
-  const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState([]);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
-  const [videoSaveStatus, setVideoSaveStatus] = useState(""); // ""|"saving"|"saved"|"duplicate"|"error"
+  // === 영상 분석 탭 (다중 URL) ===
+  const [urls, setUrls] = useState([""]); // 최대 5개
+  const [analyzing, setAnalyzing] = useState(false);
+  // urlState: { [idx]: { status: "idle"|"loading"|"done"|"error", results: Recipe[], error: "" } }
+  const [urlState, setUrlState] = useState({});
+  // recipeSaveStatus: { [`${urlIdx}_${recipeIdx}`]: ""|"saving"|"saved"|"duplicate"|"overwritten"|"error" }
+  const [recipeSaveStatus, setRecipeSaveStatus] = useState({});
 
   // === 채널 분석 탭 ===
   const [channelUrl, setChannelUrl] = useState("");
@@ -39,6 +39,11 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
   const [editData, setEditData] = useState({}); // 수정 중인 데이터
 
   const base = apiBase.replace(/\/+$/, "");
+
+  const getVideoId = (url) => {
+    const m = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : null;
+  };
 
   // 저장된 URL 목록 가져오기
   const fetchExistingUrls = async () => {
@@ -63,76 +68,112 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
   // =====================
   // 영상 분석 탭 로직
   // =====================
-  const run = async () => {
-    setLoading(true);
-    setLogs([]);
-    setResult(null);
-    setError("");
-    setVideoSaveStatus("");
-
-    if (!url) {
-      setError("URL을 입력하세요.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const resp = await fetchWithTimeout(
-        `${base}/analyze`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
-        },
-        240000
-      );
-      let data;
-      try {
-        data = await resp.json();
-      } catch {
-        setError("서버 응답 파싱 실패");
-        setLoading(false);
-        return;
-      }
-      if (data && data.ok && data.result) {
-        setResult(data.result);
-      } else {
-        setError(data?.error || "분석 실패");
-      }
-    } catch (e) {
-      setError(e.name === "AbortError" ? "타임아웃 (4분 초과)" : String(e));
-    }
-    setLoading(false);
+  const addUrl = () => {
+    if (urls.length < 5) setUrls((prev) => [...prev, ""]);
   };
 
-  const saveVideoResult = async (overwrite = false) => {
-    if (!result) return;
-    setVideoSaveStatus("saving");
+  const removeUrl = (idx) => {
+    setUrls((prev) => prev.filter((_, i) => i !== idx));
+    setUrlState((prev) => {
+      const next = { ...prev };
+      delete next[idx];
+      return next;
+    });
+  };
+
+  const updateUrl = (idx, val) => {
+    setUrls((prev) => prev.map((u, i) => (i === idx ? val : u)));
+  };
+
+  const runAnalysis = async () => {
+    const validTargets = urls
+      .map((u, i) => ({ url: u.trim(), idx: i }))
+      .filter(({ url }) => url);
+    if (!validTargets.length) return;
+
+    setAnalyzing(true);
+    setRecipeSaveStatus({});
+
+    // 모두 loading 표시
+    const initState = {};
+    validTargets.forEach(({ idx }) => {
+      initState[idx] = { status: "loading", results: [], error: "" };
+    });
+    setUrlState(initState);
+
+    // 병렬 분석
+    await Promise.all(
+      validTargets.map(async ({ url, idx }) => {
+        try {
+          const resp = await fetchWithTimeout(
+            `${base}/analyze`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url }),
+            },
+            240000
+          );
+          let data;
+          try {
+            data = await resp.json();
+          } catch {
+            data = { ok: false, error: `HTTP ${resp.status} (파싱 실패)` };
+          }
+          if (data.ok && data.results && data.results.length > 0) {
+            setUrlState((prev) => ({
+              ...prev,
+              [idx]: { status: "done", results: data.results, error: "" },
+            }));
+          } else {
+            setUrlState((prev) => ({
+              ...prev,
+              [idx]: { status: "error", results: [], error: data.error || "분석 실패" },
+            }));
+          }
+        } catch (e) {
+          setUrlState((prev) => ({
+            ...prev,
+            [idx]: {
+              status: "error",
+              results: [],
+              error: e.name === "AbortError" ? "타임아웃 (4분 초과)" : String(e),
+            },
+          }));
+        }
+      })
+    );
+
+    setAnalyzing(false);
+  };
+
+  const saveVideoRecipe = async (urlIdx, recipeIdx, recipe, overwrite = false) => {
+    const key = `${urlIdx}_${recipeIdx}`;
+    setRecipeSaveStatus((prev) => ({ ...prev, [key]: "saving" }));
     try {
       const resp = await fetchWithTimeout(
         `${base}/save-recipe`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ result, overwrite }),
+          body: JSON.stringify({ result: recipe, overwrite }),
         },
         10000
       );
       const data = await resp.json();
       if (data.ok && data.saved) {
-        setVideoSaveStatus(data.overwritten ? "overwritten" : "saved");
+        setRecipeSaveStatus((prev) => ({
+          ...prev,
+          [key]: data.overwritten ? "overwritten" : "saved",
+        }));
       } else if (data.reason === "duplicate") {
-        setVideoSaveStatus("duplicate");
+        setRecipeSaveStatus((prev) => ({ ...prev, [key]: "duplicate" }));
       } else {
-        setVideoSaveStatus("error");
+        setRecipeSaveStatus((prev) => ({ ...prev, [key]: "error" }));
       }
     } catch {
-      setVideoSaveStatus("error");
+      setRecipeSaveStatus((prev) => ({ ...prev, [key]: "error" }));
     }
-  };
-
-  const onKeyDown = (e) => {
-    if (e.key === "Enter" && url && !loading) run();
   };
 
   // =====================
@@ -223,26 +264,27 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
         } catch {
           data = { ok: false, error: `HTTP ${resp.status} (JSON 파싱 실패)` };
         }
-        if (data.ok && data.result) {
-          setAnalysisResults((prev) => ({ ...prev, [video.video_id]: data.result }));
+        if (data.ok && data.results?.[0]) {
+          const firstResult = data.results[0];
+          setAnalysisResults((prev) => ({ ...prev, [video.video_id]: firstResult }));
           setAnalysisStatus((prev) => ({ ...prev, [video.video_id]: "done" }));
 
           // ✅ 분석 성공 시 자동 저장 (중복이 아닌 경우)
-          if (!existingUrls.has(data.result.video_url)) {
+          if (!existingUrls.has(firstResult.video_url)) {
             try {
               const saveResp = await fetchWithTimeout(
                 `${base}/save-recipe`,
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ result: data.result, overwrite: false }),
+                  body: JSON.stringify({ result: firstResult, overwrite: false }),
                 },
                 10000
               );
               const saveData = await saveResp.json();
               if (saveData.ok && saveData.saved) {
                 setSaveStatus((prev) => ({ ...prev, [video.video_id]: "saved" }));
-                setExistingUrls((prev) => new Set([...prev, data.result.video_url]));
+                setExistingUrls((prev) => new Set([...prev, firstResult.video_url]));
               } else if (saveData.reason === "duplicate") {
                 setSaveStatus((prev) => ({ ...prev, [video.video_id]: "duplicate" }));
               }
@@ -348,20 +390,21 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
       let data;
       try { data = await resp.json(); } catch { data = { ok: false, error: `HTTP ${resp.status}` }; }
 
-      if (data.ok && data.result) {
-        setAnalysisResults((prev) => ({ ...prev, [video.video_id]: data.result }));
+      if (data.ok && data.results?.[0]) {
+        const firstResult = data.results[0];
+        setAnalysisResults((prev) => ({ ...prev, [video.video_id]: firstResult }));
         setAnalysisStatus((prev) => ({ ...prev, [video.video_id]: "done" }));
-        if (!existingUrls.has(data.result.video_url)) {
+        if (!existingUrls.has(firstResult.video_url)) {
           try {
             const saveResp = await fetchWithTimeout(`${base}/save-recipe`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ result: data.result, overwrite: false }),
+              body: JSON.stringify({ result: firstResult, overwrite: false }),
             }, 10000);
             const saveData = await saveResp.json();
             if (saveData.ok && saveData.saved) {
               setSaveStatus((prev) => ({ ...prev, [video.video_id]: "saved" }));
-              setExistingUrls((prev) => new Set([...prev, data.result.video_url]));
+              setExistingUrls((prev) => new Set([...prev, firstResult.video_url]));
             } else if (saveData.reason === "duplicate") {
               setSaveStatus((prev) => ({ ...prev, [video.video_id]: "duplicate" }));
             }
@@ -488,155 +531,241 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
       {/* ===== 영상 분석 탭 ===== */}
       {tab === "video" && (
         <>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="YouTube URL (https://youtu.be/... 또는 https://www.youtube.com/watch?v=...)"
-              style={{
-                flex: 1,
-                border: "1px solid #ddd",
-                borderRadius: 8,
-                padding: "8px 12px",
-                background: darkMode ? "#111" : "#fff",
-                color: darkMode ? "#eee" : "#222",
-              }}
-            />
+          {/* URL 입력 목록 */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {urls.map((u, idx) => {
+              const vid = getVideoId(u);
+              return (
+                <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  {/* 썸네일 미리보기 */}
+                  {vid ? (
+                    <a href={u} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
+                      <img
+                        src={`https://img.youtube.com/vi/${vid}/mqdefault.jpg`}
+                        alt=""
+                        style={{ width: 80, height: 45, borderRadius: 6, objectFit: "cover" }}
+                      />
+                    </a>
+                  ) : (
+                    <div
+                      style={{
+                        width: 80, height: 45, borderRadius: 6, flexShrink: 0,
+                        background: darkMode ? "#222" : "#eee",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 18, color: darkMode ? "#555" : "#bbb",
+                      }}
+                    >▶</div>
+                  )}
+                  <input
+                    value={u}
+                    onChange={(e) => updateUrl(idx, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !analyzing && urls.some((x) => x.trim())) runAnalysis();
+                    }}
+                    placeholder={`YouTube URL ${idx + 1}`}
+                    style={{
+                      flex: 1,
+                      border: "1px solid #ddd",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      background: darkMode ? "#111" : "#fff",
+                      color: darkMode ? "#eee" : "#222",
+                    }}
+                  />
+                  {urls.length > 1 && (
+                    <button
+                      onClick={() => removeUrl(idx)}
+                      style={{
+                        background: "none", border: "none", cursor: "pointer",
+                        color: darkMode ? "#888" : "#aaa", fontSize: 18, padding: "0 4px",
+                      }}
+                      title="제거"
+                    >×</button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* URL 추가 + 분석 버튼 */}
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            {urls.length < 5 && (
+              <button
+                onClick={addUrl}
+                style={{
+                  background: "none",
+                  border: `1px dashed ${darkMode ? "#555" : "#ccc"}`,
+                  borderRadius: 8,
+                  padding: "6px 14px",
+                  fontSize: 13,
+                  color: darkMode ? "#aaa" : "#888",
+                  cursor: "pointer",
+                }}
+              >
+                + URL 추가 ({urls.length}/5)
+              </button>
+            )}
             <button
-              onClick={run}
-              disabled={loading || !url}
+              onClick={runAnalysis}
+              disabled={analyzing || !urls.some((u) => u.trim())}
               style={{
                 background: darkMode ? "#fff" : "#000",
                 color: darkMode ? "#000" : "#fff",
                 borderRadius: 8,
-                padding: "8px 12px",
-                opacity: loading || !url ? 0.6 : 1,
+                padding: "8px 18px",
+                fontWeight: 600,
+                opacity: analyzing || !urls.some((u) => u.trim()) ? 0.6 : 1,
+                cursor: "pointer",
+                border: "none",
               }}
             >
-              {loading ? "분석 중..." : "분석 실행"}
+              {analyzing ? "분석 중..." : "분석 실행"}
             </button>
           </div>
 
-          {/* 로그 영역 */}
-          <div
-            style={{
-              border: "1px solid #eee",
-              borderRadius: 8,
-              marginTop: 12,
-              padding: 12,
-              height: 180,
-              overflow: "auto",
-              fontSize: 14,
-              background: darkMode ? "#0b0b0b" : "#f8f8f8",
-              color: darkMode ? "#cfcfcf" : "#333",
-            }}
-          >
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>실시간 로그</div>
-            {logs.length ? logs.map((l, i) => <div key={i}>• {l}</div>) : <div style={{ opacity: 0.7 }}>아직 로그가 없습니다.</div>}
-          </div>
+          {/* 분석 결과 — URL별 */}
+          {urls.map((u, urlIdx) => {
+            const state = urlState[urlIdx];
+            if (!state) return null;
+            const vid = getVideoId(u);
 
-          {error && (
-            <div
-              style={{
-                marginTop: 10,
-                color: "#b00020",
-                background: darkMode ? "#2a0000" : "#ffeaea",
-                border: "1px solid #ffbcbc",
-                padding: 10,
-                borderRadius: 8,
-                fontSize: 14,
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          {result && (
-            <div
-              style={{
-                marginTop: 12,
-                border: "1px solid #eee",
-                borderRadius: 8,
-                padding: 12,
-                background: darkMode ? "#0b0b0b" : "#fff",
-                color: darkMode ? "#e6e6e6" : "#222",
-              }}
-            >
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>분석 결과</div>
-              <div>메뉴: <b>{result.name}</b></div>
-              <div>출처: {result.source}</div>
-              <div>업로더: {result.uploader} / 업로드일: {result.upload_date}</div>
-              <div>
-                영상:{" "}
-                <a href={result.video_url} target="_blank" rel="noreferrer" style={{ color: "#1d4ed8" }}>
-                  {result.video_url}
-                </a>
-              </div>
-              <div style={{ marginTop: 6 }}>
-                재료 ({(result.ingredients || []).length}): {(result.ingredients || []).join(", ")}
-              </div>
-
-              {result.steps && result.steps.length > 0 && (
-                <div style={{ marginTop: 10 }}>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>🍳 요리 순서</div>
-                  <ol style={{ marginLeft: 20 }}>
-                    {result.steps.map((s, i) => (
-                      <li key={i}>{s}</li>
-                    ))}
-                  </ol>
+            return (
+              <div
+                key={urlIdx}
+                style={{
+                  marginTop: 14,
+                  border: `1px solid ${darkMode ? "#333" : "#e5e7eb"}`,
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
+                {/* URL 헤더 */}
+                <div
+                  style={{
+                    background: darkMode ? "#1a1a1a" : "#f8faff",
+                    padding: "8px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    fontSize: 13,
+                    borderBottom: `1px solid ${darkMode ? "#333" : "#e5e7eb"}`,
+                  }}
+                >
+                  {state.status === "loading" && <span style={{ color: "#2563eb" }}>🔄 분석 중...</span>}
+                  {state.status === "done" && <span style={{ color: "#16a34a" }}>✅</span>}
+                  {state.status === "error" && <span style={{ color: "#dc2626" }}>❌</span>}
+                  {vid ? (
+                    <a href={u} target="_blank" rel="noreferrer" style={{ color: darkMode ? "#93b5ff" : "#1d4ed8" }}>
+                      {u}
+                    </a>
+                  ) : (
+                    <span style={{ color: darkMode ? "#888" : "#999" }}>{u}</span>
+                  )}
+                  {state.status === "done" && state.results.length > 1 && (
+                    <span style={{
+                      background: "#fef3c7", color: "#b45309",
+                      borderRadius: 99, padding: "1px 8px", fontSize: 12, fontWeight: 600,
+                    }}>
+                      요리 {state.results.length}개
+                    </span>
+                  )}
                 </div>
-              )}
 
-              {/* 저장 버튼 */}
-              <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
-                {videoSaveStatus === "saved" ? (
-                  <span style={{ color: "#16a34a", fontWeight: 600 }}>저장 완료</span>
-                ) : videoSaveStatus === "overwritten" ? (
-                  <span style={{ color: "#16a34a", fontWeight: 600 }}>덮어쓰기 완료</span>
-                ) : videoSaveStatus === "duplicate" ? (
-                  <>
-                    <span style={{ color: "#ca8a04", fontWeight: 600 }}>이미 저장된 영상입니다</span>
-                    <button
-                      onClick={() => saveVideoResult(true)}
-                      style={{
-                        background: "#ca8a04",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 8,
-                        padding: "6px 16px",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      덮어쓰기
-                    </button>
-                  </>
-                ) : videoSaveStatus === "error" ? (
-                  <span style={{ color: "#dc2626", fontWeight: 600 }}>저장 실패</span>
-                ) : (
-                  <button
-                    onClick={() => saveVideoResult()}
-                    disabled={videoSaveStatus === "saving"}
-                    style={{
-                      background: "#16a34a",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 8,
-                      padding: "8px 20px",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      opacity: videoSaveStatus === "saving" ? 0.6 : 1,
-                    }}
-                  >
-                    {videoSaveStatus === "saving" ? "저장 중..." : "menuData_kr.js에 저장"}
-                  </button>
+                {/* 오류 */}
+                {state.status === "error" && (
+                  <div style={{ padding: "10px 14px", color: "#dc2626", fontSize: 14 }}>
+                    {state.error}
+                  </div>
                 )}
+
+                {/* 요리 카드 목록 */}
+                {state.status === "done" &&
+                  state.results.map((recipe, recipeIdx) => {
+                    const key = `${urlIdx}_${recipeIdx}`;
+                    const sv = recipeSaveStatus[key] || "";
+                    return (
+                      <div
+                        key={recipeIdx}
+                        style={{
+                          padding: "12px 14px",
+                          borderTop: recipeIdx > 0 ? `1px solid ${darkMode ? "#2a2a2a" : "#f0f0f0"}` : undefined,
+                          background: darkMode ? "#0b0b0b" : "#fff",
+                          color: darkMode ? "#e6e6e6" : "#222",
+                        }}
+                      >
+                        {state.results.length > 1 && (
+                          <div style={{
+                            fontSize: 11, fontWeight: 700, color: darkMode ? "#888" : "#aaa",
+                            textTransform: "uppercase", letterSpacing: 1, marginBottom: 6,
+                          }}>
+                            요리 {recipeIdx + 1}
+                          </div>
+                        )}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 15 }}>{recipe.name}</div>
+                            <div style={{ fontSize: 12, color: darkMode ? "#888" : "#999", marginTop: 2 }}>
+                              {recipe.uploader} · {recipe.upload_date} · 출처: {recipe.source}
+                            </div>
+                          </div>
+                          {/* 저장 버튼 */}
+                          <div style={{ flexShrink: 0, marginLeft: 12 }}>
+                            {sv === "saved" || sv === "overwritten" ? (
+                              <span style={{ color: "#16a34a", fontWeight: 600, fontSize: 13 }}>
+                                {sv === "overwritten" ? "갱신됨 ✓" : "저장됨 ✓"}
+                              </span>
+                            ) : sv === "duplicate" ? (
+                              <div style={{ display: "flex", gap: 4 }}>
+                                <span style={{ color: "#b45309", fontSize: 12, fontWeight: 600 }}>중복</span>
+                                <button
+                                  onClick={() => saveVideoRecipe(urlIdx, recipeIdx, recipe, true)}
+                                  style={{
+                                    background: "#fef3c7", color: "#b45309",
+                                    border: "1px solid #f59e0b", borderRadius: 6,
+                                    padding: "2px 8px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                                  }}
+                                >덮어쓰기</button>
+                              </div>
+                            ) : sv === "error" ? (
+                              <span style={{ color: "#dc2626", fontSize: 13, fontWeight: 600 }}>저장 실패</span>
+                            ) : (
+                              <button
+                                onClick={() => saveVideoRecipe(urlIdx, recipeIdx, recipe)}
+                                disabled={sv === "saving"}
+                                style={{
+                                  background: "#16a34a", color: "#fff",
+                                  border: "none", borderRadius: 8,
+                                  padding: "6px 16px", fontSize: 13, fontWeight: 600,
+                                  cursor: "pointer", opacity: sv === "saving" ? 0.6 : 1,
+                                }}
+                              >
+                                {sv === "saving" ? "저장 중..." : "저장"}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ marginTop: 8, fontSize: 13 }}>
+                          <b>재료 ({(recipe.ingredients || []).length}):</b>{" "}
+                          {(recipe.ingredients || []).join(", ")}
+                        </div>
+
+                        {recipe.steps && recipe.steps.length > 0 && (
+                          <div style={{ marginTop: 8, fontSize: 13 }}>
+                            <b>요리 순서:</b>
+                            <ol style={{ marginLeft: 18, marginTop: 4 }}>
+                              {recipe.steps.map((s, i) => (
+                                <li key={i}>{s}</li>
+                              ))}
+                            </ol>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
-            </div>
-          )}
+            );
+          })}
         </>
       )}
 
