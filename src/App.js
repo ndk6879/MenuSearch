@@ -4,7 +4,7 @@ import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
 import menuData_en from "./menuData_en";
-import { FaGithub, FaBookmark, FaRegBookmark } from "react-icons/fa";
+import { FaBookmark, FaRegBookmark } from "react-icons/fa";
 import Modal from "./components/Modal";
 import AnalyzePanel from "./components/AnalyzePanel";
 import ChefAI from "./components/ChefAI";
@@ -184,7 +184,7 @@ function App() {
     "레몬 제스트": "레몬", "레몬껍질": "레몬",
     // 마늘
     "마늘분말": "마늘", "흑마늘": "마늘", "다진마늘": "마늘",
-    "다진 마늘": "마늘", "통마늘": "마늘", "생마늘": "마늘",
+    "통마늘": "마늘", "생마늘": "마늘",
     // 연어
     "노르웨이 생연어": "연어", "껍질 있는 연어": "연어", "껍질 없는 연어": "연어",
     "훈제연어": "연어", "연어 스테이크": "연어", "동원 썸씽스페셜 훈제연어": "연어",
