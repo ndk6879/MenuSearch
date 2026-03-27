@@ -7,7 +7,6 @@ import menuData_en from "./menuData_en";
 import { FaBookmark, FaRegBookmark } from "react-icons/fa";
 import Modal from "./components/Modal";
 import AnalyzePanel from "./components/AnalyzePanel";
-import ChefAI from "./components/ChefAI";
 import channelProfiles from "./channelData";
 import AboutSection from "./components/AboutSection";
 import translations from "./i18n";
@@ -44,7 +43,6 @@ const isValidRecipe = (item) =>
 function App() {
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
-  const [activeTab, setActiveTab] = useState("home"); // "home" | "chef" | "saved"
   const [savedRecipes, setSavedRecipes] = useState(
     () => JSON.parse(localStorage.getItem("savedRecipes") || "[]")
   );
@@ -827,34 +825,8 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
         )}
       </Modal>
 
-      {activeTab === "chef" ? (
-        <ChefAI darkMode={darkMode} />
-      ) : activeTab === "saved" ? (
-        <div className="saved-tab-container">
-          <h2 className="saved-tab-title">
-            {language === "kr" ? "저장한 레시피" : "Saved Recipes"}
-          </h2>
-          {savedRecipes.length === 0 ? (
-            <div className="saved-tab-empty">
-              <FaRegBookmark size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
-              <p>{language === "kr" ? "저장된 레시피가 없습니다." : "No saved recipes yet."}</p>
-              <p style={{ fontSize: "0.85rem", opacity: 0.5 }}>
-                {language === "kr" ? "레시피 카드의 북마크 버튼을 눌러 저장해보세요." : "Click the bookmark icon on any recipe card to save it."}
-              </p>
-            </div>
-          ) : (
-            <ul className="menu-list grid-list">
-              {validRecipes
-                .filter(item => savedRecipes.includes(item.url))
-                .map((item, idx) => (
-                  <RecipeCard key={`saved-${idx}`} item={item} />
-                ))}
-            </ul>
-          )}
-        </div>
-      ) : (
-        <>
-          {/* Hero Section */}
+      <>
+        {/* Hero Section */}
           <section className="hero">
             <div className="hero-badge">{t.heroBadge(recipeCount)}</div>
             <h1 className="hero-title">
@@ -1003,8 +975,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               </div>
             </div>
           </footer>
-        </>
-      )}
+      </>
     </div>
   );
 }
