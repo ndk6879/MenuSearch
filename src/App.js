@@ -4,7 +4,6 @@ import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
 import menuData_en from "./menuData_en";
-import { FaBookmark, FaRegBookmark } from "react-icons/fa";
 import Modal from "./components/Modal";
 import AnalyzePanel from "./components/AnalyzePanel";
 import channelProfiles from "./channelData";
@@ -43,9 +42,6 @@ const isValidRecipe = (item) =>
 function App() {
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
-  const [savedRecipes, setSavedRecipes] = useState(
-    () => JSON.parse(localStorage.getItem("savedRecipes") || "[]")
-  );
 
   const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
   const [language, setLanguage] = useState(defaultLanguage);
@@ -81,13 +77,6 @@ function App() {
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
-  const toggleSave = (url) => {
-    setSavedRecipes(prev => {
-      const next = prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url];
-      localStorage.setItem("savedRecipes", JSON.stringify(next));
-      return next;
-    });
-  };
 
   // ── 동의어 맵: 같은 재료의 다른 표기 → 검색/표시 통일 ──
   // (cleanup_ingredients.py와 동일한 규칙 유지)
@@ -642,7 +631,6 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
       });
     }).length;
 
-    const isSaved = savedRecipes.includes(item.url);
     return (
       <li className="menu-card" onClick={() => setRecipeModal(item)}>
         {ytId && (
@@ -652,13 +640,6 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             className="menu-thumbnail"
           />
         )}
-        <button
-          className={`menu-card-save-btn${isSaved ? " saved" : ""}`}
-          onClick={(e) => { e.stopPropagation(); toggleSave(item.url); }}
-          title={isSaved ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
-        >
-          {isSaved ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
-        </button>
         <div className="menu-text">
           <div className="menu-name">{item.name || "No Name"}</div>
           {item.uploader && (
@@ -745,16 +726,6 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             )}
             <div className="recipe-modal-header">
               <h2 className="recipe-modal-title">{recipeModal.name}</h2>
-              <button
-                className={`recipe-modal-save-btn${savedRecipes.includes(recipeModal.url) ? " saved" : ""}`}
-                onClick={() => toggleSave(recipeModal.url)}
-                title={savedRecipes.includes(recipeModal.url) ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
-              >
-                {savedRecipes.includes(recipeModal.url)
-                  ? <><FaBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장됨" : "Saved"}</>
-                  : <><FaRegBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장하기" : "Save"}</>
-                }
-              </button>
             </div>
             <div className="recipe-modal-meta">
               <img
