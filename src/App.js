@@ -711,25 +711,6 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           <a href="/" className="header-logo">Findish</a>
         </div>
         <div className="header-right">
-          <button
-            onClick={() => setActiveTab(activeTab === "chef" ? "home" : "chef")}
-            className={`header-link${activeTab === "chef" ? " header-link-active" : ""}`}
-          >
-            {t.aiChef}
-          </button>
-          <button
-            onClick={() => setActiveTab(activeTab === "saved" ? "home" : "saved")}
-            className={`header-link header-link-saved${activeTab === "saved" ? " header-link-active" : ""}`}
-          >
-            <FaBookmark size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
-            {savedRecipes.length > 0 && (
-              <span className="saved-count-badge">{savedRecipes.length}</span>
-            )}
-            {language === "kr" ? "저장됨" : "Saved"}
-          </button>
-          <button onClick={() => setAnalyzeOpen(true)} className="header-link header-link-desktop">
-            Analyze
-          </button>
           <a href="#about" className="header-link header-link-desktop">About</a>
           <a href="mailto:ndk68790@gmail.com" style={{ fontSize: "1.1rem", lineHeight: 1 }}>✉️</a>
           <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }}>
