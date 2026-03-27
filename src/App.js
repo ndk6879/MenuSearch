@@ -906,7 +906,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 ).map((tag) => {
                   const opt = (tag === "파스타" || tag === "Pasta")
                     ? { value: tag, label: tag, group: "menu" }
-                    : { value: tag, label: tag };
+                    : { value: tag, label: tag, group: "ingredient" };
                   const isSelected = selectedIngredients.some(s => s.value === tag);
                   return (
                     <button
