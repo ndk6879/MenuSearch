@@ -8,6 +8,7 @@ const channelProfiles = {
   "미뇨끼": "https://yt3.ggpht.com/Z9sRLb8U5gT62o6L7tbj6QlpIDDQ2EJsZyzp4MUC_wC0vEw7xQWn2ntl2DOtCr6eJNDa6_-Ijw=s240-c-k-c0x00ffffff-no-rj",
   "셰프호윤 Chef Hoyoon": "https://yt3.ggpht.com/mS-RaHIl9dFMh4AJ4qP7wBbdR7tFnPjMxq4IN8ipjzYAGLpLZGyFYKknc3pX4ClBvQZbdJPAfg=s240-c-k-c0x00ffffff-no-rj",
   "한신희": "https://yt3.ggpht.com/wMZgXsraUWw9dZyPpbmd13nnYa5ItI27oPvYPtco7j2QWSWHEwdhhG2XUyzUEG7DpvCr6MwI-w=s240-c-k-c0x00ffffff-no-rj",
+  "공부왕찐천재 홍진경": "https://yt3.ggpht.com/ytc/AIdro_mXJxSXiJa2E26VH10eCDts0qd7FQszSNbx9tWxpHkD4w=s240-c-k-c0x00ffffff-no-rj",
 };
 
 export default channelProfiles;
