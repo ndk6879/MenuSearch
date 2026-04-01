@@ -25,7 +25,7 @@ const translations = {
     // About
     aboutEyebrow: "Findish의 시작",
     aboutTitle: "남은 재료 어떻게 하지?\n그 고민에서 시작했어요.",
-    aboutBody: `뭘 해먹을지 모르겠고, 같은 요리는 질리고, 어떤 다른 요리가 가능한지 궁금하고..\n이런 고민과 문제에서 Findish가 시작됐습니다.\n남은 재료로, 오늘 식사를 해결해 보세요!`,
+    aboutBody: `뭘 해먹을지 모르겠고, 같은 요리는 질리고, 어떤 다른 요리가 가능한지 궁금하고.\n이런 고민과 문제에서 Findish가 시작됐습니다.\n남은 재료로, 오늘 식사를 해결해 보세요!`,
     featuresLabel: "주요 기능",
     features: [
       {
@@ -77,7 +77,7 @@ const translations = {
     // About
     aboutEyebrow: "How Findish started",
     aboutTitle: "What do I do with these leftovers?\nThat question started it all.",
-    aboutBody: `Leftover onions, green onions, garlic, meat, eggs — no idea what to make, tired of the same meals, wondering what's even possible..\n\nThat frustration is where Findish began.\n\nUse your ingredients, follow recipes from unique chefs, and solve today's meal!`,
+    aboutBody: `Not sure what to cook, tired of the same meals, wondering what else is even possible.\nThat's where Findish started.\nUse what you have, and solve today's meal!`,
     featuresLabel: "Key Features",
     features: [
       {
