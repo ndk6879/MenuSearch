@@ -909,9 +909,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                   ? ["계란", "삼겹살", "두부", "연어", "파스타", "새우", "소고기", "김치", "감자", "닭가슴살"]
                   : ["Egg", "Pork belly", "Tofu", "Salmon", "Pasta", "Shrimp", "Beef", "Kimchi", "Potato", "Chicken breast"]
                 ).map((tag) => {
-                  const opt = (tag === "파스타" || tag === "Pasta")
-                    ? { value: tag, label: tag, group: "menu" }
-                    : { value: tag, label: tag, group: "ingredient" };
+                  const opt = { value: tag, label: tag, group: "ingredient" };
                   const isSelected = selectedIngredients.some(s => s.value === tag);
                   return (
                     <button
