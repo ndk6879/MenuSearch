@@ -441,6 +441,11 @@ function App() {
   const handleSearch = (selected) => {
     setSelectedIngredients(selected);
     setSearchActive(selected.length > 0);
+    if (selected.length > 0 && window.gtag) {
+      window.gtag('event', 'search', {
+        search_term: selected.map(s => s.value).join(', ')
+      });
+    }
     if (selected.length === 0) {
       setSearchResults(sortedData);
       return;
