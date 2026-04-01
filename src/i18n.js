@@ -57,8 +57,8 @@ const translations = {
 
     // Hero
     heroBadge: (n) => `${n}+ Recipes`,
-    heroTitle: "Find recipes with\nwhat's already in your fridge",
-    heroSubtitle: "Follow chef recipes using your own ingredients!",
+    heroTitle: "Find recipes with what you have.",
+    heroSubtitle: "Real chef recipes, your ingredients.",
 
     // Sections
     allRecipes: "All Recipes",
@@ -77,7 +77,7 @@ const translations = {
     // About
     aboutEyebrow: "How Findish started",
     aboutTitle: "What do I do with these leftovers?\nThat question started it all.",
-    aboutBody: `Not sure what to cook, tired of the same meals, wondering what else is even possible.\nThat's where Findish started.\nUse what you have, and solve today's meal!`,
+    aboutBody: `Not sure what to cook, tired of the same meals, wondering what else is possible.\nThat's where Findish started.\nUse what you have, and solve today's meal!`,
     featuresLabel: "Key Features",
     features: [
       {
