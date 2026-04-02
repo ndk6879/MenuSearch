@@ -1,5 +1,12 @@
 import React from "react";
 
+const KakaoIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <rect width="24" height="24" rx="5.5" fill="#FFE812"/>
+    <path d="M12 5C7.58 5 4 7.86 4 11.4c0 2.24 1.48 4.2 3.72 5.33l-.95 3.54 4.1-2.72c.36.05.73.08 1.13.08 4.42 0 8-2.86 8-6.4S16.42 5 12 5z" fill="#391B1B"/>
+  </svg>
+);
+
 const InstagramGradientIcon = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -63,6 +70,10 @@ export default function AboutSection({ darkMode, t }) {
           <div className="about-cta-contact-row">
             <span className="about-cta-contact-icon"><InstagramGradientIcon size={20} /></span>
             <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer" className="about-cta-contact-link">andy__yeyo</a>
+          </div>
+          <div className="about-cta-contact-row">
+            <span className="about-cta-contact-icon"><KakaoIcon size={20} /></span>
+            <a href="https://open.kakao.com/o/sLh3Asoi" target="_blank" rel="noopener noreferrer" className="about-cta-contact-link">1:1 오픈채팅</a>
           </div>
           <div className="about-cta-contact-row">
             <span className="about-cta-contact-icon">✉️</span>
