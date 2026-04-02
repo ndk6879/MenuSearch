@@ -150,7 +150,7 @@ def _clean_ingredients(ingredients: list) -> list:
 
 # 프론트 로컬 CORS 허용
 CORS(app, resources={
-    r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}
+    r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"]}
 })
 
 # ✅ 절대경로 기반으로 menuData_kr.js 지정
