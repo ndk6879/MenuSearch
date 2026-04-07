@@ -5,7 +5,6 @@ import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
 import menuData_en from "./menuData_en";
 import Modal from "./components/Modal";
-import AnalyzePanel from "./components/AnalyzePanel";
 import channelProfiles from "./channelData";
 import AboutSection from "./components/AboutSection";
 import translations from "./i18n";
@@ -93,7 +92,6 @@ const isValidRecipe = (item) =>
   !(item.ingredients || []).includes("Only 제품 설명 OR 홍보");
 
 function App() {
-  const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
 
   const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
@@ -807,11 +805,6 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           </button>
         </div>
       </header>
-
-      {/* Analyze Modal */}
-      <Modal open={analyzeOpen} onClose={() => setAnalyzeOpen(false)} darkMode={darkMode}>
-        <AnalyzePanel apiBase="http://localhost:8000" />
-      </Modal>
 
       {/* Recipe Detail Modal */}
       <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setModalVideoPlaying(false); }} darkMode={darkMode}>
