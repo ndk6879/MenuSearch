@@ -12,6 +12,7 @@ from youtube_automation import (
     initialize_js_file_if_needed,
     finalize_js_file,
     get_existing_urls,
+    get_existing_url_name_pairs,
 )
 from youtube_fetch import resolve_channel_id, get_video_list
 
@@ -308,6 +309,63 @@ def channel_videos():
 # ✅ 채널 프로필 업데이트 (channelData.js)
 CHANNEL_DATA_PATH = os.path.join(BASE_DIR, "src", "channelData.js")
 
+def _auto_update_channel_profile(uploader_name, video_url):
+    """새 업로더를 YouTube API로 조회해 channelData.js에 자동 추가"""
+    if not uploader_name:
+        return
+    try:
+        with open(CHANNEL_DATA_PATH, encoding="utf-8") as f:
+            content = f.read()
+        if f'"{uploader_name}"' in content:
+            return  # 이미 등록됨
+    except Exception:
+        return
+
+    api_key = os.getenv("YOUTUBE_API_KEY")
+    if not api_key:
+        return
+
+    import re as _re_vid
+    vid_match = _re_vid.search(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", video_url)
+    if not vid_match:
+        return
+    video_id = vid_match.group(1)
+
+    try:
+        from googleapiclient.discovery import build as yt_build
+        youtube = yt_build("youtube", "v3", developerKey=api_key)
+        vid_resp = youtube.videos().list(part="snippet", id=video_id).execute()
+        vid_items = vid_resp.get("items", [])
+        if not vid_items:
+            return
+        channel_id = vid_items[0]["snippet"]["channelId"]
+
+        ch_resp = youtube.channels().list(part="snippet", id=channel_id).execute()
+        ch_items = ch_resp.get("items", [])
+        if not ch_items:
+            return
+        thumbnails = ch_items[0]["snippet"].get("thumbnails", {})
+        thumbnail = (
+            thumbnails.get("medium", {}).get("url")
+            or thumbnails.get("default", {}).get("url")
+        )
+        if not thumbnail:
+            return
+
+        escaped = uploader_name.replace('"', '\\"')
+        new_entry = f'  "{escaped}": "{thumbnail}",'
+        import re as _re_ch
+        pattern = _re_ch.compile(r'^\s*"' + _re_ch.escape(escaped) + r'":\s*"[^"]*",?\s*$', _re_ch.MULTILINE)
+        if pattern.search(content):
+            content = pattern.sub(new_entry, content)
+        else:
+            content = content.replace("};", f"{new_entry}\n}};")
+
+        with open(CHANNEL_DATA_PATH, "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception:
+        pass  # 저장에는 영향 없음
+
 @app.post("/update-channel-profile")
 def update_channel_profile():
     data = request.get_json() or {}
@@ -359,8 +417,8 @@ def save_recipe():
     os.makedirs(os.path.join(BASE_DIR, "src"), exist_ok=True)
     initialize_js_file_if_needed(SAVE_PATH)
 
-    existing = get_existing_urls(SAVE_PATH)
-    is_duplicate = r.get("video_url") in existing
+    existing_pairs = get_existing_url_name_pairs(SAVE_PATH)
+    is_duplicate = (r.get("video_url"), r.get("name")) in existing_pairs
 
     if is_duplicate and not overwrite:
         return jsonify({"ok": True, "saved": False, "reason": "duplicate"}), 200
@@ -383,6 +441,7 @@ def save_recipe():
             file_path=SAVE_PATH,
         )
         finalize_js_file(SAVE_PATH)
+        _auto_update_channel_profile(r.get("uploader", ""), r.get("video_url", ""))
         return jsonify({"ok": True, "saved": True, "overwritten": is_duplicate}), 200
     except Exception as e:
         return jsonify({"ok": False, "saved": False, "error": f"저장 실패: {e}"}), 500

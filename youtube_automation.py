@@ -157,6 +157,22 @@ def get_existing_urls(file_path="src/menuData_kr.js"):
         urls = re.findall(r'"url":\s*"([^"]+)"', content)
         return set(urls)
 
+def get_existing_url_name_pairs(file_path="src/menuData_kr.js"):
+    """저장된 (url, name) 쌍을 반환 — 같은 영상의 다른 메뉴 중복 방지용"""
+    if not os.path.exists(file_path):
+        return set()
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    pairs = set()
+    for block in re.findall(r"\{[\s\S]*?\}", content):
+        try:
+            data = json.loads(block)
+            if data.get("url") and data.get("name"):
+                pairs.add((data["url"], data["name"]))
+        except Exception:
+            continue
+    return pairs
+
 def initialize_js_file_if_needed(file_path="src/menuData_kr.js"):
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     if not os.path.exists(file_path):
@@ -242,8 +258,8 @@ def append_to_js(parsed_data, video_url, uploader_name, upload_date, file_path="
             for item in existing_items:
                 try:
                     data = json.loads(item)
-                    if data.get("url") == entry["url"]:
-                        safe_print("⚠️ 이미 저장된 URL → 추가 생략")
+                    if data.get("url") == entry["url"] and data.get("name") == entry["name"]:
+                        safe_print("⚠️ 이미 저장된 URL+메뉴 → 추가 생략")
                         return
                 except:
                     continue

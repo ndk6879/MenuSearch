@@ -265,33 +265,35 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
           data = { ok: false, error: `HTTP ${resp.status} (JSON 파싱 실패)` };
         }
         if (data.ok && data.results?.[0]) {
-          const firstResult = data.results[0];
-          setAnalysisResults((prev) => ({ ...prev, [video.video_id]: firstResult }));
+          const allResults = data.results;
+          setAnalysisResults((prev) => ({ ...prev, [video.video_id]: allResults[0] }));
           setAnalysisStatus((prev) => ({ ...prev, [video.video_id]: "done" }));
 
-          // ✅ 분석 성공 시 자동 저장 (중복이 아닌 경우)
-          if (!existingUrls.has(firstResult.video_url)) {
+          // ✅ 분석 성공 시 모든 결과 자동 저장 (백엔드에서 (url+name) 중복 판단)
+          let savedCount = 0;
+          for (const result of allResults) {
             try {
               const saveResp = await fetchWithTimeout(
                 `${base}/save-recipe`,
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ result: firstResult, overwrite: false }),
+                  body: JSON.stringify({ result, overwrite: false }),
                 },
                 10000
               );
               const saveData = await saveResp.json();
               if (saveData.ok && saveData.saved) {
-                setSaveStatus((prev) => ({ ...prev, [video.video_id]: "saved" }));
-                setExistingUrls((prev) => new Set([...prev, firstResult.video_url]));
-              } else if (saveData.reason === "duplicate") {
-                setSaveStatus((prev) => ({ ...prev, [video.video_id]: "duplicate" }));
+                savedCount++;
+                setExistingUrls((prev) => new Set([...prev, result.video_url]));
               }
             } catch {
               // 자동 저장 실패 시 무시 (수동 저장 가능)
             }
-          } else {
+          }
+          if (savedCount > 0) {
+            setSaveStatus((prev) => ({ ...prev, [video.video_id]: "saved" }));
+          } else if (existingUrls.has(allResults[0].video_url)) {
             setSaveStatus((prev) => ({ ...prev, [video.video_id]: "duplicate" }));
           }
         } else {

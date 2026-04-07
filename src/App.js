@@ -33,6 +33,59 @@ function extractYouTubeId(url) {
   return match ? match[1] : null;
 }
 
+const EN_PLURAL_MAP = {
+  "eggs": "egg", "egg yolks": "egg yolk",
+  "tomatoes": "tomato", "onions": "onion", "green onions": "green onion",
+  "mushrooms": "mushroom", "potatoes": "potato", "carrots": "carrot",
+  "cloves": "clove", "anchovies": "anchovy", "olives": "olive",
+  "capers": "caper", "lemons": "lemon", "limes": "lime",
+  "shallots": "shallot", "scallions": "scallion", "peppers": "pepper",
+  "bay leaves": "bay leaf", "herbs": "herb", "oysters": "oyster",
+};
+
+// 의미상 동일한 영어 재료 통합 맵
+const EN_SYNONYM_MAP = {
+  // 마늘
+  "minced garlic": "garlic", "garlic clove": "garlic",
+  // 양파
+  "red onion": "onion",
+  // 올리브 오일
+  "extra virgin olive oil": "olive oil", "pure olive oil": "olive oil",
+  // 파르메산
+  "parmigiano reggiano cheese": "parmesan cheese",
+  "parmigiano-reggiano cheese": "parmesan cheese",
+  "reggiano cheese": "parmesan cheese",
+  "pecorino romano cheese": "pecorino cheese",
+  // 치즈 표기 통일
+  "mozzarella": "mozzarella cheese",
+  "mascarpone": "mascarpone cheese",
+  "ricotta": "ricotta cheese",
+  // 파
+  "scallion": "green onion",
+  // 크림
+  "whipping cream": "heavy cream",
+  // 토마토 (가공품은 원재료로 통일)
+  "whole peeled tomatoes": "tomato", "whole tomatoes": "tomato", "canned tomatoes": "tomato",
+  // 소스
+  "tabasco sauce": "tabasco", "sriracha sauce": "sriracha",
+  // 빵
+  "bread slices": "bread",
+  // 파스타 → pasta로 통합
+  "spaghetti": "pasta", "linguine": "pasta", "spaghettini": "pasta",
+  "rigatoni": "pasta", "orecchiette": "pasta", "penne pasta": "pasta", "tagliatelle": "pasta",
+  // 올리브 종류 → olive
+  "black olives": "olive", "green olives": "olive", "taggiasca olives": "olive",
+  // 고추 표기 통일
+  "cheongyang chili": "cheongyang chili pepper", "cheongyang pepper": "cheongyang chili pepper",
+  "red chili": "red chili pepper",
+  "green chili": "green chili pepper",
+  "red bell pepper": "bell pepper",
+  // 깨
+  "black sesame seeds": "sesame seeds",
+  // 문어
+  "webfoot octopus": "octopus",
+};
+
 const isValidRecipe = (item) =>
   item.name !== "Only 제품 설명 OR 홍보" &&
   item.name !== "건너뜀 - 영상 너무 김" &&
@@ -48,6 +101,7 @@ function App() {
   const t = translations[language];
   const [darkMode, setDarkMode] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
+  const [modalVideoPlaying, setModalVideoPlaying] = useState(false);
 
   const currentRawData = language === "en" ? menuData_en : menuData_kr;
 
@@ -239,9 +293,12 @@ function App() {
     "페퍼론치노": "페페론치노", "페퍼로치니": "페페론치노", "페퍼크러쉬": "페페론치노",
     "페페론치니": "페페론치노", "크러쉬페퍼": "페페론치노",
     "크러쉬드 페퍼": "페페론치노", "페퍼로치노": "페페론치노",
-    // 파스타
+    // 파스타 (종류별 → 파스타 통합)
     "스파게티면": "파스타", "건파스타": "파스타", "생면 파스타": "파스타",
     "숏파스타": "파스타", "파스타 면": "파스타", "파스타 반죽": "파스타",
+    "스파게티": "파스타", "스파게티니": "파스타", "리가토니": "파스타",
+    "링귀니": "파스타", "탈리아텔레": "파스타", "마팔디네": "파스타",
+    "오레끼에떼": "파스타", "펜네 파스타": "파스타",
     // 굴소스
     "우스터소스": "굴소스",
     // 식용유
@@ -285,6 +342,32 @@ function App() {
     "청고추": "고추", "홍고추": "고추", "아삭이고추": "고추",
     // 토마토주스
     "토마토 주스": "토마토주스",
+    // 셀러리 표기 통일
+    "셀러리": "샐러리",
+    // 앤초비 표기 통일
+    "앤초비": "엔초비",
+    // 사프란 표기 통일
+    "샤프란": "사프란",
+    // 치즈 표기 통일
+    "모짜렐라": "모짜렐라 치즈",
+    "마스카포네": "마스카포네 치즈", "마스카르포네 치즈": "마스카포네 치즈",
+    "리코타": "리코타 치즈",
+    // 토마토홀 통일
+    "홀 토마토": "토마토홀",
+    // 발사믹 통일
+    "발사믹": "발사믹 식초",
+    // 월계수잎 통일
+    "월계수 잎": "월계수잎",
+    // 화이트 와인 식초 통일
+    "화이트 와인 식초": "화이트 발사믹",
+    // 치킨스톡 통일
+    "치킨 스톡": "치킨스톡",
+    // 올리브유 표기 누락 보완
+    "엑스트라 버진 올리브유": "올리브 오일",
+    // 돼지 다짐육
+    "다진 돼지고기": "돼지 다짐육",
+    // 시나몬 → 계피
+    "시나몬": "계피",
   };
 
   // ── 상위어 맵: "돼지고기" 검색 시 삼겹살/목살 등 포함 레시피도 매칭 ──
@@ -312,9 +395,13 @@ function App() {
     return s.trim();
   };
 
-  // autoNormalize → synonymMap 순서로 정규화 (EN 모드는 영어 그대로 사용)
+  // autoNormalize → synonymMap 순서로 정규화 (EN 모드는 소문자 + 복수형 통일)
   const normalizeIng = (ing) => {
-    if (language === "en") return ing.trim();
+    if (language === "en") {
+      const lower = ing.trim().toLowerCase();
+      const depluraled = EN_PLURAL_MAP[lower] || lower;
+      return EN_SYNONYM_MAP[depluraled] || EN_SYNONYM_MAP[lower] || depluraled;
+    }
     const auto = autoNormalize(ing);
     return synonymMap[auto] || synonymMap[ing] || auto;
   };
@@ -326,6 +413,7 @@ function App() {
     "육수", "야채 육수", "채소 육수", "조개 육수", "해물 육수",
     // EN
     "salt", "pepper", "water", "sugar", "flour", "oil", "pasta water",
+    "cooking oil", "kitchen twine",
   ]);
 
   // 양념류 정의 — 카드 pill에서 숨기고, 모달에서 "양념 & 소스" 섹션으로 분리 표시
@@ -373,25 +461,35 @@ function App() {
     "깨", "흰깨", "검은깨", "통깨",
 
     // ── 파우더/가루류 ──
-    "파프리카 파우더", "파프리카 가루", "스모크 파프리카", "넛맥", "계피",
+    "파프리카 파우더", "파프리카 가루", "스모크 파프리카", "넛맥", "계피", "클로브",
 
     // ── 기타 조미료 ──
-    "전분", "베이킹 파우더", "MSG",
+    "전분", "베이킹 파우더", "MSG", "옥수수 전분",
+
+    // ── 드레싱 ──
+    "클래식 비네그레트",
 
     // ── EN equivalents ──
     "salt", "pepper", "sugar", "flour", "oil",
     "olive oil", "sesame oil", "vegetable oil", "perilla oil", "chili oil",
     "truffle", "truffle oil", "white truffle oil",
     "soy sauce", "miso", "gochujang", "red pepper flakes", "fish sauce", "salted shrimp",
-    "rice wine", "mirin", "yuja syrup", "cheongha",
-    "vinegar", "balsamic vinegar", "white balsamic", "apple cider vinegar", "wine vinegar",
+    "rice wine", "mirin", "yuja syrup", "cheongha", "sake",
+    "vinegar", "balsamic vinegar", "balsamic glaze", "white balsamic", "apple cider vinegar",
+    "wine vinegar", "red wine vinegar", "white wine vinegar",
     "honey", "corn syrup", "rice syrup", "oligosaccharide", "plum syrup",
     "ketchup", "mayonnaise", "oyster sauce", "worcestershire sauce", "hot sauce",
     "tabasco", "sriracha", "dijon mustard", "whole grain mustard",
-    "chicken stock", "vegetable stock", "seafood stock",
+    "chicken stock", "vegetable stock", "seafood stock", "chicken broth", "vegetable broth", "broth", "beef stock",
     "bay leaf", "thyme", "rosemary", "oregano", "chives", "mint", "herb",
-    "paprika powder", "smoked paprika", "nutmeg", "cinnamon",
-    "cornstarch", "baking powder", "msg",
+    "parsley", "basil", "dill", "cilantro",
+    "black pepper", "white pepper", "pink peppercorns", "cayenne pepper",
+    "peperoncino", "chili powder", "red pepper powder", "gochugaru",
+    "paprika powder", "smoked paprika", "nutmeg", "cinnamon", "clove",
+    "curry powder", "celery salt",
+    "cornstarch", "starch", "baking powder", "msg",
+    "brown sugar", "powdered sugar",
+    "classic vinaigrette", "perilla seed powder",
   ]);
 
   // 노이즈 재료 필터 (조리 설명 문장 등)
@@ -399,7 +497,8 @@ function App() {
     if (!ing || ing.length > 25) return true;
     if (/[.。]/.test(ing)) return true;
     if (/준비한다|구워준다|넣는다|볶는다|끓인다|만든다|섞는다|썬다|담는다|자른다|버린다|걸러서|우린다|벗겨|제거한다/.test(ing)) return true;
-    if (EXCLUDED_INGREDIENTS.has(ing.trim())) return true;
+    const key = language === "en" ? ing.trim().toLowerCase() : ing.trim();
+    if (EXCLUDED_INGREDIENTS.has(key)) return true;
     return false;
   };
 
@@ -637,7 +736,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
     }).length;
 
     return (
-      <li className="menu-card" onClick={() => setRecipeModal(item)}>
+      <li className="menu-card" onClick={() => { setRecipeModal(item); setModalVideoPlaying(false); }}>
         {ytId && (
           <img
             src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
@@ -677,7 +776,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             )}
             {seasoningIngs.length > 0 && (
               <span className="ingredient-pill ingredient-pill--seasoning ingredient-pill--seasoning-card">
-                +양념 {seasoningIngs.length}
+                {language === "kr" ? `+양념 ${seasoningIngs.length}` : `+Seasonings ${seasoningIngs.length}`}
               </span>
             )}
           </div>
@@ -715,20 +814,41 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
       </Modal>
 
       {/* Recipe Detail Modal */}
-      <Modal open={!!recipeModal} onClose={() => setRecipeModal(null)} darkMode={darkMode}>
+      <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setModalVideoPlaying(false); }} darkMode={darkMode}>
         {recipeModal && (
           <div className="recipe-modal">
-            {extractYouTubeId(recipeModal.url) && (
-              <div className="recipe-modal-thumb-link playing">
-                <iframe
-                  className="recipe-modal-iframe"
-                  src={`https://www.youtube.com/embed/${extractYouTubeId(recipeModal.url)}?autoplay=0&rel=0`}
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                  title={recipeModal.name}
-                />
-              </div>
-            )}
+            {extractYouTubeId(recipeModal.url) && (() => {
+              const ytId = extractYouTubeId(recipeModal.url);
+              return (
+                <>
+                  {modalVideoPlaying ? (
+                    <div className="recipe-modal-thumb-link playing">
+                      <iframe
+                        className="recipe-modal-iframe"
+                        src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen
+                        loading="lazy"
+                        title={recipeModal.name}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className="recipe-modal-thumb-link recipe-modal-thumb-play"
+                      onClick={() => setModalVideoPlaying(true)}
+                    >
+                      <img
+                        src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                        alt={recipeModal.name}
+                        className="recipe-modal-iframe"
+                        style={{ objectFit: "cover" }}
+                      />
+                      <div className="recipe-modal-play-overlay">▶</div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
             <div className="recipe-modal-header">
               <h2 className="recipe-modal-title">{recipeModal.name}</h2>
             </div>
