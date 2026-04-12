@@ -10,6 +10,10 @@ const channelProfiles = {
   "한신희": "https://yt3.ggpht.com/wMZgXsraUWw9dZyPpbmd13nnYa5ItI27oPvYPtco7j2QWSWHEwdhhG2XUyzUEG7DpvCr6MwI-w=s240-c-k-c0x00ffffff-no-rj",
   "공부왕찐천재 홍진경": "https://yt3.ggpht.com/ytc/AIdro_mXJxSXiJa2E26VH10eCDts0qd7FQszSNbx9tWxpHkD4w=s240-c-k-c0x00ffffff-no-rj",
   "이민정 MJ": "https://yt3.ggpht.com/ziRXDHkr_0F7dw_zazv6msvTN14FBxKT2MbmwxZltnjMcR_Mu6Jlv4icC3NL4wnTVnZiuVjG6A=s240-c-k-c0x00ffffff-no-rj",
+  "Ben Maxwell": "https://yt3.ggpht.com/7Z_r2B6EANYsyamuB8u7sQvFJ0WpAlzX7aMxURAKju9YhQT8ez1XDFLoLTknrXPYdLhKQdgXzw=s240-c-k-c0x00ffffff-no-rj",
+  "김밀란": "https://yt3.ggpht.com/9HOr5dWJKbDCdTnmFXgBpVjn7I0Im-j-qrKIDJ-DJ9Vu5UFyTAuOM1kGB_Qm9OZzCjcFDayo0g=s240-c-k-c0x00ffffff-no-rj",
+  "백종원 PAIK JONG WON": "https://yt3.ggpht.com/tVvGKye5hDl70LaxrUsJBfm-rE9RES7bJDxSrjyO-vQDVb5EUJvUJefjUJ0dp-ixLIkrDYVX4A=s240-c-k-c0x00ffffff-no-rj",
+  "철가방요리사": "https://yt3.ggpht.com/DxJEY_PJp9EGyHmzTBLTfBaabyb-zcSk8F9HlJj08b0bLUg06lCryQKSeqgfZE_BQYUjsLzAUg=s240-c-k-c0x00ffffff-no-rj",
 };
 
 export default channelProfiles;

@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 import google.generativeai as genai
 from google import genai as genai_new
 from google.genai import types as genai_types
@@ -58,10 +59,11 @@ load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 SONAR_API_KEY = os.getenv("SONAR_API_KEY")
 
-# ✅ Gemini 설정 (YouTube API 키와 동일한 Google Cloud 키 사용)
+# ✅ Gemini 설정 (영상 직접 분석용)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or API_KEY
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
+
 
 # -----------------------------
 # 공용 헬퍼
@@ -364,17 +366,23 @@ def get_first_comment_and_author(api_key, video_id):
     video_channel_id = items[0]["snippet"]["channelId"] if items else None
 
     # ▶ 상단(고정댓글 우선) 1개만 조회
-    response = youtube.commentThreads().list(
-        part="snippet",
-        videoId=video_id,
-        maxResults=1,
-        textFormat="plainText",
-        order="relevance"
-    ).execute()
+    try:
+        response = youtube.commentThreads().list(
+            part="snippet",
+            videoId=video_id,
+            maxResults=1,
+            textFormat="plainText",
+            order="relevance"
+        ).execute()
 
-    if response.get("items"):
-        c = response["items"][0]["snippet"]["topLevelComment"]["snippet"]
-        return c["textDisplay"], c["authorChannelId"]["value"], video_channel_id
+        if response.get("items"):
+            c = response["items"][0]["snippet"]["topLevelComment"]["snippet"]
+            return c["textDisplay"], c["authorChannelId"]["value"], video_channel_id
+    except HttpError as e:
+        if "commentsDisabled" in str(e):
+            safe_print("⏭️ 댓글 비활성화된 영상 → 고정댓글 스킵")
+        else:
+            safe_print(f"⚠️ 댓글 조회 실패: {e}")
 
     return None, None, video_channel_id
 
@@ -388,25 +396,25 @@ def get_description(youtube, video_id):
         return None
 
 # -----------------------------
-# Sonar (Perplexity) 호출
+# Gemini 텍스트 분석 (고정댓글/더보기란)
 # -----------------------------
-# ---------- Gemini 호출 (Sonar 대체) ----------
-def ask_sonar_from_comment(raw_text, source_name=""):
+def ask_gemini_from_text(raw_text, source_name=""):
     """
-    입력 텍스트(고정댓글/더보기란/자막)에서 메뉴/재료/순서를 JSON으로 추출.
-    Gemini API 사용. 순서가 비어 있으면 '분석 불가'로 간주.
+    입력 텍스트(고정댓글/더보기란)에서 메뉴/재료/순서를 JSON으로 추출.
+    Gemini 2.5 Flash 사용 (영상 분석보다 훨씬 저렴, ~0.4원/회).
     """
     if not GEMINI_API_KEY:
-        safe_print("❌ GEMINI_API_KEY (또는 YOUTUBE_API_KEY)가 설정되지 않음")
+        safe_print("❌ GEMINI_API_KEY 없음 → 텍스트 분석 불가")
         return None
 
     prefix = {
         "고정댓글": "이 텍스트는 유튜브 요리 영상의 고정 댓글입니다.",
         "더보기란": (
             "이 텍스트는 유튜브 영상의 더보기란(설명)입니다. "
-            "더보기란에는 협찬/홍보/SNS 링크/구독 요청 등 레시피와 무관한 내용이 많을 수 있습니다. "
-            "레시피(재료 목록, 요리 순서)가 **명확하게 작성되어 있는 경우에만** 추출하세요. "
-            "재료나 순서가 명시적으로 적혀있지 않다면 반드시 빈 배열 []로 두세요."
+            "더보기란에는 협찬/홍보/SNS 링크/구독 요청 등 레시피와 무관한 내용이 있을 수 있습니다. "
+            "재료 목록이나 요리 순서가 있으면 최대한 추출하세요. "
+            "협찬/SNS 링크/구독 요청 등 레시피와 완전히 무관한 내용은 무시하세요. "
+            "재료나 순서가 전혀 없을 때만 빈 배열 []로 두세요."
         ),
         "자막": (
             "이 텍스트는 유튜브 요리 영상의 자막(스크립트)입니다. "
@@ -459,14 +467,14 @@ def ask_sonar_from_comment(raw_text, source_name=""):
 """
 
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(temperature=0.2),
+        client = genai_new.Client(api_key=GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[prompt],
         )
         return sanitize(response.text)
     except Exception as e:
-        safe_print(f"❌ Gemini 응답 실패: {e}")
+        safe_print(f"❌ Gemini 텍스트 분석 실패: {e}")
         return None
 
 # -----------------------------
@@ -505,45 +513,62 @@ def analyze_one_video(url: str) -> dict:
                 return False
             return not any("분석 불가" in str(x) for x in items)
 
-        # ---- Gemini 호출 3개 병렬 실행
-        def _run_comment():
-            if not comment_text or not comment_text.strip():
-                safe_print("⏭️ [고정댓글] 텍스트 없음 → 스킵")
-                return ("고정댓글", None)
-            safe_print("🔍 [고정댓글] Gemini 분석 시작...")
-            return ("고정댓글", ask_sonar_from_comment(comment_text, "고정댓글"))
-
-        def _run_desc():
-            if not desc_text or not desc_text.strip():
-                safe_print("⏭️ [더보기란] 텍스트 없음 → 스킵")
-                return ("더보기란", None)
-            safe_print("🔍 [더보기란] Gemini 분석 시작...")
-            return ("더보기란", ask_sonar_from_comment(desc_text, "더보기란"))
-
-        def _run_video():
-            safe_print("🎬 [영상 분석] Gemini 시작...")
-            return ("영상 분석", analyze_video_with_gemini(video_id))
-
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            raw_sources = [f.result() for f in [
-                executor.submit(_run_comment),
-                executor.submit(_run_desc),
-                executor.submit(_run_video),
-            ]]
-
-        # ---- 결과 파싱
-        all_results = {}        # source_name → 단일 요리 dict (텍스트 소스)
-        multi_dish_results = [] # 영상 분석에서 다중 요리 감지 시
-
-        for source_name, raw in raw_sources:
+        def parse_text_source(raw, source_name):
+            """Gemini 텍스트 응답을 파싱해서 유효한 결과 반환. 실패시 None."""
             if not raw:
-                continue
+                return None
             if "분석 불가" in raw and "{" not in raw and "[" not in raw:
                 safe_print(f"⏭️ [{source_name}] 분석 불가 → 스킵")
-                continue
+                return None
+            parsed = extract_json_block(raw)
+            if not parsed:
+                safe_print(f"⏭️ [{source_name}] JSON 파싱 실패 | 응답: {raw[:150]}")
+                return None
+            if parsed["메뉴"] in ["분석 불가", "Only 제품 설명 OR 홍보"]:
+                safe_print(f"⏭️ [{source_name}] 메뉴='{parsed['메뉴']}' → 스킵")
+                return None
+            ing_count = len(parsed["재료"]) if is_valid(parsed["재료"]) else 0
+            step_count = len(parsed["순서"]) if is_valid(parsed["순서"]) else 0
+            if ing_count == 0 and step_count == 0:
+                safe_print(f"⏭️ [{source_name}] 재료·순서 모두 비어있음 → 스킵")
+                return None
+            safe_print(f"✅ [{source_name}] 메뉴={parsed['메뉴']}, 재료={ing_count}개, 순서={step_count}단계")
+            return parsed
 
-            if source_name == "영상 분석":
-                parsed_list = extract_json_blocks(raw)
+        all_results = {}
+        multi_dish_results = []
+
+        # ---- 1단계: 고정댓글 → Gemini 텍스트 분석
+        if comment_text and comment_text.strip():
+            safe_print("🔍 [고정댓글] Gemini 텍스트 분석 시작...")
+            parsed = parse_text_source(ask_gemini_from_text(comment_text, "고정댓글"), "고정댓글")
+            if parsed:
+                all_results["고정댓글"] = parsed
+        else:
+            safe_print("⏭️ [고정댓글] 텍스트 없음 → 스킵")
+
+        has_ingredients = any(is_valid(all_results[s]["재료"]) for s in all_results)
+        has_steps = any(is_valid(all_results[s]["순서"]) and len(all_results[s]["순서"]) >= 1 for s in all_results)
+
+        # ---- 2단계: 더보기란 → Gemini 텍스트 분석 (고정댓글에서 부족한 게 있을 때)
+        if not has_ingredients or not has_steps:
+            if desc_text and desc_text.strip():
+                safe_print("🔍 [더보기란] Gemini 텍스트 분석 시작...")
+                parsed = parse_text_source(ask_gemini_from_text(desc_text, "더보기란"), "더보기란")
+                if parsed:
+                    all_results["더보기란"] = parsed
+            else:
+                safe_print("⏭️ [더보기란] 텍스트 없음 → 스킵")
+
+        has_ingredients = any(is_valid(all_results[s]["재료"]) for s in all_results)
+        has_steps = any(is_valid(all_results[s]["순서"]) and len(all_results[s]["순서"]) >= 1 for s in all_results)
+
+        # ---- 3단계: 영상 분석 → Gemini (텍스트에서 아무것도 못 찾았을 때만)
+        if not has_ingredients and not has_steps:
+            safe_print("🎬 [영상 분석] 텍스트 소스 없음 → Gemini 영상 분석 시작...")
+            video_raw = analyze_video_with_gemini(video_id)
+            if video_raw:
+                parsed_list = extract_json_blocks(video_raw)
                 valid = [p for p in parsed_list if p.get("메뉴") not in ["분석 불가", "Only 제품 설명 OR 홍보"]]
                 if len(valid) > 1:
                     for p in valid:
@@ -555,21 +580,8 @@ def analyze_one_video(url: str) -> dict:
                     all_results["영상 분석"] = p
                 else:
                     safe_print("⏭️ [영상 분석] JSON 파싱 실패 또는 분석 불가")
-            else:
-                parsed = extract_json_block(raw)
-                if not parsed:
-                    safe_print(f"⏭️ [{source_name}] JSON 파싱 실패")
-                    continue
-                if parsed["메뉴"] in ["분석 불가", "Only 제품 설명 OR 홍보"]:
-                    safe_print(f"⏭️ [{source_name}] 메뉴='{parsed['메뉴']}' → 스킵")
-                    continue
-                ing_count = len(parsed["재료"]) if is_valid(parsed["재료"]) else 0
-                step_count = len(parsed["순서"]) if is_valid(parsed["순서"]) else 0
-                if ing_count == 0 and step_count == 0:
-                    safe_print(f"⏭️ [{source_name}] 재료·순서 모두 비어있음 → 스킵")
-                    continue
-                safe_print(f"✅ [{source_name}] 메뉴={parsed['메뉴']}, 재료={ing_count}개, 순서={step_count}단계")
-                all_results[source_name] = parsed
+        else:
+            safe_print(f"✅ 텍스트 소스 확보 (재료:{has_ingredients}, 순서:{has_steps}) → 영상 분석 스킵")
 
         # ---- 다중 요리: 각각 반환 (저장 전 사용자 확인)
         if multi_dish_results:
@@ -617,7 +629,7 @@ def analyze_one_video(url: str) -> dict:
             if src not in all_results:
                 continue
             p = all_results[src]
-            if is_valid(p["순서"]) and len(p["순서"]) >= 3:
+            if is_valid(p["순서"]) and len(p["순서"]) >= 1:
                 if not best_steps or len(p["순서"]) > len(best_steps):
                     best_steps = p["순서"]
                     best_steps_source = src
@@ -644,17 +656,17 @@ def analyze_one_video(url: str) -> dict:
         if not best_name:
             best_name = list(all_results.values())[0]["메뉴"]
 
-        if best_ingredients:
-            source_label = best_ingredients_source
-            if best_steps_source and best_steps_source != best_ingredients_source:
+        if best_ingredients or best_steps:
+            source_label = best_ingredients_source or best_steps_source or ""
+            if best_ingredients_source and best_steps_source and best_steps_source != best_ingredients_source:
                 source_label = f"재료:{best_ingredients_source} / 순서:{best_steps_source}"
 
             return {
                 "ok": True,
                 "results": [{
                     "name": best_name,
-                    "ingredients": best_ingredients,
-                    "ingredients_source": best_ingredients_source,
+                    "ingredients": best_ingredients or [],
+                    "ingredients_source": best_ingredients_source or "",
                     "steps": best_steps or [],
                     "steps_source": best_steps_source or "",
                     "source": source_label,
