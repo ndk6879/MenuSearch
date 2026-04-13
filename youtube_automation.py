@@ -538,27 +538,28 @@ def analyze_one_video(url: str) -> dict:
         all_results = {}
         multi_dish_results = []
 
-        # ---- 1단계: 고정댓글 → Gemini 텍스트 분석
+        # ---- 1+2단계 병렬: 고정댓글 + 더보기란 동시에 Gemini 텍스트 분석
+        text_sources = {}
         if comment_text and comment_text.strip():
-            safe_print("🔍 [고정댓글] Gemini 텍스트 분석 시작...")
-            parsed = parse_text_source(ask_gemini_from_text(comment_text, "고정댓글"), "고정댓글")
-            if parsed:
-                all_results["고정댓글"] = parsed
+            text_sources["고정댓글"] = comment_text
         else:
             safe_print("⏭️ [고정댓글] 텍스트 없음 → 스킵")
+        if desc_text and desc_text.strip():
+            text_sources["더보기란"] = desc_text
+        else:
+            safe_print("⏭️ [더보기란] 텍스트 없음 → 스킵")
 
-        has_ingredients = any(is_valid(all_results[s]["재료"]) for s in all_results)
-        has_steps = any(is_valid(all_results[s]["순서"]) and len(all_results[s]["순서"]) >= 1 for s in all_results)
-
-        # ---- 2단계: 더보기란 → Gemini 텍스트 분석 (고정댓글에서 부족한 게 있을 때)
-        if not has_ingredients or not has_steps:
-            if desc_text and desc_text.strip():
-                safe_print("🔍 [더보기란] Gemini 텍스트 분석 시작...")
-                parsed = parse_text_source(ask_gemini_from_text(desc_text, "더보기란"), "더보기란")
-                if parsed:
-                    all_results["더보기란"] = parsed
-            else:
-                safe_print("⏭️ [더보기란] 텍스트 없음 → 스킵")
+        if text_sources:
+            safe_print(f"🔍 [{' + '.join(text_sources.keys())}] Gemini 텍스트 병렬 분석 시작...")
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                futures = {
+                    name: executor.submit(ask_gemini_from_text, text, name)
+                    for name, text in text_sources.items()
+                }
+                for name, future in futures.items():
+                    parsed = parse_text_source(future.result(), name)
+                    if parsed:
+                        all_results[name] = parsed
 
         has_ingredients = any(is_valid(all_results[s]["재료"]) for s in all_results)
         has_steps = any(is_valid(all_results[s]["순서"]) and len(all_results[s]["순서"]) >= 1 for s in all_results)
