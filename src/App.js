@@ -11,6 +11,11 @@ import ChefAI from "./components/ChefAI";
 import channelProfiles from "./channelData";
 import AboutSection from "./components/AboutSection";
 import translations from "./i18n";
+import chefConfig from "./chefConfig";
+
+const IS_DEV = process.env.NODE_ENV === "development";
+const CHEF_FILTER = process.env.REACT_APP_CHEF || null;
+const chefProfile = CHEF_FILTER ? chefConfig[CHEF_FILTER] : null;
 
 const InstagramGradientIcon = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
@@ -817,25 +822,29 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           <a href="/" className="header-logo">Findish</a>
         </div>
         <div className="header-right">
-          <button
-            onClick={() => setActiveTab(activeTab === "chef" ? "home" : "chef")}
-            className={`header-link${activeTab === "chef" ? " header-link-active" : ""}`}
-          >
-            {t.aiChef}
-          </button>
-          <button
-            onClick={() => setActiveTab(activeTab === "saved" ? "home" : "saved")}
-            className={`header-link header-link-saved${activeTab === "saved" ? " header-link-active" : ""}`}
-          >
-            <FaBookmark size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
-            {savedRecipes.length > 0 && (
-              <span className="saved-count-badge">{savedRecipes.length}</span>
-            )}
-            {language === "kr" ? "저장됨" : "Saved"}
-          </button>
-          <button onClick={() => setAnalyzeOpen(true)} className="header-link header-link-desktop">
-            Analyze
-          </button>
+          {IS_DEV && (
+            <>
+              <button
+                onClick={() => setActiveTab(activeTab === "chef" ? "home" : "chef")}
+                className={`header-link${activeTab === "chef" ? " header-link-active" : ""}`}
+              >
+                {t.aiChef}
+              </button>
+              <button
+                onClick={() => setActiveTab(activeTab === "saved" ? "home" : "saved")}
+                className={`header-link header-link-saved${activeTab === "saved" ? " header-link-active" : ""}`}
+              >
+                <FaBookmark size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                {savedRecipes.length > 0 && (
+                  <span className="saved-count-badge">{savedRecipes.length}</span>
+                )}
+                {language === "kr" ? "저장됨" : "Saved"}
+              </button>
+              <button onClick={() => setAnalyzeOpen(true)} className="header-link header-link-desktop">
+                Analyze
+              </button>
+            </>
+          )}
           <a href="#about" className="header-link header-link-desktop">About</a>
           <a href="mailto:ndk68790@gmail.com" style={{ fontSize: "1.1rem", lineHeight: 1 }}>✉️</a>
           <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }}>
@@ -1002,13 +1011,32 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
         <>
           {/* Hero Section */}
           <section className="hero">
+            {chefProfile && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, justifyContent: "center" }}>
+                {channelProfiles[CHEF_FILTER] && (
+                  <img
+                    src={channelProfiles[CHEF_FILTER]}
+                    alt={chefProfile.displayName}
+                    style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "2px solid #eee" }}
+                  />
+                )}
+                <span style={{ fontWeight: 700, fontSize: 16 }}>{chefProfile.displayName}</span>
+              </div>
+            )}
             <div className="hero-badge">{t.heroBadge(recipeCount)}</div>
             <h1 className="hero-title">
-              {t.heroTitle.split("\n").map((line, i) => (
+              {(chefProfile
+                ? (language === "kr" ? chefProfile.heroTitle : chefProfile.heroTitleEn)
+                : t.heroTitle
+              ).split("\n").map((line, i) => (
                 <span key={i}>{line}{i === 0 && <br />}</span>
               ))}
             </h1>
-            <p className="hero-subtitle">{t.heroSubtitle}</p>
+            <p className="hero-subtitle">
+              {chefProfile
+                ? (language === "kr" ? chefProfile.heroSubtitle : chefProfile.heroSubtitleEn)
+                : t.heroSubtitle}
+            </p>
             <div className="hero-search">
               <TagSearch
                 onSearch={handleSearch}
@@ -1088,7 +1116,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                   )}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <select
+                  {!CHEF_FILTER && <select
                     value={selectedChef}
                     onChange={(e) => setSelectedChef(e.target.value)}
                     style={{
@@ -1106,7 +1134,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                     {chefOptions.map((chef) => (
                       <option key={chef} value={chef}>{chef}</option>
                     ))}
-                  </select>
+                  </select>}
                   <div className="sort-toggle">
                     <button
                       className={`sort-btn ${allMenuSort === "name" ? "active" : ""}`}
