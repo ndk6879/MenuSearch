@@ -17,7 +17,16 @@ from google.genai import types as genai_types
 # -----------------------------
 # 로깅 / 유틸
 # -----------------------------
-socket.setdefaulttimeout(10)
+socket.setdefaulttimeout(120)
+
+# IPv6가 막힌 네트워크에서 httplib2가 IPv6를 먼저 시도해 타임아웃 나는 문제 방지
+_orig_getaddrinfo = socket.getaddrinfo
+def _ipv4_first(host, port, family=0, type=0, proto=0, flags=0):
+    results = _orig_getaddrinfo(host, port, family, type, proto, flags)
+    ipv4 = [r for r in results if r[0] == socket.AF_INET]
+    ipv6 = [r for r in results if r[0] != socket.AF_INET]
+    return ipv4 + ipv6 if ipv4 else ipv6
+socket.getaddrinfo = _ipv4_first
 
 log_date = datetime.now().strftime("%Y-%m-%d")
 os.makedirs("logs", exist_ok=True)
@@ -305,7 +314,7 @@ def analyze_video_with_gemini(video_id: str):
 - 요리가 1가지라면 배열 없이 단일 객체로 반환하세요.
 
 ⚠️ 중요 규칙:
-- 영상에서 실제로 언급되거나 화면에 보이는 재료와 순서만 추출하세요.
+- **실제 조리에 직접 투입된 재료만** 추출하세요. 협찬/광고 제품, 언급만 되고 사용하지 않은 재료, "대신 써도 된다"는 대안 재료, 배경/소품은 제외하세요.
 - 재료는 영상에서 사용하는 **모든** 재료를 빠짐없이 포함하세요: 주재료, 양념(소금, 후추, 설탕 등), 소스(간장, 굴소스 등), 오일, 물, 가루류 등 아무리 소량이라도 포함.
 - 재료는 **이름만** 적으세요. 용량/수량은 제외 (예: "소금 1큰술" → "소금", "계란 3개" → "계란", "대파 1/2대" → "대파").
 - 재료명 표기 통일 (동의어만, 구체적 부위명은 그대로 유지):
@@ -538,7 +547,7 @@ def analyze_one_video(url: str) -> dict:
         all_results = {}
         multi_dish_results = []
 
-        # ---- 1+2단계 병렬: 고정댓글 + 더보기란 동시에 Gemini 텍스트 분석
+        # ---- 텍스트 소스 수집
         text_sources = {}
         if comment_text and comment_text.strip():
             text_sources["고정댓글"] = comment_text
@@ -549,40 +558,38 @@ def analyze_one_video(url: str) -> dict:
         else:
             safe_print("⏭️ [더보기란] 텍스트 없음 → 스킵")
 
-        if text_sources:
-            safe_print(f"🔍 [{' + '.join(text_sources.keys())}] Gemini 텍스트 병렬 분석 시작...")
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                futures = {
-                    name: executor.submit(ask_gemini_from_text, text, name)
-                    for name, text in text_sources.items()
-                }
-                for name, future in futures.items():
-                    parsed = parse_text_source(future.result(), name)
-                    if parsed:
-                        all_results[name] = parsed
+        # ---- 텍스트 분석 + 영상 분석 병렬 실행 (항상)
+        safe_print(f"🔍 텍스트 분석 + 영상 분석 병렬 시작...")
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            text_futures = {
+                name: executor.submit(ask_gemini_from_text, text, name)
+                for name, text in text_sources.items()
+            }
+            video_future = executor.submit(analyze_video_with_gemini, video_id)
 
-        has_ingredients = any(is_valid(all_results[s]["재료"]) for s in all_results)
-        has_steps = any(is_valid(all_results[s]["순서"]) and len(all_results[s]["순서"]) >= 1 for s in all_results)
+            for name, future in text_futures.items():
+                parsed = parse_text_source(future.result(), name)
+                if parsed:
+                    all_results[name] = parsed
 
-        # ---- 3단계: 영상 분석 → Gemini (텍스트에서 아무것도 못 찾았을 때만)
-        if not has_ingredients and not has_steps:
-            safe_print("🎬 [영상 분석] 텍스트 소스 없음 → Gemini 영상 분석 시작...")
-            video_raw = analyze_video_with_gemini(video_id)
-            if video_raw:
-                parsed_list = extract_json_blocks(video_raw)
-                valid = [p for p in parsed_list if p.get("메뉴") not in ["분석 불가", "Only 제품 설명 OR 홍보"]]
-                if len(valid) > 1:
-                    for p in valid:
-                        safe_print(f"✅ [영상 분석] {p['메뉴']}: 재료={len(p['재료'])}개, 순서={len(p['순서'])}단계")
-                    multi_dish_results = valid
-                elif len(valid) == 1:
-                    p = valid[0]
-                    safe_print(f"✅ [영상 분석] 메뉴={p['메뉴']}, 재료={len(p['재료'])}개, 순서={len(p['순서'])}단계")
-                    all_results["영상 분석"] = p
-                else:
-                    safe_print("⏭️ [영상 분석] JSON 파싱 실패 또는 분석 불가")
+            video_raw = video_future.result()
+
+        # ---- 영상 분석 결과 처리
+        if video_raw:
+            parsed_list = extract_json_blocks(video_raw)
+            valid = [p for p in parsed_list if p.get("메뉴") not in ["분석 불가", "Only 제품 설명 OR 홍보"]]
+            if len(valid) > 1:
+                for p in valid:
+                    safe_print(f"✅ [영상 분석] {p['메뉴']}: 재료={len(p['재료'])}개, 순서={len(p['순서'])}단계")
+                multi_dish_results = valid
+            elif len(valid) == 1:
+                p = valid[0]
+                safe_print(f"✅ [영상 분석] 메뉴={p['메뉴']}, 재료={len(p['재료'])}개, 순서={len(p['순서'])}단계")
+                all_results["영상 분석"] = p
+            else:
+                safe_print("⏭️ [영상 분석] JSON 파싱 실패 또는 분석 불가")
         else:
-            safe_print(f"✅ 텍스트 소스 확보 (재료:{has_ingredients}, 순서:{has_steps}) → 영상 분석 스킵")
+            safe_print("⏭️ [영상 분석] 응답 없음")
 
         # ---- 다중 요리: 각각 반환 (저장 전 사용자 확인)
         if multi_dish_results:
@@ -608,48 +615,66 @@ def analyze_one_video(url: str) -> dict:
         if not all_results:
             return {"ok": False, "error": "분석 실패: 어떤 소스에서도 레시피를 찾지 못했습니다."}
 
-        # ---- 단일 요리: 최적 재료 + 순서 병합
-        best_ingredients = None
-        best_ingredients_source = None
-        best_name = None
+        # ---- 단일 요리: 재료·순서 선택 로직
+        video_result = all_results.get("영상 분석")
 
-        for src in ["고정댓글", "더보기란", "영상 분석"]:
-            if src not in all_results:
-                continue
-            p = all_results[src]
-            if is_valid(p["재료"]):
-                if not best_ingredients or len(p["재료"]) > len(best_ingredients):
-                    best_ingredients = p["재료"]
-                    best_ingredients_source = src
-                    best_name = p["메뉴"]
-
-        best_steps = None
-        best_steps_source = None
-
+        # 텍스트에서 가장 재료가 많은 소스 선택
+        best_text_ingredients = None
+        best_text_source = None
+        best_text_name = None
         for src in ["고정댓글", "더보기란"]:
             if src not in all_results:
                 continue
             p = all_results[src]
-            if is_valid(p["순서"]) and len(p["순서"]) >= 1:
-                if not best_steps or len(p["순서"]) > len(best_steps):
-                    best_steps = p["순서"]
-                    best_steps_source = src
+            if is_valid(p["재료"]) and len(p["재료"]) > (len(best_text_ingredients) if best_text_ingredients else 0):
+                best_text_ingredients = p["재료"]
+                best_text_source = src
+                best_text_name = p["메뉴"]
 
-        if "영상 분석" in all_results:
-            vp = all_results["영상 분석"]
-            if is_valid(vp["순서"]):
-                video_steps = vp["순서"]
-                if not best_steps or len(video_steps) > len(best_steps):
-                    safe_print(f"📝 영상 분석 순서({len(video_steps)}단계)가 기존({len(best_steps) if best_steps else 0}단계)보다 상세 → 영상 분석 채택")
-                    best_steps = video_steps
-                    best_steps_source = "영상 분석"
+        # 재료 선택: 텍스트 5개 이상이면 텍스트(크리에이터 작성 = 정확), 미만이면 영상
+        TEXT_ING_THRESHOLD = 5
+        if best_text_ingredients and len(best_text_ingredients) >= TEXT_ING_THRESHOLD:
+            best_ingredients = best_text_ingredients
+            best_ingredients_source = best_text_source
+            best_name = best_text_name
+            safe_print(f"📋 [재료] 텍스트({best_text_source}) 채택: {len(best_text_ingredients)}개 ≥ {TEXT_ING_THRESHOLD}개 기준")
+        elif video_result and is_valid(video_result["재료"]):
+            best_ingredients = video_result["재료"]
+            best_ingredients_source = "영상 분석"
+            best_name = video_result["메뉴"]
+            safe_print(f"🎬 [재료] 영상 분석 채택: 텍스트 재료 {len(best_text_ingredients) if best_text_ingredients else 0}개 < {TEXT_ING_THRESHOLD}개 기준")
+        elif best_text_ingredients:
+            best_ingredients = best_text_ingredients
+            best_ingredients_source = best_text_source
+            best_name = best_text_name
+            safe_print(f"📋 [재료] 텍스트({best_text_source}) fallback: 영상 분석 재료 없음")
+        else:
+            best_ingredients = None
+            best_ingredients_source = None
+            best_name = None
 
-        if not best_steps:
-            for src in ["고정댓글", "더보기란", "영상 분석"]:
-                if src in all_results and is_valid(all_results[src]["순서"]):
-                    best_steps = all_results[src]["순서"]
-                    best_steps_source = src
-                    break
+        # 순서 선택: 항상 영상 우선, 없으면 텍스트 fallback
+        best_steps = None
+        best_steps_source = None
+        if video_result and is_valid(video_result["순서"]) and len(video_result["순서"]) >= 1:
+            best_steps = video_result["순서"]
+            best_steps_source = "영상 분석"
+            safe_print(f"🎬 [순서] 영상 분석 채택: {len(best_steps)}단계")
+        else:
+            for src in ["고정댓글", "더보기란"]:
+                if src in all_results and is_valid(all_results[src]["순서"]) and len(all_results[src]["순서"]) >= 1:
+                    if not best_steps or len(all_results[src]["순서"]) > len(best_steps):
+                        best_steps = all_results[src]["순서"]
+                        best_steps_source = src
+            if best_steps:
+                safe_print(f"📋 [순서] 텍스트({best_steps_source}) fallback: {len(best_steps)}단계")
+
+        # 메뉴명: 영상 분석 우선
+        if not best_name:
+            if video_result:
+                best_name = video_result.get("메뉴")
+            if not best_name:
+                best_name = list(all_results.values())[0]["메뉴"]
 
         if best_steps_source:
             safe_print(f"🎯 최종 → 재료: {best_ingredients_source}({len(best_ingredients) if best_ingredients else 0}개) / 순서: {best_steps_source}({len(best_steps)}단계)")

@@ -109,7 +109,9 @@ function App() {
   const [searchActive, setSearchActive] = useState(false);
   const [modalVideoPlaying, setModalVideoPlaying] = useState(false);
 
-  const currentRawData = language === "en" ? menuData_en : menuData_kr;
+  const CHEF_FILTER = process.env.REACT_APP_CHEF;
+  const currentRawData = (language === "en" ? menuData_en : menuData_kr)
+    .filter(item => !CHEF_FILTER || item.uploader === CHEF_FILTER);
 
   const sortedData = [...currentRawData]
     .sort((a, b) => new Date(b.upload_date) - new Date(a.upload_date))
