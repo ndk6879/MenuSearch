@@ -1,6 +1,14 @@
 /* ===== Base ===== */
 html {
   scroll-padding-top: 76px;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 * {
@@ -40,6 +48,8 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .app.light .header {
@@ -347,6 +357,8 @@ body {
   cursor: pointer;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   position: relative;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .menu-card:hover {
@@ -958,6 +970,30 @@ body {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  /* 모바일 성능: hover 효과 비활성화, 카드 stagger 제거 */
+  .menu-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .menu-card:nth-child(n) {
+    animation-delay: 0s;
+  }
+  .menu-card {
+    will-change: auto;
+    transform: none;
+    animation-duration: 0.2s;
+  }
+
+  /* 모바일 성능: backdrop-filter 제거 */
+  .modal-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .hero-popular-tag {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 

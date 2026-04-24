@@ -137,6 +137,15 @@ function App() {
 
   const validRecipes = sortedData.filter(isValidRecipe);
 
+  const POPULAR_TAG_BLOCKLIST = new Set([
+    "소금", "후추", "설탕", "물", "식용유", "올리브 오일", "올리브오일", "올리브유",
+    "다진 마늘", "마늘", "간장", "참기름", "들기름", "식초", "고추장", "된장", "쌈장",
+    "고춧가루", "깨", "참깨", "후춧가루", "흑후추", "백후추",
+    "salt", "pepper", "sugar", "water", "olive oil", "garlic", "soy sauce",
+    "black pepper", "white pepper", "sesame oil", "vinegar",
+    "파슬리", "바질", "로즈마리", "타임", "오레가노",
+  ]);
+
   const popularTags = useMemo(() => {
     if (!CHEF_FILTER) {
       return language === "kr"
@@ -147,7 +156,9 @@ function App() {
     validRecipes.forEach(recipe => {
       (recipe.ingredients || []).forEach(ing => {
         const key = ing.replace(/\s*\(.*?\)\s*/g, "").trim();
-        if (key) freq[key] = (freq[key] || 0) + 1;
+        if (key && !POPULAR_TAG_BLOCKLIST.has(key)) {
+          freq[key] = (freq[key] || 0) + 1;
+        }
       });
     });
     return Object.entries(freq)
@@ -791,6 +802,8 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
             alt={item.name}
             className="menu-thumbnail"
+            loading="lazy"
+            decoding="async"
           />
         )}
         {IS_DEV && (
@@ -877,9 +890,16 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           )}
           {!chefProfile && <a href="#about" className="header-link header-link-desktop">About</a>}
           {chefProfile ? (
-            <a href={chefProfile.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }} title={`${chefProfile.displayName} 유튜브`}>
-              <YouTubeHeaderIcon size={22} />
-            </a>
+            <>
+              <a href={chefProfile.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }} title={`${chefProfile.displayName} 유튜브`}>
+                <YouTubeHeaderIcon size={22} />
+              </a>
+              {chefProfile.instagramUrl && (
+                <a href={chefProfile.instagramUrl} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }} title={`${chefProfile.displayName} 인스타그램`}>
+                  <InstagramGradientIcon size={20} />
+                </a>
+              )}
+            </>
           ) : (
             <>
               <a href="mailto:ndk68790@gmail.com" style={{ fontSize: "1.1rem", lineHeight: 1 }}>✉️</a>
@@ -888,9 +908,11 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               </a>
             </>
           )}
-          <button onClick={() => setLanguage(language === "kr" ? "en" : "kr")} className="dark-toggle">
-            {language === "kr" ? "EN" : "KR"}
-          </button>
+          {!chefProfile && (
+            <button onClick={() => setLanguage(language === "kr" ? "en" : "kr")} className="dark-toggle">
+              {language === "kr" ? "EN" : "KR"}
+            </button>
+          )}
           <button onClick={toggleDarkMode} className="dark-toggle">
             {darkMode ? "Light" : "Dark"}
           </button>
