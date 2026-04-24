@@ -144,11 +144,11 @@ body {
 }
 
 .app.light .hero {
-  background: linear-gradient(180deg, #f0f4ff 0%, #fafafa 100%);
+  background: linear-gradient(160deg, #eef2ff 0%, #f5f3ff 35%, #fdf8ff 65%, #fafafa 100%);
 }
 
 .app.dark .hero {
-  background: linear-gradient(180deg, #0f1420 0%, #0a0a0a 100%);
+  background: linear-gradient(160deg, #0d1225 0%, #120f1f 35%, #0f0c18 65%, #0a0a0a 100%);
 }
 
 .hero-badge {
@@ -162,22 +162,24 @@ body {
 }
 
 .app.light .hero-badge {
-  background-color: #f0f0f0;
-  color: #555;
+  background-color: #eef2ff;
+  color: #4f46e5;
+  border: 1px solid #c7d2fe;
 }
 
 .app.dark .hero-badge {
-  background-color: #1a1a1a;
-  color: #999;
+  background-color: #1e1b4b;
+  color: #a5b4fc;
+  border: 1px solid #312e81;
 }
 
 .hero-title {
-  font-size: 3rem;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.03em;
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.04em;
   margin: 0 0 1rem;
-  max-width: 700px;
+  max-width: 720px;
 }
 
 .app.light .hero-title {
@@ -192,14 +194,15 @@ body {
   font-size: 1.1rem;
   margin: 0 0 2.5rem;
   font-weight: 400;
+  line-height: 1.6;
 }
 
 .app.light .hero-subtitle {
-  color: #888;
+  color: #6b7280;
 }
 
 .app.dark .hero-subtitle {
-  color: #666;
+  color: #6b7280;
 }
 
 .hero-search {
@@ -254,10 +257,10 @@ body {
 }
 
 .section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.3rem;
+  font-weight: 700;
   margin: 0 0 1.5rem;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .app.light .section-title {
@@ -339,15 +342,15 @@ body {
 
 /* ===== Recipe Cards ===== */
 .menu-card {
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
   position: relative;
 }
 
 .menu-card:hover {
-  transform: none;
+  transform: translateY(-4px);
 }
 
 .app.light .menu-card {
@@ -356,16 +359,16 @@ body {
 }
 
 .app.light .menu-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 32px rgba(79, 70, 229, 0.1), 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .app.dark .menu-card {
-  background-color: #1a1a1a;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  background-color: #161616;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .app.dark .menu-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(99, 102, 241, 0.1);
 }
 
 .menu-thumbnail {
@@ -432,13 +435,13 @@ body {
 
 .ingredient-pill {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 999px;
   white-space: nowrap;
   text-align: center;
-  max-width: 100px;
+  max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -471,7 +474,9 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -899,7 +904,7 @@ body {
   }
 
   .hero-title {
-    font-size: 1.9rem;
+    font-size: 2.1rem;
   }
 
   .hero-subtitle {
@@ -1616,29 +1621,33 @@ body {
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 500;
-  padding: 5px 12px;
+  padding: 5px 13px;
   border-radius: 999px;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
 }
 .app.light .hero-popular-tag {
-  background: #f0f0f0;
-  color: #333;
+  background: rgba(255,255,255,0.7);
+  color: #374151;
   border: 1px solid #e0e0e0;
+  backdrop-filter: blur(4px);
 }
 .app.light .hero-popular-tag:hover {
-  background: #111;
+  background: #4f46e5;
   color: #fff;
-  border-color: #111;
+  border-color: #4f46e5;
+  transform: scale(1.04);
 }
 .app.dark .hero-popular-tag {
-  background: #1e1e1e;
-  color: #aaa;
-  border: 1px solid #2e2e2e;
+  background: rgba(255,255,255,0.05);
+  color: #9ca3af;
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(4px);
 }
 .app.dark .hero-popular-tag:hover {
-  background: #eee;
-  color: #111;
-  border-color: #eee;
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+  transform: scale(1.04);
 }
 .hero-popular-tag.selected {
   opacity: 0.35;
@@ -1661,12 +1670,12 @@ body {
 }
 
 .app.light .ingredient-pill-highlight {
-  background: #111 !important;
+  background: #4f46e5 !important;
   color: #fff !important;
 }
 .app.dark .ingredient-pill-highlight {
-  background: #eee !important;
-  color: #111 !important;
+  background: #6366f1 !important;
+  color: #fff !important;
 }
 
 /* ===== Recipe Card Match Badge ===== */
@@ -1681,22 +1690,27 @@ body {
   letter-spacing: 0.02em;
 }
 .app.light .menu-match-badge {
-  background: #111;
+  background: #4f46e5;
   color: #fff;
 }
 .app.dark .menu-match-badge {
-  background: #eee;
-  color: #111;
+  background: #6366f1;
+  color: #fff;
 }
 
 /* ===== Card Fade-in Animation ===== */
 @keyframes cardFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .menu-card {
-  animation: cardFadeIn 0.25s ease both;
+  animation: cardFadeIn 0.3s ease both;
 }
+.menu-card:nth-child(2) { animation-delay: 0.04s; }
+.menu-card:nth-child(3) { animation-delay: 0.08s; }
+.menu-card:nth-child(4) { animation-delay: 0.12s; }
+.menu-card:nth-child(5) { animation-delay: 0.16s; }
+.menu-card:nth-child(6) { animation-delay: 0.2s; }
 
 /* ===== Search Result Count ===== */
 .search-result-count {

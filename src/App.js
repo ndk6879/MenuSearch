@@ -4,10 +4,18 @@ import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
 import menuData_en from "./menuData_en";
+import { FaBookmark, FaRegBookmark } from "react-icons/fa";
 import Modal from "./components/Modal";
+import AnalyzePanel from "./components/AnalyzePanel";
+import ChefAI from "./components/ChefAI";
 import channelProfiles from "./channelData";
 import AboutSection from "./components/AboutSection";
 import translations from "./i18n";
+import chefConfig from "./chefConfig";
+
+const IS_DEV = process.env.NODE_ENV === "development";
+const CHEF_FILTER = process.env.REACT_APP_CHEF || null;
+const chefProfile = CHEF_FILTER ? chefConfig[CHEF_FILTER] : null;
 
 const InstagramGradientIcon = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
@@ -92,7 +100,12 @@ const isValidRecipe = (item) =>
   !(item.ingredients || []).includes("Only 제품 설명 OR 홍보");
 
 function App() {
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
+  const [activeTab, setActiveTab] = useState("home"); // "home" | "chef" | "saved"
+  const [savedRecipes, setSavedRecipes] = useState(
+    () => JSON.parse(localStorage.getItem("savedRecipes") || "[]")
+  );
 
   const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
   const [language, setLanguage] = useState(defaultLanguage);
@@ -101,7 +114,9 @@ function App() {
   const [searchActive, setSearchActive] = useState(false);
   const [modalVideoPlaying, setModalVideoPlaying] = useState(false);
 
-  const currentRawData = language === "en" ? menuData_en : menuData_kr;
+  const CHEF_FILTER = process.env.REACT_APP_CHEF;
+  const currentRawData = (language === "en" ? menuData_en : menuData_kr)
+    .filter(item => !CHEF_FILTER || item.uploader === CHEF_FILTER);
 
   const sortedData = [...currentRawData]
     .sort((a, b) => new Date(b.upload_date) - new Date(a.upload_date))
@@ -129,6 +144,13 @@ function App() {
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
+  const toggleSave = (url) => {
+    setSavedRecipes(prev => {
+      const next = prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url];
+      localStorage.setItem("savedRecipes", JSON.stringify(next));
+      return next;
+    });
+  };
 
   // ── 동의어 맵: 같은 재료의 다른 표기 → 검색/표시 통일 ──
   // (cleanup_ingredients.py와 동일한 규칙 유지)
@@ -733,6 +755,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
       });
     }).length;
 
+    const isSaved = savedRecipes.includes(item.url);
     return (
       <li className="menu-card" onClick={() => { setRecipeModal(item); setModalVideoPlaying(false); }}>
         {ytId && (
@@ -742,6 +765,13 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             className="menu-thumbnail"
           />
         )}
+        <button
+          className={`menu-card-save-btn${isSaved ? " saved" : ""}`}
+          onClick={(e) => { e.stopPropagation(); toggleSave(item.url); }}
+          title={isSaved ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
+        >
+          {isSaved ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
+        </button>
         <div className="menu-text">
           <div className="menu-name">{item.name || "No Name"}</div>
           {item.uploader && (
@@ -792,6 +822,29 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           <a href="/" className="header-logo">Findish</a>
         </div>
         <div className="header-right">
+          {IS_DEV && (
+            <>
+              <button
+                onClick={() => setActiveTab(activeTab === "chef" ? "home" : "chef")}
+                className={`header-link${activeTab === "chef" ? " header-link-active" : ""}`}
+              >
+                {t.aiChef}
+              </button>
+              <button
+                onClick={() => setActiveTab(activeTab === "saved" ? "home" : "saved")}
+                className={`header-link header-link-saved${activeTab === "saved" ? " header-link-active" : ""}`}
+              >
+                <FaBookmark size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                {savedRecipes.length > 0 && (
+                  <span className="saved-count-badge">{savedRecipes.length}</span>
+                )}
+                {language === "kr" ? "저장됨" : "Saved"}
+              </button>
+              <button onClick={() => setAnalyzeOpen(true)} className="header-link header-link-desktop">
+                Analyze
+              </button>
+            </>
+          )}
           <a href="#about" className="header-link header-link-desktop">About</a>
           <a href="mailto:ndk68790@gmail.com" style={{ fontSize: "1.1rem", lineHeight: 1 }}>✉️</a>
           <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }}>
@@ -805,6 +858,11 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           </button>
         </div>
       </header>
+
+      {/* Analyze Modal */}
+      <Modal open={analyzeOpen} onClose={() => setAnalyzeOpen(false)} darkMode={darkMode}>
+        <AnalyzePanel apiBase="http://localhost:8000" />
+      </Modal>
 
       {/* Recipe Detail Modal */}
       <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setModalVideoPlaying(false); }} darkMode={darkMode}>
@@ -844,6 +902,16 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             })()}
             <div className="recipe-modal-header">
               <h2 className="recipe-modal-title">{recipeModal.name}</h2>
+              <button
+                className={`recipe-modal-save-btn${savedRecipes.includes(recipeModal.url) ? " saved" : ""}`}
+                onClick={() => toggleSave(recipeModal.url)}
+                title={savedRecipes.includes(recipeModal.url) ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
+              >
+                {savedRecipes.includes(recipeModal.url)
+                  ? <><FaBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장됨" : "Saved"}</>
+                  : <><FaRegBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장하기" : "Save"}</>
+                }
+              </button>
             </div>
             <div className="recipe-modal-meta">
               <img
@@ -914,16 +982,61 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
         )}
       </Modal>
 
-      <>
-        {/* Hero Section */}
+      {activeTab === "chef" ? (
+        <ChefAI darkMode={darkMode} />
+      ) : activeTab === "saved" ? (
+        <div className="saved-tab-container">
+          <h2 className="saved-tab-title">
+            {language === "kr" ? "저장한 레시피" : "Saved Recipes"}
+          </h2>
+          {savedRecipes.length === 0 ? (
+            <div className="saved-tab-empty">
+              <FaRegBookmark size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
+              <p>{language === "kr" ? "저장된 레시피가 없습니다." : "No saved recipes yet."}</p>
+              <p style={{ fontSize: "0.85rem", opacity: 0.5 }}>
+                {language === "kr" ? "레시피 카드의 북마크 버튼을 눌러 저장해보세요." : "Click the bookmark icon on any recipe card to save it."}
+              </p>
+            </div>
+          ) : (
+            <ul className="menu-list grid-list">
+              {validRecipes
+                .filter(item => savedRecipes.includes(item.url))
+                .map((item, idx) => (
+                  <RecipeCard key={`saved-${idx}`} item={item} />
+                ))}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Hero Section */}
           <section className="hero">
+            {chefProfile && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, justifyContent: "center" }}>
+                {channelProfiles[CHEF_FILTER] && (
+                  <img
+                    src={channelProfiles[CHEF_FILTER]}
+                    alt={chefProfile.displayName}
+                    style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "2px solid #eee" }}
+                  />
+                )}
+                <span style={{ fontWeight: 700, fontSize: 16 }}>{chefProfile.displayName}</span>
+              </div>
+            )}
             <div className="hero-badge">{t.heroBadge(recipeCount)}</div>
             <h1 className="hero-title">
-              {t.heroTitle.split("\n").map((line, i) => (
+              {(chefProfile
+                ? (language === "kr" ? chefProfile.heroTitle : chefProfile.heroTitleEn)
+                : t.heroTitle
+              ).split("\n").map((line, i) => (
                 <span key={i}>{line}{i === 0 && <br />}</span>
               ))}
             </h1>
-            <p className="hero-subtitle">{t.heroSubtitle}</p>
+            <p className="hero-subtitle">
+              {chefProfile
+                ? (language === "kr" ? chefProfile.heroSubtitle : chefProfile.heroSubtitleEn)
+                : t.heroSubtitle}
+            </p>
             <div className="hero-search">
               <TagSearch
                 onSearch={handleSearch}
@@ -1003,7 +1116,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                   )}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <select
+                  {!CHEF_FILTER && <select
                     value={selectedChef}
                     onChange={(e) => setSelectedChef(e.target.value)}
                     style={{
@@ -1021,7 +1134,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                     {chefOptions.map((chef) => (
                       <option key={chef} value={chef}>{chef}</option>
                     ))}
-                  </select>
+                  </select>}
                   <div className="sort-toggle">
                     <button
                       className={`sort-btn ${allMenuSort === "name" ? "active" : ""}`}
@@ -1062,7 +1175,8 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               </div>
             </div>
           </footer>
-      </>
+        </>
+      )}
     </div>
   );
 }

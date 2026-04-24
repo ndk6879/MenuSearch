@@ -14,6 +14,7 @@ const channelProfiles = {
   "김밀란": "https://yt3.ggpht.com/9HOr5dWJKbDCdTnmFXgBpVjn7I0Im-j-qrKIDJ-DJ9Vu5UFyTAuOM1kGB_Qm9OZzCjcFDayo0g=s240-c-k-c0x00ffffff-no-rj",
   "백종원 PAIK JONG WON": "https://yt3.ggpht.com/tVvGKye5hDl70LaxrUsJBfm-rE9RES7bJDxSrjyO-vQDVb5EUJvUJefjUJ0dp-ixLIkrDYVX4A=s240-c-k-c0x00ffffff-no-rj",
   "철가방요리사": "https://yt3.ggpht.com/DxJEY_PJp9EGyHmzTBLTfBaabyb-zcSk8F9HlJj08b0bLUg06lCryQKSeqgfZE_BQYUjsLzAUg=s240-c-k-c0x00ffffff-no-rj",
+  "이태리 파브리 Italy Fabri": "https://yt3.ggpht.com/HjUhgBgzXSZYx1gMBOf5ViEcusDtE8pwGbEA6nVbAiADBXHSUNCOee3pof07uknuPK7zyos=s240-c-k-c0x00ffffff-no-rj",
 };
 
 export default channelProfiles;
