@@ -6,7 +6,7 @@ const chefConfig = {
     heroTitleEn: "Fabri's Recipes\nFind by Ingredients",
     heroSubtitleEn: "Discover authentic Italian home cooking with what you have.",
     youtubeUrl: "https://www.youtube.com/@italyfabri",
-    instagramUrl: "https://www.instagram.com/italyfabri/",
+    instagramUrl: "https://www.instagram.com/fabrilicious/",
   },
   "셰프호윤 Chef Hoyoon": {
     displayName: "셰프호윤",

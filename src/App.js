@@ -732,7 +732,7 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIngredients]);
 
-const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
+const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
   const [selectedChef, setSelectedChef] = useState("all");
 
   const chefOptions = Array.from(
@@ -892,11 +892,11 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           {chefProfile ? (
             <>
               <a href={chefProfile.youtubeUrl} target="_blank" rel="noopener noreferrer" className="header-icon-btn" title={`${chefProfile.displayName} 유튜브`}>
-                <YouTubeHeaderIcon size={22} />
+                <YouTubeHeaderIcon size={24} />
               </a>
               {chefProfile.instagramUrl && (
                 <a href={chefProfile.instagramUrl} target="_blank" rel="noopener noreferrer" className="header-icon-btn" title={`${chefProfile.displayName} 인스타그램`}>
-                  <InstagramGradientIcon size={22} />
+                  <InstagramGradientIcon size={24} />
                 </a>
               )}
             </>
