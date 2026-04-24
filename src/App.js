@@ -891,12 +891,12 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           {!chefProfile && <a href="#about" className="header-link header-link-desktop">About</a>}
           {chefProfile ? (
             <>
-              <a href={chefProfile.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }} title={`${chefProfile.displayName} 유튜브`}>
+              <a href={chefProfile.youtubeUrl} target="_blank" rel="noopener noreferrer" className="header-icon-btn" title={`${chefProfile.displayName} 유튜브`}>
                 <YouTubeHeaderIcon size={22} />
               </a>
               {chefProfile.instagramUrl && (
-                <a href={chefProfile.instagramUrl} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }} title={`${chefProfile.displayName} 인스타그램`}>
-                  <InstagramGradientIcon size={20} />
+                <a href={chefProfile.instagramUrl} target="_blank" rel="noopener noreferrer" className="header-icon-btn" title={`${chefProfile.displayName} 인스타그램`}>
+                  <InstagramGradientIcon size={22} />
                 </a>
               )}
             </>
@@ -928,38 +928,6 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
       <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setModalVideoPlaying(false); }} darkMode={darkMode}>
         {recipeModal && (
           <div className="recipe-modal">
-            {extractYouTubeId(recipeModal.url) && (() => {
-              const ytId = extractYouTubeId(recipeModal.url);
-              return (
-                <>
-                  {modalVideoPlaying ? (
-                    <div className="recipe-modal-thumb-link playing">
-                      <iframe
-                        className="recipe-modal-iframe"
-                        src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
-                        allow="autoplay; encrypted-media"
-                        allowFullScreen
-                        loading="lazy"
-                        title={recipeModal.name}
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className="recipe-modal-thumb-link recipe-modal-thumb-play"
-                      onClick={() => setModalVideoPlaying(true)}
-                    >
-                      <img
-                        src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
-                        alt={recipeModal.name}
-                        className="recipe-modal-iframe"
-                        style={{ objectFit: "cover" }}
-                      />
-                      <div className="recipe-modal-play-overlay">▶</div>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
             <div className="recipe-modal-header">
               <h2 className="recipe-modal-title">{recipeModal.name}</h2>
               {IS_DEV && (
@@ -991,6 +959,38 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 )}
               </div>
             </div>
+            {extractYouTubeId(recipeModal.url) && (() => {
+              const ytId = extractYouTubeId(recipeModal.url);
+              return (
+                <div style={{ margin: "0 0 16px" }}>
+                  {modalVideoPlaying ? (
+                    <div className="recipe-modal-thumb-link playing">
+                      <iframe
+                        className="recipe-modal-iframe"
+                        src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen
+                        loading="lazy"
+                        title={recipeModal.name}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className="recipe-modal-thumb-link recipe-modal-thumb-play"
+                      onClick={() => setModalVideoPlaying(true)}
+                    >
+                      <img
+                        src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                        alt={recipeModal.name}
+                        className="recipe-modal-iframe"
+                        style={{ objectFit: "cover" }}
+                      />
+                      <div className="recipe-modal-play-overlay">▶</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             <div className="recipe-modal-section">
               {(() => {
                 const all = [...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))];
@@ -1073,19 +1073,23 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
         <>
           {/* Hero Section */}
           <section className="hero">
-            {chefProfile && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, justifyContent: "center" }}>
+            {chefProfile ? (
+              <div className="chef-hero-identity">
                 {channelProfiles[CHEF_FILTER] && (
-                  <img
-                    src={channelProfiles[CHEF_FILTER]}
-                    alt={chefProfile.displayName}
-                    style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "2px solid #eee" }}
-                  />
+                  <div className="chef-hero-avatar-ring">
+                    <img
+                      src={channelProfiles[CHEF_FILTER]}
+                      alt={chefProfile.displayName}
+                      className="chef-hero-avatar"
+                    />
+                  </div>
                 )}
-                <span style={{ fontWeight: 700, fontSize: 16 }}>{chefProfile.displayName}</span>
+                <p className="chef-hero-name">{chefProfile.displayName}</p>
+                <span className="chef-hero-count">{recipeCount}+ 레시피</span>
               </div>
+            ) : (
+              <div className="hero-badge">{t.heroBadge(recipeCount)}</div>
             )}
-            <div className="hero-badge">{t.heroBadge(recipeCount)}</div>
             <h1 className="hero-title">
               {(chefProfile
                 ? (language === "kr" ? chefProfile.heroTitle : chefProfile.heroTitleEn)
