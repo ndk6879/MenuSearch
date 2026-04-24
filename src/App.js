@@ -845,7 +845,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               </button>
             </>
           )}
-          <a href="#about" className="header-link header-link-desktop">About</a>
+          {!chefProfile && <a href="#about" className="header-link header-link-desktop">About</a>}
           <a href="mailto:ndk68790@gmail.com" style={{ fontSize: "1.1rem", lineHeight: 1 }}>✉️</a>
           <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }}>
             <InstagramGradientIcon size={18} />
@@ -1098,7 +1098,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           </section>
 
           {/* About Section - 검색 중에는 숨김 */}
-          {!searchActive && <AboutSection darkMode={darkMode} language={language} t={t} />}
+          {!searchActive && <AboutSection darkMode={darkMode} language={language} t={t} chefProfile={chefProfile} />}
 
 
           {/* All Menu */}
@@ -1171,7 +1171,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
               <div className="site-footer-links">
                 <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer">📸 andy_yeyo</a>
                 <a href="mailto:ndk68790@gmail.com">✉️ ndk68790@gmail.com</a>
-                <a href="#about">About</a>
+                {!chefProfile && <a href="#about">About</a>}
               </div>
             </div>
           </footer>

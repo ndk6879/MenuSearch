@@ -24,7 +24,31 @@ const InstagramGradientIcon = ({ size = 18 }) => (
   </svg>
 );
 
-export default function AboutSection({ darkMode, t }) {
+const YouTubeIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="24" height="24" rx="5.5" fill="#FF0000"/>
+    <path d="M19.6 8.2a2 2 0 0 0-1.4-1.4C16.9 6.5 12 6.5 12 6.5s-4.9 0-6.2.3a2 2 0 0 0-1.4 1.4C4.1 9.5 4.1 12 4.1 12s0 2.5.3 3.8a2 2 0 0 0 1.4 1.4c1.3.3 6.2.3 6.2.3s4.9 0 6.2-.3a2 2 0 0 0 1.4-1.4c.3-1.3.3-3.8.3-3.8s0-2.5-.3-3.8z" fill="white"/>
+    <path d="M10.2 14.5V9.5l4.2 2.5-4.2 2.5z" fill="#FF0000"/>
+  </svg>
+);
+
+export default function AboutSection({ darkMode, t, chefProfile }) {
+  if (chefProfile) {
+    return (
+      <section id="about" style={{ textAlign: "center", padding: "3rem 1.5rem" }}>
+        <a
+          href={chefProfile.youtubeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`about-chef-yt-btn${darkMode ? " dark" : ""}`}
+        >
+          <YouTubeIcon size={18} />
+          {chefProfile.displayName} 유튜브 채널 보기
+        </a>
+      </section>
+    );
+  }
+
   return (
     <section id="about" className={`about-section${darkMode ? " dark" : ""}`}>
       {/* Story */}

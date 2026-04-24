@@ -1418,6 +1418,36 @@ body {
 .app.dark  .chef-step-btn.primary { background: #eee; color: #111; }
 
 
+/* ===== Chef YouTube Button ===== */
+.about-chef-yt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.15s, transform 0.15s;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.about-chef-yt-btn:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+.app.light .about-chef-yt-btn,
+.about-chef-yt-btn:not(.dark) {
+  background: #fff;
+  color: #111;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.about-chef-yt-btn.dark {
+  background: #1e1e1e;
+  color: #eee;
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
 /* ===== About Section ===== */
 .about-section {
   max-width: 800px;
