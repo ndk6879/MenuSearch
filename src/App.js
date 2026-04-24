@@ -35,6 +35,14 @@ const InstagramGradientIcon = ({ size = 18 }) => (
 );
 
 
+const YouTubeHeaderIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
+    <rect width="24" height="24" rx="5.5" fill="#FF0000"/>
+    <path d="M19.6 8.2a2 2 0 0 0-1.4-1.4C16.9 6.5 12 6.5 12 6.5s-4.9 0-6.2.3a2 2 0 0 0-1.4 1.4C4.1 9.5 4.1 12 4.1 12s0 2.5.3 3.8a2 2 0 0 0 1.4 1.4c1.3.3 6.2.3 6.2.3s4.9 0 6.2-.3a2 2 0 0 0 1.4-1.4c.3-1.3.3-3.8.3-3.8s0-2.5-.3-3.8z" fill="white"/>
+    <path d="M10.2 14.5V9.5l4.2 2.5-4.2 2.5z" fill="#FF0000"/>
+  </svg>
+);
+
 function extractYouTubeId(url) {
   const match = url.match(/(?:\?v=|\/embed\/|\.be\/|\/v\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
   return match ? match[1] : null;
@@ -128,6 +136,26 @@ function App() {
     }));
 
   const validRecipes = sortedData.filter(isValidRecipe);
+
+  const popularTags = useMemo(() => {
+    if (!CHEF_FILTER) {
+      return language === "kr"
+        ? ["계란", "삼겹살", "두부", "연어", "파스타", "새우", "소고기", "김치", "감자", "닭가슴살"]
+        : ["Egg", "Pork belly", "Tofu", "Salmon", "Pasta", "Shrimp", "Beef", "Kimchi", "Potato", "Chicken breast"];
+    }
+    const freq = {};
+    validRecipes.forEach(recipe => {
+      (recipe.ingredients || []).forEach(ing => {
+        const key = ing.replace(/\s*\(.*?\)\s*/g, "").trim();
+        if (key) freq[key] = (freq[key] || 0) + 1;
+      });
+    });
+    return Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name]) => name);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, validRecipes]);
 
   const [searchResults, setSearchResults] = useState(sortedData);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
@@ -765,13 +793,15 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             className="menu-thumbnail"
           />
         )}
-        <button
-          className={`menu-card-save-btn${isSaved ? " saved" : ""}`}
-          onClick={(e) => { e.stopPropagation(); toggleSave(item.url); }}
-          title={isSaved ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
-        >
-          {isSaved ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
-        </button>
+        {IS_DEV && (
+          <button
+            className={`menu-card-save-btn${isSaved ? " saved" : ""}`}
+            onClick={(e) => { e.stopPropagation(); toggleSave(item.url); }}
+            title={isSaved ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
+          >
+            {isSaved ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
+          </button>
+        )}
         <div className="menu-text">
           <div className="menu-name">{item.name || "No Name"}</div>
           {item.uploader && (
@@ -846,10 +876,18 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             </>
           )}
           {!chefProfile && <a href="#about" className="header-link header-link-desktop">About</a>}
-          <a href="mailto:ndk68790@gmail.com" style={{ fontSize: "1.1rem", lineHeight: 1 }}>✉️</a>
-          <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }}>
-            <InstagramGradientIcon size={18} />
-          </a>
+          {chefProfile ? (
+            <a href={chefProfile.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }} title={`${chefProfile.displayName} 유튜브`}>
+              <YouTubeHeaderIcon size={22} />
+            </a>
+          ) : (
+            <>
+              <a href="mailto:ndk68790@gmail.com" style={{ fontSize: "1.1rem", lineHeight: 1 }}>✉️</a>
+              <a href="https://www.instagram.com/andy__yeyo/" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center" }}>
+                <InstagramGradientIcon size={18} />
+              </a>
+            </>
+          )}
           <button onClick={() => setLanguage(language === "kr" ? "en" : "kr")} className="dark-toggle">
             {language === "kr" ? "EN" : "KR"}
           </button>
@@ -902,16 +940,18 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
             })()}
             <div className="recipe-modal-header">
               <h2 className="recipe-modal-title">{recipeModal.name}</h2>
-              <button
-                className={`recipe-modal-save-btn${savedRecipes.includes(recipeModal.url) ? " saved" : ""}`}
-                onClick={() => toggleSave(recipeModal.url)}
-                title={savedRecipes.includes(recipeModal.url) ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
-              >
-                {savedRecipes.includes(recipeModal.url)
-                  ? <><FaBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장됨" : "Saved"}</>
-                  : <><FaRegBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장하기" : "Save"}</>
-                }
-              </button>
+              {IS_DEV && (
+                <button
+                  className={`recipe-modal-save-btn${savedRecipes.includes(recipeModal.url) ? " saved" : ""}`}
+                  onClick={() => toggleSave(recipeModal.url)}
+                  title={savedRecipes.includes(recipeModal.url) ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
+                >
+                  {savedRecipes.includes(recipeModal.url)
+                    ? <><FaBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장됨" : "Saved"}</>
+                    : <><FaRegBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장하기" : "Save"}</>
+                  }
+                </button>
+              )}
             </div>
             <div className="recipe-modal-meta">
               <img
@@ -1055,10 +1095,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
                 <span className="hero-popular-label">
                   {language === "kr" ? "인기" : "Popular"}
                 </span>
-                {(language === "kr"
-                  ? ["계란", "삼겹살", "두부", "연어", "파스타", "새우", "소고기", "김치", "감자", "닭가슴살"]
-                  : ["Egg", "Pork belly", "Tofu", "Salmon", "Pasta", "Shrimp", "Beef", "Kimchi", "Potato", "Chicken breast"]
-                ).map((tag) => {
+                {popularTags.map((tag) => {
                   const opt = { value: tag, label: tag, group: "ingredient" };
                   const isSelected = selectedIngredients.some(s => s.value === tag);
                   return (
@@ -1098,7 +1135,7 @@ const [allMenuSort, setAllMenuSort] = useState("name"); // "name" | "date"
           </section>
 
           {/* About Section - 검색 중에는 숨김 */}
-          {!searchActive && <AboutSection darkMode={darkMode} language={language} t={t} chefProfile={chefProfile} />}
+          {!searchActive && !chefProfile && <AboutSection darkMode={darkMode} language={language} t={t} />}
 
 
           {/* All Menu */}
