@@ -637,7 +637,7 @@ body {
 }
 
 .modal-body {
-  padding: 16px 24px 24px;
+  padding: 14px 24px 24px;
 }
 
 /* ===== Recipe Modal ===== */
@@ -689,10 +689,11 @@ body {
 
 .recipe-modal-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  margin: 12px 0 8px 0;
+  margin: 0 0 10px 0;
+  padding-right: 36px;
+  min-height: 28px;
 }
 
 .recipe-modal-title {
