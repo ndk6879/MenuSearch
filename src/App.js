@@ -350,26 +350,26 @@ function App() {
     sessionStorage.removeItem('findish_creator');
   };
 
-  const saveThumbnailOverride = async (recipeUrl, thumbnailUrl) => {
+  const saveThumbnailOverride = (recipeUrl, thumbnailUrl) => {
     const updated = { ...thumbnailOverrides, [recipeUrl]: thumbnailUrl };
     setThumbnailOverrides(updated);
     localStorage.setItem('findish_thumbnails', JSON.stringify(updated));
     const ytId = extractYouTubeId(recipeUrl);
     if (ytId) {
-      try { await setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, thumbnail: thumbnailUrl }, { merge: true }); }
-      catch (e) { console.warn('썸네일 Firestore 저장 실패:', e); }
+      setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, thumbnail: thumbnailUrl }, { merge: true })
+        .catch(e => console.warn('썸네일 Firestore 저장 실패:', e));
     }
   };
 
-  const clearThumbnailOverride = async (recipeUrl) => {
+  const clearThumbnailOverride = (recipeUrl) => {
     const updated = { ...thumbnailOverrides };
     delete updated[recipeUrl];
     setThumbnailOverrides(updated);
     localStorage.setItem('findish_thumbnails', JSON.stringify(updated));
     const ytId = extractYouTubeId(recipeUrl);
     if (ytId) {
-      try { await updateDoc(doc(db, 'recipe_edits', ytId), { thumbnail: deleteField() }); }
-      catch (e) { console.warn('썸네일 초기화 Firestore 실패:', e); }
+      updateDoc(doc(db, 'recipe_edits', ytId), { thumbnail: deleteField() })
+        .catch(e => console.warn('썸네일 초기화 Firestore 실패:', e));
     }
   };
 
@@ -393,22 +393,24 @@ function App() {
     setModalEditMode(true);
   };
 
-  const saveEditDraft = async (recipeUrl, draft) => {
+  const saveEditDraft = (recipeUrl, draft) => {
     const updates = {
       mainIngredients: draft.mainIngredients.split('\n').map(s => s.trim()).filter(Boolean),
       seasonings: draft.seasonings.split('\n').map(s => s.trim()).filter(Boolean),
       steps: draft.steps.split('\n').map(s => s.trim()).filter(Boolean),
       tip: draft.tip.trim(),
     };
+    // 로컬 즉시 반영
     const updated = { ...recipeEdits, [recipeUrl]: updates };
     setRecipeEdits(updated);
     localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
+    setModalEditMode(false);
+    // Firestore 백그라운드 저장
     const ytId = extractYouTubeId(recipeUrl);
     if (ytId) {
-      try { await setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, ...updates }, { merge: true }); }
-      catch (e) { console.warn('레시피 편집 Firestore 저장 실패:', e); }
+      setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, ...updates }, { merge: true })
+        .catch(e => console.warn('Firestore 저장 실패:', e));
     }
-    setModalEditMode(false);
   };
 
   // ── 동의어 맵: 같은 재료의 다른 표기 → 검색/표시 통일 ──
