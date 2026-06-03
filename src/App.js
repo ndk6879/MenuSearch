@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
@@ -373,12 +373,6 @@ function App() {
     }
   };
 
-  const saveRecipeEdit = (recipeUrl, field, value) => {
-    const current = recipeEdits[recipeUrl] || {};
-    const updated = { ...recipeEdits, [recipeUrl]: { ...current, [field]: value } };
-    setRecipeEdits(updated);
-    localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
-  };
 
   const openEditMode = (recipe) => {
     const saved = recipeEdits[recipe.url] || {};
@@ -388,7 +382,7 @@ function App() {
     const rawSteps = saved.steps ? saved.steps : (recipe.steps || []);
     // 앞 번호("1. ") 제거 + 내부 \n을 공백으로 정규화
     const cleanedSteps = rawSteps.map(s =>
-      s.replace(/^\d+[.\)]\s*/, '').replace(/\n/g, ' ').trim()
+      s.replace(/^\d+[.)]\s*/, '').replace(/\n/g, ' ').trim()
     ).filter(Boolean);
     setEditDraftInit({
       mainIngredients: (saved.mainIngredients || mainList).join('\n'),
@@ -1351,7 +1345,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                         {displaySteps.length > 0 ? (
                           <ol>
                             {displaySteps.map((step, i) => (
-                              <li key={i}>{step.replace(/^\d+[.\)]\s*/, '')}</li>
+                              <li key={i}>{step.replace(/^\d+[.)]\s*/, '')}</li>
                             ))}
                           </ol>
                         ) : (
