@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
@@ -12,10 +12,95 @@ import channelProfiles from "./channelData";
 import AboutSection from "./components/AboutSection";
 import translations from "./i18n";
 import chefConfig from "./chefConfig";
+import { useParams, useNavigate } from "react-router-dom";
+import { db } from './firebase';
+import { collection, doc, getDocs, setDoc, deleteField, updateDoc } from 'firebase/firestore';
 
 const IS_DEV = process.env.NODE_ENV === "development";
-const CHEF_FILTER = process.env.REACT_APP_CHEF || null;
-const chefProfile = CHEF_FILTER ? chefConfig[CHEF_FILTER] : null;
+
+// ── 편집 패널: 자체 state로 관리해 App 리렌더 방지 ──
+function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, uploaderName, onSave, onCancel, onSaveThumbnail, onClearThumbnail }) {
+  const [draft, setDraft] = useState(initialDraft);
+  const [thumbInput, setThumbInput] = useState(thumbnailUrl || '');
+  const tipLabel = uploaderName ? `${uploaderName}'s TIP` : t.tip;
+
+  return (
+    <div className="recipe-edit-panel">
+      <label className="recipe-edit-field-label">
+        {tipLabel} <span style={{ fontWeight: 400, opacity: 0.5 }}>(선택)</span>
+      </label>
+      <textarea
+        className={`recipe-edit-textarea${darkMode ? ' dark' : ''}`}
+        value={draft.tip}
+        onChange={e => setDraft(d => ({ ...d, tip: e.target.value }))}
+        rows={3}
+        placeholder="재료 준비 팁이나 맛을 더하는 포인트를 남겨보세요"
+      />
+      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>{t.mainIngredients} <span style={{ fontWeight: 400, opacity: 0.5 }}>(한 줄에 하나)</span></label>
+      <textarea
+        className={`recipe-edit-textarea${darkMode ? ' dark' : ''}`}
+        value={draft.mainIngredients}
+        onChange={e => setDraft(d => ({ ...d, mainIngredients: e.target.value }))}
+        rows={5}
+        placeholder={"파스타\n베이컨\n파마산 치즈"}
+      />
+      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>{t.seasonings} <span style={{ fontWeight: 400, opacity: 0.5 }}>(한 줄에 하나)</span></label>
+      <textarea
+        className={`recipe-edit-textarea${darkMode ? ' dark' : ''}`}
+        value={draft.seasonings}
+        onChange={e => setDraft(d => ({ ...d, seasonings: e.target.value }))}
+        rows={4}
+        placeholder={"올리브 오일\n소금\n후추"}
+      />
+      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>{t.steps} <span style={{ fontWeight: 400, opacity: 0.5 }}>(한 줄에 한 스텝)</span></label>
+      <textarea
+        className={`recipe-edit-textarea${darkMode ? ' dark' : ''}`}
+        value={draft.steps}
+        onChange={e => setDraft(d => ({ ...d, steps: e.target.value }))}
+        rows={7}
+        placeholder={"팬에 올리브오일을 두르고\n마늘을 볶는다"}
+      />
+
+      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>
+        썸네일 URL 변경 <span style={{ fontWeight: 400, opacity: 0.5 }}>(선택)</span>
+      </label>
+      <textarea
+        className={`recipe-edit-textarea${darkMode ? ' dark' : ''}`}
+        value={thumbInput}
+        onChange={e => setThumbInput(e.target.value)}
+        rows={2}
+        placeholder={"https://img.youtube.com/vi/{VIDEO_ID}/maxresdefault.jpg"}
+      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+        {thumbnailUrl && (
+          <button
+            className="recipe-edit-cancel-btn"
+            onClick={() => { setThumbInput(''); onClearThumbnail(); }}
+          >
+            원본으로
+          </button>
+        )}
+        <button
+          className="thumbnail-save-btn"
+          onClick={() => { if (thumbInput.trim()) onSaveThumbnail(thumbInput.trim()); }}
+        >
+          썸네일 저장
+        </button>
+      </div>
+
+      <div className="recipe-edit-actions">
+        <button className="recipe-edit-cancel-btn" onClick={onCancel}>취소</button>
+        <button className="recipe-edit-save-btn" onClick={() => onSave(draft)}>저장</button>
+      </div>
+    </div>
+  );
+}
+
+// slug → chefKey 역방향 맵
+const slugToKey = Object.entries(chefConfig).reduce((acc, [key, val]) => {
+  if (val.slug) acc[val.slug] = key;
+  return acc;
+}, {});
 
 const InstagramGradientIcon = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
@@ -108,6 +193,11 @@ const isValidRecipe = (item) =>
   !(item.ingredients || []).includes("Only 제품 설명 OR 홍보");
 
 function App() {
+  const { slug } = useParams();
+  const navigate = useNavigate();
+  const CHEF_FILTER = slugToKey[slug] || process.env.REACT_APP_CHEF || null;
+  const chefProfile = CHEF_FILTER ? chefConfig[CHEF_FILTER] : null;
+
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
   const [activeTab, setActiveTab] = useState("home"); // "home" | "chef" | "saved"
@@ -122,7 +212,45 @@ function App() {
   const [searchActive, setSearchActive] = useState(false);
   const [modalVideoPlaying, setModalVideoPlaying] = useState(false);
 
-  const CHEF_FILTER = process.env.REACT_APP_CHEF;
+  const [creatorUser, setCreatorUser] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('findish_creator')) || null; } catch { return null; }
+  });
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [thumbnailOverrides, setThumbnailOverrides] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('findish_thumbnails')) || {}; } catch { return {}; }
+  });
+  const [recipeEdits, setRecipeEdits] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('findish_recipe_edits')) || {}; } catch { return {}; }
+  });
+
+  // Firestore에서 전체 편집 데이터 로드 (앱 시작 시 1회)
+  useEffect(() => {
+    const loadFromFirestore = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, 'recipe_edits'));
+        const edits = {};
+        const thumbs = {};
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          if (!data.url) return;
+          const { url, thumbnail, ...editFields } = data;
+          if (Object.keys(editFields).length > 0) edits[url] = editFields;
+          if (thumbnail) thumbs[url] = thumbnail;
+        });
+        if (Object.keys(edits).length > 0) setRecipeEdits(edits);
+        if (Object.keys(thumbs).length > 0) setThumbnailOverrides(thumbs);
+      } catch (e) {
+        console.warn('Firestore 로드 실패, localStorage 사용:', e);
+      }
+    };
+    loadFromFirestore();
+  }, []);
+  const [modalEditMode, setModalEditMode] = useState(false);
+  const [editDraftInit, setEditDraftInit] = useState({ mainIngredients: '', seasonings: '', steps: '', tip: '' });
+
   const currentRawData = (language === "en" ? menuData_en : menuData_kr)
     .filter(item => !CHEF_FILTER || item.uploader === CHEF_FILTER);
 
@@ -189,6 +317,104 @@ function App() {
       localStorage.setItem("savedRecipes", JSON.stringify(next));
       return next;
     });
+  };
+
+  const handleLogin = () => {
+    const credsRaw = process.env.REACT_APP_CREATOR_CREDS || '';
+    const creds = {};
+    credsRaw.split('|').forEach(pair => {
+      const parts = pair.split(':');
+      if (parts.length >= 3) {
+        const alias = parts[0].trim();
+        const pass = parts[1].trim();
+        const uploaderName = parts.slice(2).join(':').trim();
+        if (alias) creds[alias] = { pass, uploaderName };
+      }
+    });
+    const match = creds[loginUsername.trim()];
+    if (match && match.pass === loginPassword) {
+      const user = { username: loginUsername.trim(), uploaderName: match.uploaderName };
+      setCreatorUser(user);
+      sessionStorage.setItem('findish_creator', JSON.stringify(user));
+      setLoginModalOpen(false);
+      setLoginUsername('');
+      setLoginPassword('');
+      setLoginError('');
+    } else {
+      setLoginError('아이디 또는 비밀번호가 올바르지 않습니다.');
+    }
+  };
+
+  const handleLogout = () => {
+    setCreatorUser(null);
+    sessionStorage.removeItem('findish_creator');
+  };
+
+  const saveThumbnailOverride = async (recipeUrl, thumbnailUrl) => {
+    const updated = { ...thumbnailOverrides, [recipeUrl]: thumbnailUrl };
+    setThumbnailOverrides(updated);
+    localStorage.setItem('findish_thumbnails', JSON.stringify(updated));
+    const ytId = extractYouTubeId(recipeUrl);
+    if (ytId) {
+      try { await setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, thumbnail: thumbnailUrl }, { merge: true }); }
+      catch (e) { console.warn('썸네일 Firestore 저장 실패:', e); }
+    }
+  };
+
+  const clearThumbnailOverride = async (recipeUrl) => {
+    const updated = { ...thumbnailOverrides };
+    delete updated[recipeUrl];
+    setThumbnailOverrides(updated);
+    localStorage.setItem('findish_thumbnails', JSON.stringify(updated));
+    const ytId = extractYouTubeId(recipeUrl);
+    if (ytId) {
+      try { await updateDoc(doc(db, 'recipe_edits', ytId), { thumbnail: deleteField() }); }
+      catch (e) { console.warn('썸네일 초기화 Firestore 실패:', e); }
+    }
+  };
+
+  const saveRecipeEdit = (recipeUrl, field, value) => {
+    const current = recipeEdits[recipeUrl] || {};
+    const updated = { ...recipeEdits, [recipeUrl]: { ...current, [field]: value } };
+    setRecipeEdits(updated);
+    localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
+  };
+
+  const openEditMode = (recipe) => {
+    const saved = recipeEdits[recipe.url] || {};
+    const all = [...new Set((recipe.ingredients || []).map(ing => normalizeIng(ing)))];
+    const mainList = all.filter(ing => !SEASONINGS.has(ing));
+    const seasoningList = all.filter(ing => SEASONINGS.has(ing));
+    const rawSteps = saved.steps ? saved.steps : (recipe.steps || []);
+    // 앞 번호("1. ") 제거 + 내부 \n을 공백으로 정규화
+    const cleanedSteps = rawSteps.map(s =>
+      s.replace(/^\d+[.\)]\s*/, '').replace(/\n/g, ' ').trim()
+    ).filter(Boolean);
+    setEditDraftInit({
+      mainIngredients: (saved.mainIngredients || mainList).join('\n'),
+      seasonings: (saved.seasonings || seasoningList).join('\n'),
+      steps: cleanedSteps.join('\n'),
+      tip: saved.tip || '',
+    });
+    setModalEditMode(true);
+  };
+
+  const saveEditDraft = async (recipeUrl, draft) => {
+    const updates = {
+      mainIngredients: draft.mainIngredients.split('\n').map(s => s.trim()).filter(Boolean),
+      seasonings: draft.seasonings.split('\n').map(s => s.trim()).filter(Boolean),
+      steps: draft.steps.split('\n').map(s => s.trim()).filter(Boolean),
+      tip: draft.tip.trim(),
+    };
+    const updated = { ...recipeEdits, [recipeUrl]: updates };
+    setRecipeEdits(updated);
+    localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
+    const ytId = extractYouTubeId(recipeUrl);
+    if (ytId) {
+      try { await setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, ...updates }, { merge: true }); }
+      catch (e) { console.warn('레시피 편집 Firestore 저장 실패:', e); }
+    }
+    setModalEditMode(false);
   };
 
   // ── 동의어 맵: 같은 재료의 다른 표기 → 검색/표시 통일 ──
@@ -735,6 +961,16 @@ function App() {
 const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
   const [selectedChef, setSelectedChef] = useState("all");
 
+  const creatorRecipeCounts = useMemo(() => {
+    const counts = {};
+    validRecipes.forEach(r => {
+      if (r.uploader) counts[r.uploader] = (counts[r.uploader] || 0) + 1;
+    });
+    return counts;
+  }, [validRecipes]);
+
+  const creatorList = Object.keys(channelProfiles).filter(name => creatorRecipeCounts[name] > 0);
+
   const chefOptions = Array.from(
     new Set(validRecipes.map((r) => r.uploader).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b, "ko"));
@@ -769,6 +1005,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
 
   const RecipeCard = ({ item }) => {
     const ytId = extractYouTubeId(item.url);
+    const thumbnailSrc = thumbnailOverrides[item.url] || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null);
     const allNormalized = [...new Set(
       (item.ingredients || []).map(ing => normalizeIng(ing))
     )];
@@ -795,18 +1032,32 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
     }).length;
 
     const isSaved = savedRecipes.includes(item.url);
+    const isMyRecipe = creatorUser && creatorUser.uploaderName === item.uploader;
     return (
-      <li className="menu-card" onClick={() => { setRecipeModal(item); setModalVideoPlaying(false); }}>
-        {ytId && (
+      <li className="menu-card" onClick={() => { setRecipeModal(item); setModalVideoPlaying(false); setModalEditMode(false); }}>
+        {thumbnailSrc && (
           <img
-            src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+            src={thumbnailSrc}
             alt={item.name}
             className="menu-thumbnail"
             loading="lazy"
             decoding="async"
           />
         )}
-        {IS_DEV && (
+        {isMyRecipe ? (
+          <button
+            className="menu-card-edit-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setRecipeModal(item);
+              setModalVideoPlaying(false);
+              openEditMode(item);
+            }}
+            title="편집"
+          >
+            ✏️
+          </button>
+        ) : IS_DEV && (
           <button
             className={`menu-card-save-btn${isSaved ? " saved" : ""}`}
             onClick={(e) => { e.stopPropagation(); toggleSave(item.url); }}
@@ -862,32 +1113,24 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
     <div className={darkMode ? "app dark" : "app light"}>
       <header className="header">
         <div className="header-left">
-          <a href="/" className="header-logo">Findish</a>
+          <button
+            className="header-logo"
+            onClick={() => {
+              if (slug) {
+                navigate('/');
+              } else {
+                setActiveTab('home');
+                setSelectedIngredients([]);
+                setSearchActive(false);
+                setSearchInputValue('');
+                setSearchResults(sortedData);
+              }
+            }}
+          >
+            Findish
+          </button>
         </div>
         <div className="header-right">
-          {IS_DEV && (
-            <>
-              <button
-                onClick={() => setActiveTab(activeTab === "chef" ? "home" : "chef")}
-                className={`header-link${activeTab === "chef" ? " header-link-active" : ""}`}
-              >
-                {t.aiChef}
-              </button>
-              <button
-                onClick={() => setActiveTab(activeTab === "saved" ? "home" : "saved")}
-                className={`header-link header-link-saved${activeTab === "saved" ? " header-link-active" : ""}`}
-              >
-                <FaBookmark size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
-                {savedRecipes.length > 0 && (
-                  <span className="saved-count-badge">{savedRecipes.length}</span>
-                )}
-                {language === "kr" ? "저장됨" : "Saved"}
-              </button>
-              <button onClick={() => setAnalyzeOpen(true)} className="header-link header-link-desktop">
-                Analyze
-              </button>
-            </>
-          )}
           {!chefProfile && <a href="#about" className="header-link header-link-desktop">About</a>}
           {chefProfile ? (
             <>
@@ -916,6 +1159,14 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           <button onClick={toggleDarkMode} className="dark-toggle">
             {darkMode ? "Light" : "Dark"}
           </button>
+          {creatorUser ? (
+            <>
+              <span className="header-creator-name">{creatorUser.username}</span>
+              <button onClick={handleLogout} className="header-link">로그아웃</button>
+            </>
+          ) : (
+            <button onClick={() => setLoginModalOpen(true)} className="header-link header-login-btn">로그인</button>
+          )}
         </div>
       </header>
 
@@ -924,22 +1175,51 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
         <AnalyzePanel apiBase="http://localhost:8000" />
       </Modal>
 
+      {/* Login Modal */}
+      <Modal open={loginModalOpen} onClose={() => { setLoginModalOpen(false); setLoginError(''); setLoginUsername(''); setLoginPassword(''); }} darkMode={darkMode}>
+        <div className="login-modal">
+          <h3 className="login-modal-title">로그인</h3>
+          <div className="login-modal-notice">
+            일반 사용자 회원가입 · 로그인은 <strong>Coming Soon!</strong>
+          </div>
+          <div className="login-field">
+            <label className="login-label">아이디</label>
+            <input
+              type="text"
+              value={loginUsername}
+              onChange={e => setLoginUsername(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder="크리에이터 아이디"
+              className={`login-input${darkMode ? ' dark' : ''}`}
+              autoComplete="username"
+            />
+          </div>
+          <div className="login-field">
+            <label className="login-label">비밀번호</label>
+            <input
+              type="password"
+              value={loginPassword}
+              onChange={e => setLoginPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder="비밀번호"
+              className={`login-input${darkMode ? ' dark' : ''}`}
+              autoComplete="current-password"
+            />
+          </div>
+          {loginError && <p className="login-error">{loginError}</p>}
+          <button onClick={handleLogin} className="login-submit-btn">로그인</button>
+        </div>
+      </Modal>
+
       {/* Recipe Detail Modal */}
-      <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setModalVideoPlaying(false); }} darkMode={darkMode}>
+      <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); }} darkMode={darkMode}>
         {recipeModal && (
           <div className="recipe-modal">
             <div className="recipe-modal-header">
               <h2 className="recipe-modal-title">{recipeModal.name}</h2>
-              {IS_DEV && (
-                <button
-                  className={`recipe-modal-save-btn${savedRecipes.includes(recipeModal.url) ? " saved" : ""}`}
-                  onClick={() => toggleSave(recipeModal.url)}
-                  title={savedRecipes.includes(recipeModal.url) ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
-                >
-                  {savedRecipes.includes(recipeModal.url)
-                    ? <><FaBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장됨" : "Saved"}</>
-                    : <><FaRegBookmark size={14} style={{ marginRight: 5 }} />{language === "kr" ? "저장하기" : "Save"}</>
-                  }
+              {creatorUser && creatorUser.uploaderName === recipeModal.uploader && !modalEditMode && (
+                <button className="recipe-edit-toggle-btn" onClick={() => openEditMode(recipeModal)}>
+                  ✏️ 편집
                 </button>
               )}
             </div>
@@ -991,55 +1271,98 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                 </div>
               );
             })()}
-            <div className="recipe-modal-section">
-              {(() => {
-                const all = [...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))];
-                const mainList = all.filter(ing => !SEASONINGS.has(ing));
-                const seasoningList = all.filter(ing => SEASONINGS.has(ing));
-                const sortedMain = [
-                  ...mainList.filter(ing => selectedIngredientValues.has(ing.toLowerCase())),
-                  ...mainList.filter(ing => !selectedIngredientValues.has(ing.toLowerCase())),
-                ];
-                return (
-                  <div className="recipe-modal-ingredients">
-                    {sortedMain.length > 0 && (
-                      <div className="ingredient-group">
-                        <span className="ingredient-group-label">{t.mainIngredients}</span>
-                        <div className="ingredient-group-pills">
-                          {sortedMain.map((ing, i) => (
-                            <span key={i} className={`ingredient-pill${selectedIngredientValues.has(ing.toLowerCase()) ? " ingredient-pill-highlight" : ""}`}>{ing}</span>
-                          ))}
+            {(() => {
+              const isMyRecipe = creatorUser && creatorUser.uploaderName === recipeModal.uploader;
+              const savedEdit = recipeEdits[recipeModal.url] || {};
+              const displaySteps = savedEdit.steps || recipeModal.steps || [];
+              const displayTip = savedEdit.tip || '';
+
+              const all = [...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))];
+              const mainList = savedEdit.mainIngredients || all.filter(ing => !SEASONINGS.has(ing));
+              const seasoningList = savedEdit.seasonings || all.filter(ing => SEASONINGS.has(ing));
+              const sortedMain = [
+                ...mainList.filter(ing => selectedIngredientValues.has(ing.toLowerCase())),
+                ...mainList.filter(ing => !selectedIngredientValues.has(ing.toLowerCase())),
+              ];
+
+              return (
+                <>
+                  {modalEditMode ? (
+                    <RecipeEditPanel
+                      key={recipeModal.url}
+                      initialDraft={editDraftInit}
+                      darkMode={darkMode}
+                      t={t}
+                      thumbnailUrl={thumbnailOverrides[recipeModal.url] || ''}
+                      uploaderName={recipeModal.uploader}
+                      onSave={draft => saveEditDraft(recipeModal.url, draft)}
+                      onCancel={() => setModalEditMode(false)}
+                      onSaveThumbnail={url => saveThumbnailOverride(recipeModal.url, url)}
+                      onClearThumbnail={() => clearThumbnailOverride(recipeModal.url)}
+                    />
+                  ) : (
+                    <>
+                      {/* TIP 섹션 — 셰프 직접 입력, 맨 위 */}
+                      {(displayTip || isMyRecipe) && (
+                        <div className="recipe-tip-section">
+                          <span className="recipe-tip-label">
+                            {recipeModal.uploader ? `${recipeModal.uploader}'s TIP` : t.tip}
+                          </span>
+                          <p className="recipe-tip-text">
+                            {displayTip || (language === 'kr' ? '곧 업데이트 예정' : 'Coming soon')}
+                          </p>
                         </div>
-                      </div>
-                    )}
-                    {seasoningList.length > 0 && (
-                      <div className="ingredient-group">
-                        <span className="ingredient-group-label ingredient-group-label--seasoning">{t.seasonings}</span>
-                        <div className="ingredient-group-pills">
-                          {seasoningList.map((ing, i) => (
-                            <span key={`s${i}`} className="ingredient-pill ingredient-pill--seasoning">{ing}</span>
-                          ))}
+                      )}
+
+                      {/* 주재료 섹션 */}
+                      {sortedMain.length > 0 && (
+                        <div className="recipe-modal-section">
+                          <h3 className="recipe-modal-section-title">{t.mainIngredients}</h3>
+                          <div className="ingredient-group-pills">
+                            {sortedMain.map((ing, i) => {
+                              const isHighlighted = selectedIngredientValues.has(ing.toLowerCase());
+                              return (
+                                <span key={i} className={`ingredient-pill${isHighlighted ? ' ingredient-pill-highlight' : ''}`}>
+                                  {ing}
+                                </span>
+                              );
+                            })}
+                          </div>
                         </div>
+                      )}
+
+                      {/* 양념&소스 섹션 */}
+                      {seasoningList.length > 0 && (
+                        <div className="recipe-modal-section">
+                          <h3 className="recipe-modal-section-title">{t.seasonings}</h3>
+                          <div className="ingredient-group-pills">
+                            {seasoningList.map((ing, i) => (
+                              <span key={i} className="ingredient-pill ingredient-pill--seasoning">
+                                {ing}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Steps 섹션 */}
+                      <div className="recipe-modal-steps">
+                        <h3 className="recipe-modal-section-title">{t.steps}</h3>
+                        {displaySteps.length > 0 ? (
+                          <ol>
+                            {displaySteps.map((step, i) => (
+                              <li key={i}>{step.replace(/^\d+[.\)]\s*/, '')}</li>
+                            ))}
+                          </ol>
+                        ) : (
+                          <p className="recipe-modal-no-steps">{t.noSteps}</p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-            <div className="recipe-modal-steps">
-              <h3 className="recipe-modal-section-title">{t.steps}</h3>
-              {recipeModal.steps && recipeModal.steps.length > 0 ? (
-                <ol>
-                  {recipeModal.steps.map((step, i) => (
-                    <li key={i}>{step}</li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="recipe-modal-no-steps">
-                  {t.noSteps}
-                </p>
-              )}
-            </div>
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
       </Modal>
@@ -1163,6 +1486,39 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           {/* About Section - 검색 중에는 숨김 */}
           {!searchActive && !chefProfile && <AboutSection darkMode={darkMode} language={language} t={t} />}
 
+          {/* Creator List */}
+          {!searchActive && !chefProfile && creatorList.length > 0 && (
+            <section className="section creator-list-section">
+              <div className="container">
+                <h2 className="section-title">{language === 'kr' ? '크리에이터' : 'Creators'}</h2>
+                <div className="creator-grid">
+                  {creatorList.map(name => {
+                    const config = chefConfig[name];
+                    const count = creatorRecipeCounts[name] || 0;
+                    return (
+                      <div key={name} className={`creator-card${darkMode ? ' dark' : ''}`}>
+                        <img
+                          src={channelProfiles[name]}
+                          alt={config?.displayName || name}
+                          className="creator-card-avatar"
+                          onError={e => { e.target.style.display = 'none'; }}
+                        />
+                        <div className="creator-card-name">{config?.displayName || name}</div>
+                        <div className="creator-card-count">{count}개 레시피</div>
+                        {config?.slug ? (
+                          <a href={`/${config.slug}`} className="creator-card-btn">
+                            페이지 보기 →
+                          </a>
+                        ) : (
+                          <span className="creator-card-btn creator-card-btn--soon">Coming Soon</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* All Menu */}
           <section className="section">

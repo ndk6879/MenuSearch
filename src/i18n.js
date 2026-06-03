@@ -21,6 +21,7 @@ const translations = {
     seasonings: "양념 & 소스",
     steps: "Steps",
     noSteps: "레시피 준비 중",
+    tip: "셰프 TIP",
 
     // About
     aboutEyebrow: "Findish의 시작",
@@ -73,6 +74,7 @@ const translations = {
     seasonings: "Seasonings & Sauces",
     steps: "Steps",
     noSteps: "Recipe coming soon",
+    tip: "Chef TIP",
 
     // About
     aboutEyebrow: "How Findish started",

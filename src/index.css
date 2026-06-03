@@ -71,6 +71,11 @@ body {
   font-weight: 700;
   text-decoration: none;
   letter-spacing: -0.02em;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
 }
 
 .app.light .header-logo {
@@ -1069,9 +1074,6 @@ body {
     transform: none;
     box-shadow: none;
   }
-  .menu-card:nth-child(n) {
-    animation-delay: 0s;
-  }
   .menu-card {
     will-change: auto;
     transform: none;
@@ -1857,18 +1859,6 @@ body {
 }
 
 /* ===== Card Fade-in Animation ===== */
-@keyframes cardFadeIn {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.menu-card {
-  animation: cardFadeIn 0.3s ease both;
-}
-.menu-card:nth-child(2) { animation-delay: 0.04s; }
-.menu-card:nth-child(3) { animation-delay: 0.08s; }
-.menu-card:nth-child(4) { animation-delay: 0.12s; }
-.menu-card:nth-child(5) { animation-delay: 0.16s; }
-.menu-card:nth-child(6) { animation-delay: 0.2s; }
 
 /* ===== Search Result Count ===== */
 .search-result-count {
@@ -2037,3 +2027,435 @@ body {
   margin: 4px 0;
   font-size: 0.95rem;
 }
+
+/* ===== Header Logo as Button ===== */
+button.header-logo {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ===== Header Creator Info ===== */
+.header-creator-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.app.light .header-creator-name { color: #4f46e5; background: #eef2ff; }
+.app.dark  .header-creator-name { color: #a5b4fc; background: #1e1b4b; }
+
+.header-login-btn {
+  border: 1px solid transparent;
+}
+.app.light .header-login-btn { border-color: #ddd; }
+.app.dark  .header-login-btn { border-color: #333; }
+
+/* ===== Login Modal ===== */
+.login-modal {
+  padding: 4px 0 8px;
+  min-width: 280px;
+}
+
+.login-modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 18px;
+  letter-spacing: -0.02em;
+}
+
+.login-modal-notice {
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+.modal-content.modal-light .login-modal-notice {
+  background: #f0f4ff;
+  color: #5566aa;
+}
+.modal-content.modal-dark .login-modal-notice {
+  background: #1a1a2e;
+  color: #7788cc;
+}
+
+.login-field {
+  margin-bottom: 14px;
+}
+
+.login-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-bottom: 6px;
+  opacity: 0.65;
+}
+
+.login-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.modal-content.modal-light .login-input {
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #111;
+}
+.modal-content.modal-light .login-input:focus { border-color: #4f46e5; }
+.modal-content.modal-dark .login-input,
+.login-input.dark {
+  border: 1px solid #444;
+  background: #222;
+  color: #eee;
+}
+.modal-content.modal-dark .login-input:focus,
+.login-input.dark:focus { border-color: #6366f1; }
+
+.login-error {
+  font-size: 0.82rem;
+  color: #e55;
+  margin: 0 0 12px;
+}
+
+.login-submit-btn {
+  all: unset;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px;
+  border-radius: 8px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: opacity 0.15s;
+}
+.login-submit-btn:hover { opacity: 0.88; }
+
+/* ===== Creator List Section ===== */
+.creator-list-section {
+  padding: 3rem 0;
+}
+
+.creator-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.creator-card {
+  border-radius: 16px;
+  padding: 24px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.creator-card:hover {
+  transform: translateY(-3px);
+}
+.app.light .creator-card {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+.app.light .creator-card:hover {
+  box-shadow: 0 8px 24px rgba(79,70,229,0.1);
+}
+.app.dark .creator-card {
+  background: #161616;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.app.dark .creator-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.creator-card-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 4px;
+}
+
+.creator-card-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.app.light .creator-card-name { color: #111; }
+.app.dark  .creator-card-name { color: #eee; }
+
+.creator-card-count {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.app.light .creator-card-count { color: #999; }
+.app.dark  .creator-card-count { color: #666; }
+
+.creator-card-btn {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.15s;
+  cursor: pointer;
+}
+.creator-card-btn:hover { opacity: 0.8; }
+.app.light .creator-card-btn {
+  background: #4f46e5;
+  color: #fff;
+}
+.app.dark .creator-card-btn {
+  background: #6366f1;
+  color: #fff;
+}
+
+.creator-card-btn--soon {
+  opacity: 0.4;
+  cursor: default;
+  font-size: 0.75rem;
+}
+.app.light .creator-card-btn--soon { background: #f0f0f0; color: #888; }
+.app.dark  .creator-card-btn--soon { background: #2a2a2a; color: #666; }
+
+@media (max-width: 1024px) {
+  .creator-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .creator-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .creator-card { padding: 18px 12px 16px; }
+  .creator-card-avatar { width: 60px; height: 60px; }
+}
+
+/* ===== Thumbnail Edit Section ===== */
+.recipe-modal-edit-section {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px dashed;
+}
+.modal-content.modal-light .recipe-modal-edit-section { border-color: #ddd; background: #fafafa; }
+.modal-content.modal-dark  .recipe-modal-edit-section { border-color: #333; background: #1a1a1a; }
+
+.recipe-modal-edit-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin: 0 0 10px;
+  opacity: 0.6;
+}
+
+.recipe-modal-edit-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.thumbnail-save-btn {
+  all: unset;
+  padding: 9px 16px;
+  border-radius: 8px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.thumbnail-save-btn:hover { opacity: 0.85; }
+
+.recipe-modal-edit-hint {
+  font-size: 0.72rem;
+  margin: 8px 0 0;
+  opacity: 0.45;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+/* ===== Recipe Section Tags ===== */
+.recipe-modal-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.recipe-section-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin: 0;
+}
+.recipe-section-tag--recipe {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.app.dark .recipe-section-tag--recipe,
+.modal-content.modal-dark .recipe-section-tag--recipe {
+  background: #1e1b4b;
+  color: #a5b4fc;
+}
+.recipe-section-tag--instruction {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.app.dark .recipe-section-tag--instruction,
+.modal-content.modal-dark .recipe-section-tag--instruction {
+  background: #052e16;
+  color: #4ade80;
+}
+
+/* ===== Recipe Edit Toggle ===== */
+.recipe-edit-toggle-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  transition: opacity 0.15s;
+}
+.modal-content.modal-light .recipe-edit-toggle-btn {
+  background: #f0f0f0;
+  color: #444;
+}
+.modal-content.modal-dark .recipe-edit-toggle-btn {
+  background: #2a2a2a;
+  color: #ccc;
+}
+.recipe-edit-toggle-btn:hover { opacity: 0.7; }
+
+/* ===== Recipe Edit Panel ===== */
+.recipe-edit-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-edit-field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+  opacity: 0.65;
+}
+
+.recipe-edit-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.modal-content.modal-light .recipe-edit-textarea,
+.recipe-edit-textarea:not(.dark) {
+  border: 1px solid #ddd;
+  background: #fafafa;
+  color: #111;
+}
+.modal-content.modal-light .recipe-edit-textarea:focus { border-color: #4f46e5; }
+.modal-content.modal-dark .recipe-edit-textarea,
+.recipe-edit-textarea.dark {
+  border: 1px solid #444;
+  background: #1e1e1e;
+  color: #eee;
+}
+.modal-content.modal-dark .recipe-edit-textarea:focus,
+.recipe-edit-textarea.dark:focus { border-color: #6366f1; }
+
+.recipe-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.recipe-edit-cancel-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+.modal-content.modal-light .recipe-edit-cancel-btn { background: #f0f0f0; color: #555; }
+.modal-content.modal-dark  .recipe-edit-cancel-btn { background: #2a2a2a; color: #aaa; }
+
+.recipe-edit-save-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 8px 20px;
+  border-radius: 8px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.recipe-edit-save-btn:hover { opacity: 0.85; }
+
+/* ===== Recipe Tip Section ===== */
+.recipe-tip-section {
+  margin-bottom: 18px;
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.recipe-tip-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 10px;
+  display: block;
+}
+
+.recipe-tip-text {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* ===== Creator Edit Badge on Card ===== */
+.menu-card-edit-badge {
+  display: none;
+}
+
+.menu-card-edit-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+  line-height: 1;
+}
+.app.light .menu-card-edit-btn { background: rgba(255,255,255,0.88); }
+.app.dark  .menu-card-edit-btn { background: rgba(0,0,0,0.6); }
