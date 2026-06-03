@@ -96,6 +96,73 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, uploaderName
   );
 }
 
+// ── 로그인 모달: 자체 state로 관리해 App 리렌더 방지 ──
+function LoginModal({ open, onClose, onLoginSuccess, darkMode }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = () => {
+    const credsRaw = process.env.REACT_APP_CREATOR_CREDS || '';
+    const creds = {};
+    credsRaw.split('|').forEach(pair => {
+      const parts = pair.split(':');
+      if (parts.length >= 3) {
+        const alias = parts[0].trim();
+        const pass = parts[1].trim();
+        const uploaderName = parts.slice(2).join(':').trim();
+        if (alias) creds[alias] = { pass, uploaderName };
+      }
+    });
+    const match = creds[username.trim()];
+    if (match && match.pass === password) {
+      onLoginSuccess({ username: username.trim(), uploaderName: match.uploaderName });
+      setUsername('');
+      setPassword('');
+      setError('');
+    } else {
+      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={() => { onClose(); setError(''); setUsername(''); setPassword(''); }} darkMode={darkMode}>
+      <div className="login-modal">
+        <h3 className="login-modal-title">로그인</h3>
+        <div className="login-modal-notice">
+          일반 사용자 회원가입 · 로그인은 <strong>Coming Soon!</strong>
+        </div>
+        <div className="login-field">
+          <label className="login-label">아이디</label>
+          <input
+            type="text"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            placeholder="크리에이터 아이디"
+            className={`login-input${darkMode ? ' dark' : ''}`}
+            autoComplete="username"
+          />
+        </div>
+        <div className="login-field">
+          <label className="login-label">비밀번호</label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            placeholder="비밀번호"
+            className={`login-input${darkMode ? ' dark' : ''}`}
+            autoComplete="current-password"
+          />
+        </div>
+        {error && <p className="login-error">{error}</p>}
+        <button onClick={handleLogin} className="login-submit-btn">로그인</button>
+      </div>
+    </Modal>
+  );
+}
+
 // slug → chefKey 역방향 맵
 const slugToKey = Object.entries(chefConfig).reduce((acc, [key, val]) => {
   if (val.slug) acc[val.slug] = key;
@@ -216,9 +283,6 @@ function App() {
     try { return JSON.parse(sessionStorage.getItem('findish_creator')) || null; } catch { return null; }
   });
   const [loginModalOpen, setLoginModalOpen] = useState(false);
-  const [loginUsername, setLoginUsername] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
   const [thumbnailOverrides, setThumbnailOverrides] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_thumbnails')) || {}; } catch { return {}; }
   });
@@ -256,12 +320,18 @@ function App() {
 
   const sortedData = [...currentRawData]
     .sort((a, b) => new Date(b.upload_date) - new Date(a.upload_date))
-    .map(item => ({
-      ...item,
-      ingredients: Array.isArray(item.ingredients)
-        ? [...item.ingredients].sort()
-        : []
-    }));
+    .map(item => {
+      const edit = recipeEdits[item.url];
+      let ingredients = item.ingredients || [];
+      // 편집된 재료가 있으면 병합해서 검색에도 반영
+      if (edit && (edit.mainIngredients?.length > 0 || edit.seasonings?.length > 0)) {
+        ingredients = [...(edit.mainIngredients || []), ...(edit.seasonings || [])];
+      }
+      return {
+        ...item,
+        ingredients: Array.isArray(ingredients) ? [...ingredients].sort() : [],
+      };
+    });
 
   const validRecipes = sortedData.filter(isValidRecipe);
 
@@ -319,30 +389,10 @@ function App() {
     });
   };
 
-  const handleLogin = () => {
-    const credsRaw = process.env.REACT_APP_CREATOR_CREDS || '';
-    const creds = {};
-    credsRaw.split('|').forEach(pair => {
-      const parts = pair.split(':');
-      if (parts.length >= 3) {
-        const alias = parts[0].trim();
-        const pass = parts[1].trim();
-        const uploaderName = parts.slice(2).join(':').trim();
-        if (alias) creds[alias] = { pass, uploaderName };
-      }
-    });
-    const match = creds[loginUsername.trim()];
-    if (match && match.pass === loginPassword) {
-      const user = { username: loginUsername.trim(), uploaderName: match.uploaderName };
-      setCreatorUser(user);
-      sessionStorage.setItem('findish_creator', JSON.stringify(user));
-      setLoginModalOpen(false);
-      setLoginUsername('');
-      setLoginPassword('');
-      setLoginError('');
-    } else {
-      setLoginError('아이디 또는 비밀번호가 올바르지 않습니다.');
-    }
+  const handleLoginSuccess = (user) => {
+    setCreatorUser(user);
+    sessionStorage.setItem('findish_creator', JSON.stringify(user));
+    setLoginModalOpen(false);
   };
 
   const handleLogout = () => {
@@ -1172,40 +1222,12 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       </Modal>
 
       {/* Login Modal */}
-      <Modal open={loginModalOpen} onClose={() => { setLoginModalOpen(false); setLoginError(''); setLoginUsername(''); setLoginPassword(''); }} darkMode={darkMode}>
-        <div className="login-modal">
-          <h3 className="login-modal-title">로그인</h3>
-          <div className="login-modal-notice">
-            일반 사용자 회원가입 · 로그인은 <strong>Coming Soon!</strong>
-          </div>
-          <div className="login-field">
-            <label className="login-label">아이디</label>
-            <input
-              type="text"
-              value={loginUsername}
-              onChange={e => setLoginUsername(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="크리에이터 아이디"
-              className={`login-input${darkMode ? ' dark' : ''}`}
-              autoComplete="username"
-            />
-          </div>
-          <div className="login-field">
-            <label className="login-label">비밀번호</label>
-            <input
-              type="password"
-              value={loginPassword}
-              onChange={e => setLoginPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="비밀번호"
-              className={`login-input${darkMode ? ' dark' : ''}`}
-              autoComplete="current-password"
-            />
-          </div>
-          {loginError && <p className="login-error">{loginError}</p>}
-          <button onClick={handleLogin} className="login-submit-btn">로그인</button>
-        </div>
-      </Modal>
+      <LoginModal
+        open={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        darkMode={darkMode}
+      />
 
       {/* Recipe Detail Modal */}
       <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); }} darkMode={darkMode}>
