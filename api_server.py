@@ -417,8 +417,11 @@ def save_recipe():
     os.makedirs(os.path.join(BASE_DIR, "src"), exist_ok=True)
     initialize_js_file_if_needed(SAVE_PATH)
 
+    existing_urls = get_existing_urls(SAVE_PATH)
     existing_pairs = get_existing_url_name_pairs(SAVE_PATH)
-    is_duplicate = (r.get("video_url"), r.get("name")) in existing_pairs
+    # URL만 같아도 중복으로 처리 (메뉴명 달라도)
+    is_url_duplicate = r.get("video_url") in existing_urls
+    is_duplicate = is_url_duplicate or (r.get("video_url"), r.get("name")) in existing_pairs
 
     if is_duplicate and not overwrite:
         return jsonify({"ok": True, "saved": False, "reason": "duplicate"}), 200
@@ -452,6 +455,7 @@ def save_recipe():
 def delete_recipe():
     data = request.get_json() or {}
     video_url = data.get("video_url", "").strip()
+    name = data.get("name", "").strip() or None
     if not video_url:
         return jsonify({"ok": False, "error": "video_url이 비어 있습니다."}), 400
 
@@ -461,7 +465,7 @@ def delete_recipe():
         if video_url not in existing:
             return jsonify({"ok": True, "deleted": False, "reason": "not_found"}), 200
 
-        remove_from_js(video_url, file_path=SAVE_PATH)
+        remove_from_js(video_url, name=name, file_path=SAVE_PATH)
         finalize_js_file(SAVE_PATH)
         return jsonify({"ok": True, "deleted": True}), 200
     except Exception as e:

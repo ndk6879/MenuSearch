@@ -19,7 +19,7 @@ const translations = {
     ingredients: "재료",
     mainIngredients: "주재료",
     seasonings: "양념 & 소스",
-    steps: "Steps",
+    steps: "INSTRUCTION",
     noSteps: "레시피 준비 중",
     tip: "셰프 TIP",
 
@@ -72,7 +72,7 @@ const translations = {
     ingredients: "Ingredients",
     mainIngredients: "Main Ingredients",
     seasonings: "Seasonings & Sauces",
-    steps: "Steps",
+    steps: "INSTRUCTION",
     noSteps: "Recipe coming soon",
     tip: "Chef TIP",
 

@@ -28,3 +28,4 @@ logs
 menu_results.json
 
 __pycache__
+.vercel

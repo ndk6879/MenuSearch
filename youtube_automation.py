@@ -13,6 +13,8 @@ from googleapiclient.errors import HttpError
 import google.generativeai as genai
 from google import genai as genai_new
 from google.genai import types as genai_types
+from groq import Groq as GroqClient
+from youtube_transcript_api import YouTubeTranscriptApi
 
 # -----------------------------
 # 로깅 / 유틸
@@ -68,10 +70,14 @@ load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 SONAR_API_KEY = os.getenv("SONAR_API_KEY")
 
-# ✅ Gemini 설정 (영상 직접 분석용)
+# ✅ Gemini 설정 (영상 직접 분석 fallback용)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or API_KEY
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
+
+# ✅ Groq 설정 (텍스트 분석 — 무료)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+_groq_client = GroqClient(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 
 # -----------------------------
@@ -201,37 +207,43 @@ def finalize_js_file(file_path="src/menuData_kr.js"):
     except Exception as e:
         safe_print(f"❌ 데이터 실패: {e}")
 
-def remove_from_js(video_url, file_path="src/menuData_kr.js"):
-    """menuData_kr.js에서 특정 URL의 항목을 제거"""
+def _block_matches(block, video_url, name=None):
+    url_match = (f'"url": "{video_url}"' in block or f'"url":"{video_url}"' in block)
+    if not url_match:
+        return False
+    if name:
+        return (f'"name": "{name}"' in block or f'"name":"{name}"' in block)
+    return True
+
+def remove_from_js(video_url, name=None, file_path="src/menuData_kr.js"):
+    """menuData_kr.js에서 특정 URL(+이름) 항목을 제거 — 첫 번째 매치 1건만 삭제"""
     if not os.path.exists(file_path):
         return
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # JSON 항목들을 찾아서 해당 URL 항목 제거
     lines = content.splitlines()
     new_lines = []
     skip = False
     brace_depth = 0
+    deleted = False
+
     for line in lines:
         if not skip:
-            # 새 JSON 객체 시작 감지 (배열 선언 줄이 아닌 { 로 시작하는 줄)
             stripped = line.strip()
             if stripped.startswith('{') and 'const ' not in line and 'export ' not in line:
-                # 이 항목에 해당 URL이 있는지 미리 확인
-                # brace가 닫힐 때까지 모아서 체크
                 block_lines = [line]
                 brace_depth = line.count('{') - line.count('}')
                 if brace_depth > 0:
                     skip = True
                     continue
                 else:
-                    # 한 줄짜리 JSON
                     block = '\n'.join(block_lines)
-                    if f'"url": "{video_url}"' not in block and f'"url":"{video_url}"' not in block:
-                        new_lines.append(line)
-                    else:
+                    if not deleted and _block_matches(block, video_url, name):
                         safe_print(f"🗑️ 기존 항목 제거: {video_url}")
+                        deleted = True
+                    else:
+                        new_lines.append(line)
                     continue
             new_lines.append(line)
         else:
@@ -240,11 +252,11 @@ def remove_from_js(video_url, file_path="src/menuData_kr.js"):
             if brace_depth <= 0:
                 skip = False
                 block = '\n'.join(block_lines)
-                if f'"url": "{video_url}"' not in block and f'"url":"{video_url}"' not in block:
-                    new_lines.extend(block_lines)
-                else:
+                if not deleted and _block_matches(block, video_url, name):
                     safe_print(f"🗑️ 기존 항목 제거: {video_url}")
-                    # 다음 줄이 쉼표로 시작하면 그것도 제거
+                    deleted = True
+                else:
+                    new_lines.extend(block_lines)
                 block_lines = []
 
     with open(file_path, "w", encoding="utf-8") as f:
@@ -405,6 +417,157 @@ def get_description(youtube, video_id):
         return None
 
 # -----------------------------
+# 자막(transcript) 가져오기
+# -----------------------------
+def get_transcript(video_id: str) -> str | None:
+    api = YouTubeTranscriptApi()
+    # 한국어 우선, 없으면 영어 자동자막 시도
+    for langs in [["ko"], ["ko", "en"], ["en"]]:
+        try:
+            entries = api.fetch(video_id, languages=langs)
+            text = " ".join(e.get("text", "") for e in entries)
+            if len(text) > 100:
+                safe_print(f"📝 [자막] {len(text)}자 수집 (언어: {langs[0]})")
+                return text
+        except Exception:
+            continue
+    safe_print("⏭️ [자막] 사용 가능한 자막 없음")
+    return None
+
+
+# -----------------------------
+# Groq 텍스트 분석 (고정댓글/더보기란/자막) — 무료
+# -----------------------------
+def ask_groq_from_text(raw_text, source_name=""):
+    if not _groq_client:
+        safe_print("❌ GROQ_API_KEY 없음 → 텍스트 분석 불가")
+        return None
+
+    prefix = {
+        "고정댓글": "이 텍스트는 유튜브 요리 영상의 고정 댓글입니다.",
+        "더보기란": (
+            "이 텍스트는 유튜브 영상의 더보기란(설명)입니다. "
+            "더보기란에는 협찬/홍보/SNS 링크/구독 요청 등 레시피와 무관한 내용이 있을 수 있습니다. "
+            "재료 목록이나 요리 순서가 있으면 최대한 추출하세요. "
+            "협찬/SNS 링크/구독 요청 등 레시피와 완전히 무관한 내용은 무시하세요. "
+            "재료나 순서가 전혀 없을 때만 빈 배열 []로 두세요."
+        ),
+        "자막": (
+            "이 텍스트는 유튜브 요리 영상의 자막(스크립트)입니다. "
+            "잡담/광고/인트로/아웃트로/브랜드 멘트는 제외하고 **요리 과정**만 추려서 순서를 만드세요. "
+            "가능하면 명령형 동사(썰다, 볶다, 끓이다 등) 기준으로 3~12단계로 나누세요."
+        )
+    }.get(source_name, "")
+
+    prompt = f"""{prefix}
+
+다음 텍스트에서 **메인 메뉴 이름**, **재료(중복 제거)**, **단계별 요리 순서**를 JSON 형식으로만 출력하세요.
+
+⚠️ 중요 규칙:
+- 텍스트에 **명시적으로 적혀 있는** 재료와 순서만 추출하세요.
+- 절대로 추측하거나 일반 상식으로 재료/순서를 지어내지 마세요.
+- 재료가 텍스트에 나열되어 있지 않으면 "재료": [] (빈 배열)로 하세요.
+- 요리 순서/과정이 텍스트에 설명되어 있지 않으면 "순서": [] (빈 배열)로 하세요.
+- 메뉴/재료/순서 3개의 키를 반드시 포함하세요.
+- 재료는 양념(소금, 후추, 간장 등), 오일, 물 등 소량 재료도 빠짐없이 포함하세요.
+- 재료는 **이름만** 적으세요. 용량/수량은 제외 (예: "소금 1큰술" → "소금", "계란 3개" → "계란").
+- 재료명 표기 통일: 올리브오일→"올리브 오일", 고춧가루류→"고춧가루", 간장류→"간장", 후추류→"후추", 버터류→"버터", 계란/달걀→"계란".
+- 재료 정렬: 주재료(육류/해산물/채소) → 양념/소스 → 기타(오일/물/가루) 순서.
+- 텍스트가 제품 홍보/광고 위주이거나 요리와 관련 없으면 "분석 불가"라고만 답하세요.
+
+형식:
+{{
+  "메뉴": "메뉴 이름",
+  "재료": ["재료1", "재료2", ...],
+  "순서": ["단계1", "단계2", ...]
+}}
+
+텍스트:
+{sanitize(raw_text[:6000])}
+"""
+
+    try:
+        resp = _groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1500,
+            temperature=0.1,
+        )
+        result = sanitize(resp.choices[0].message.content or "")
+        safe_print(f"✅ [Groq {source_name}] 응답 수신 ({len(result)}자)")
+        return result
+    except Exception as e:
+        safe_print(f"❌ Groq 텍스트 분석 실패 ({source_name}): {e}")
+        return None
+
+
+# -----------------------------
+# 오디오 다운로드 + Groq Whisper 전사
+# -----------------------------
+def download_audio(video_id: str) -> str | None:
+    """yt-dlp로 오디오만 다운로드. 파일 경로 반환, 실패시 None."""
+    import tempfile
+    out_dir = tempfile.mkdtemp()
+    out_tmpl = os.path.join(out_dir, "%(id)s.%(ext)s")
+    cmd = [
+        "yt-dlp",
+        "-x",                        # 오디오만 추출
+        "--audio-format", "mp3",
+        "--audio-quality", "5",      # 중간 품질 (파일 크기 절약)
+        "--max-filesize", "20M",     # Groq 25MB 제한 여유있게
+        "--ffmpeg-location", "/opt/homebrew/bin/ffmpeg",
+        "--cookies-from-browser", "chrome",
+        "-o", out_tmpl,
+        "--no-playlist",
+        "--quiet",
+        f"https://www.youtube.com/watch?v={video_id}",
+    ]
+    try:
+        safe_print(f"⬇️ [오디오] 다운로드 중...")
+        result = __import__("subprocess").run(cmd, capture_output=True, timeout=60)
+        if result.returncode != 0:
+            safe_print(f"❌ [오디오] 다운로드 실패: {result.stderr.decode()[:200]}")
+            return None
+        for fname in os.listdir(out_dir):
+            if fname.endswith(".mp3"):
+                path = os.path.join(out_dir, fname)
+                size_mb = os.path.getsize(path) / 1024 / 1024
+                safe_print(f"✅ [오디오] 다운로드 완료 ({size_mb:.1f}MB)")
+                return path
+        return None
+    except Exception as e:
+        safe_print(f"❌ [오디오] 다운로드 오류: {e}")
+        return None
+
+
+def transcribe_with_groq(audio_path: str) -> str | None:
+    """Groq Whisper로 한국어 오디오 전사. 텍스트 반환, 실패시 None."""
+    if not _groq_client:
+        return None
+    try:
+        safe_print(f"🎙️ [Whisper] Groq Whisper 전사 중...")
+        with open(audio_path, "rb") as f:
+            resp = _groq_client.audio.transcriptions.create(
+                file=(os.path.basename(audio_path), f),
+                model="whisper-large-v3",
+                language="ko",
+                response_format="text",
+            )
+        text = sanitize(str(resp))
+        safe_print(f"✅ [Whisper] 전사 완료 ({len(text)}자)")
+        return text if len(text) > 50 else None
+    except Exception as e:
+        safe_print(f"❌ [Whisper] 전사 실패: {e}")
+        return None
+    finally:
+        try:
+            os.remove(audio_path)
+            os.rmdir(os.path.dirname(audio_path))
+        except Exception:
+            pass
+
+
+# -----------------------------
 # Gemini 텍스트 분석 (고정댓글/더보기란)
 # -----------------------------
 def ask_gemini_from_text(raw_text, source_name=""):
@@ -547,7 +710,7 @@ def analyze_one_video(url: str) -> dict:
         all_results = {}
         multi_dish_results = []
 
-        # ---- 텍스트 소스 수집
+        # ---- 텍스트 소스 수집 (자막 포함)
         text_sources = {}
         if comment_text and comment_text.strip():
             text_sources["고정댓글"] = comment_text
@@ -558,21 +721,49 @@ def analyze_one_video(url: str) -> dict:
         else:
             safe_print("⏭️ [더보기란] 텍스트 없음 → 스킵")
 
-        # ---- 텍스트 분석 + 영상 분석 병렬 실행 (항상)
-        safe_print(f"🔍 텍스트 분석 + 영상 분석 병렬 시작...")
+        transcript_text = get_transcript(video_id)
+        if transcript_text:
+            text_sources["자막"] = transcript_text
+        else:
+            safe_print("⏭️ [자막] 없음 → 스킵")
+
+        # ---- Groq으로 텍스트 소스 병렬 분석
+        safe_print(f"🔍 텍스트 분석 시작 (Groq)...")
         with ThreadPoolExecutor(max_workers=3) as executor:
             text_futures = {
-                name: executor.submit(ask_gemini_from_text, text, name)
+                name: executor.submit(ask_groq_from_text, text, name)
                 for name, text in text_sources.items()
             }
-            video_future = executor.submit(analyze_video_with_gemini, video_id)
-
             for name, future in text_futures.items():
                 parsed = parse_text_source(future.result(), name)
                 if parsed:
                     all_results[name] = parsed
 
-            video_raw = video_future.result()
+        # ---- 오디오 전사 fallback: 텍스트 소스 없거나 재료 부족할 때
+        has_steps = any(len(r.get("순서", [])) >= 1 for r in all_results.values())
+        has_enough_ingredients = any(len(r.get("재료", [])) >= 3 for r in all_results.values())
+
+        whisper_text = None
+        if not has_enough_ingredients or not has_steps:
+            safe_print(f"🎙️ 텍스트 소스 부족 → Groq Whisper 오디오 전사 시도...")
+            audio_path = download_audio(video_id)
+            if audio_path:
+                whisper_text = transcribe_with_groq(audio_path)
+                if whisper_text:
+                    text_sources["음성전사"] = whisper_text
+                    parsed = parse_text_source(
+                        ask_groq_from_text(whisper_text, "음성전사"), "음성전사"
+                    )
+                    if parsed:
+                        all_results["음성전사"] = parsed
+        else:
+            safe_print(f"✅ 텍스트 소스 충분 → 오디오 전사 생략")
+
+        # ---- Gemini 영상 분석은 모든 소스 실패 시 마지막 fallback
+        video_raw = None
+        if not all_results:
+            safe_print(f"🎬 모든 소스 실패 → Gemini 영상 분석 마지막 시도...")
+            video_raw = analyze_video_with_gemini(video_id)
 
         # ---- 영상 분석 결과 처리
         if video_raw:
@@ -622,7 +813,7 @@ def analyze_one_video(url: str) -> dict:
         best_text_ingredients = None
         best_text_source = None
         best_text_name = None
-        for src in ["고정댓글", "더보기란"]:
+        for src in ["고정댓글", "더보기란", "자막", "음성전사"]:
             if src not in all_results:
                 continue
             p = all_results[src]
@@ -661,7 +852,7 @@ def analyze_one_video(url: str) -> dict:
             best_steps_source = "영상 분석"
             safe_print(f"🎬 [순서] 영상 분석 채택: {len(best_steps)}단계")
         else:
-            for src in ["고정댓글", "더보기란"]:
+            for src in ["고정댓글", "더보기란", "자막", "음성전사"]:
                 if src in all_results and is_valid(all_results[src]["순서"]) and len(all_results[src]["순서"]) >= 1:
                     if not best_steps or len(all_results[src]["순서"]) > len(best_steps):
                         best_steps = all_results[src]["순서"]

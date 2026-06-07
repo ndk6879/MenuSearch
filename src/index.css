@@ -531,6 +531,36 @@ body {
   max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
+  position: relative;
+}
+
+.pill-tip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.pill-tip-wrapper[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 20, 0.88);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 9999;
+  animation: tooltipFadeIn 0.12s ease;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(3px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 .app.light .ingredient-pill {
@@ -695,10 +725,9 @@ body {
 .recipe-modal-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin: 0 0 10px 0;
-  padding-right: 36px;
-  min-height: 28px;
+  min-height: 32px;
 }
 
 .recipe-modal-title {
@@ -876,15 +905,6 @@ body {
   font-size: 0.7rem !important;
 }
 
-.app.light .ingredient-pill--seasoning {
-  background-color: #fff3e0;
-  color: #b06820;
-}
-
-.app.dark .ingredient-pill--seasoning {
-  background-color: #2a1a06;
-  color: #c08840;
-}
 
 /* 카드용 양념 뱃지 */
 .ingredient-pill--seasoning-card {
@@ -893,6 +913,7 @@ body {
 
 .recipe-modal-steps {
   padding: 0;
+  margin-top: 18px;
   margin-bottom: 16px;
 }
 
@@ -1826,16 +1847,18 @@ body {
 
 /* ===== Ingredient Highlight ===== */
 .ingredient-pill-highlight {
-  font-weight: 700 !important;
+  font-weight: 600 !important;
 }
 
 .app.light .ingredient-pill-highlight {
-  background: #4f46e5 !important;
-  color: #fff !important;
+  background: #fff3e0 !important;
+  color: #b06820 !important;
+  border-color: #fcd9a0 !important;
 }
 .app.dark .ingredient-pill-highlight {
-  background: #6366f1 !important;
-  color: #fff !important;
+  background: #2a1a06 !important;
+  color: #c08840 !important;
+  border-color: #5a3a10 !important;
 }
 
 /* ===== Recipe Card Match Badge ===== */
@@ -1843,19 +1866,19 @@ body {
   display: inline-flex;
   align-items: center;
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 600;
   padding: 1px 7px;
   border-radius: 999px;
   margin-left: auto;
   letter-spacing: 0.02em;
 }
 .app.light .menu-match-badge {
-  background: #4f46e5;
-  color: #fff;
+  background: #fff3e0;
+  color: #b06820;
 }
 .app.dark .menu-match-badge {
-  background: #6366f1;
-  color: #fff;
+  background: #2a1a06;
+  color: #c08840;
 }
 
 /* ===== Card Fade-in Animation ===== */
@@ -2264,19 +2287,6 @@ button.header-logo {
   align-items: center;
 }
 
-.thumbnail-save-btn {
-  all: unset;
-  padding: 9px 16px;
-  border-radius: 8px;
-  background: #4f46e5;
-  color: #fff;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: opacity 0.15s;
-}
-.thumbnail-save-btn:hover { opacity: 0.85; }
 
 .recipe-modal-edit-hint {
   font-size: 0.72rem;
@@ -2341,6 +2351,107 @@ button.header-logo {
   color: #ccc;
 }
 .recipe-edit-toggle-btn:hover { opacity: 0.7; }
+.recipe-edit-toggle-btn--delete {
+  color: #e53e3e !important;
+}
+.modal-content.modal-dark .recipe-edit-toggle-btn--delete {
+  color: #fc8181 !important;
+}
+.recipe-edit-toggle-btn.btn-hidden-state {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+/* ===== Ingredient Chips Editor ===== */
+.ing-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  min-height: 44px;
+}
+.ing-chips-container.dark {
+  background: #1e1e1e;
+  border-color: #444;
+}
+.ing-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 10px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  background: #e8e8e8;
+  color: #222;
+}
+.ing-chip.dark { background: #333; color: #ddd; }
+.ing-chip-remove {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #999;
+  line-height: 1;
+}
+.ing-chip-remove:hover { color: #e55; }
+.ing-chip-add-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+}
+.ing-chip-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #111;
+  padding: 2px 4px;
+}
+.ing-chip-input.dark { color: #ddd; }
+.ing-chip-input::placeholder { color: #aaa; }
+.ing-chip-add-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: #4f46e5;
+  font-weight: 500;
+  padding: 2px 6px;
+}
+.ing-chip-add-btn:hover { opacity: 0.7; }
+
+.recipe-modal-close-btn {
+  all: unset;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+.modal-content.modal-light .recipe-modal-close-btn {
+  color: #555;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+.modal-content.modal-light .recipe-modal-close-btn:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+.modal-content.modal-dark .recipe-modal-close-btn {
+  color: #999;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+.modal-content.modal-dark .recipe-modal-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
 
 /* ===== Recipe Edit Panel ===== */
 .recipe-edit-panel {
@@ -2419,16 +2530,16 @@ button.header-logo {
 /* ===== Recipe Tip Section ===== */
 .recipe-tip-section {
   margin-bottom: 18px;
-  padding: 6px 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 0;
 }
 
 .recipe-tip-label {
   font-size: 0.95rem;
   font-weight: 600;
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   display: block;
 }
 
@@ -2459,3 +2570,193 @@ button.header-logo {
 }
 .app.light .menu-card-edit-btn { background: rgba(255,255,255,0.88); }
 .app.dark  .menu-card-edit-btn { background: rgba(0,0,0,0.6); }
+
+/* 카드 액션 버튼 그룹 */
+.menu-card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+.menu-card-action-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 20px;
+  backdrop-filter: blur(6px);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+.app.light .menu-card-action-btn {
+  background: rgba(255,255,255,0.9);
+  color: #333;
+}
+.app.dark .menu-card-action-btn {
+  background: rgba(0,0,0,0.65);
+  color: #ddd;
+}
+.menu-card-action-btn--delete {
+  color: #e53e3e !important;
+}
+.app.dark .menu-card-action-btn--delete {
+  color: #fc8181 !important;
+}
+
+/* 중복 배지 */
+.menu-duplicate-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  background: #e53e3e;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+
+/* 비공개 카드 오버레이 */
+.menu-card.card-hidden { opacity: 0.45; }
+.menu-card.card-hidden::after {
+  content: '비공개';
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 20px;
+  z-index: 3;
+}
+
+/* steps 편집 UI */
+.steps-edit-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.step-edit-row { display: flex; align-items: center; gap: 6px; }
+.step-edit-number { font-size: 0.82rem; font-weight: 600; color: #888; min-width: 20px; text-align: right; flex-shrink: 0; }
+.step-edit-input {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 0.88rem;
+  font-family: inherit;
+  outline: none;
+  background: #fafafa;
+  color: #111;
+  transition: border-color 0.15s;
+}
+.step-edit-input.dark { background: #1e1e1e; color: #ddd; border-color: #444; }
+.step-edit-input:focus { border-color: #4f46e5; }
+.step-edit-remove {
+  all: unset; cursor: pointer; color: #aaa; font-size: 1rem; padding: 0 4px;
+  flex-shrink: 0;
+}
+.step-edit-remove:hover { color: #e55; }
+.step-edit-add {
+  all: unset; cursor: pointer; font-size: 0.82rem; color: #4f46e5;
+  margin-top: 4px; padding: 4px 0;
+}
+.step-edit-add:hover { opacity: 0.7; }
+
+/* ===== Thumbnail Upload Zone ===== */
+.thumb-upload-zone {
+  position: relative;
+  width: 100%;
+  border: 2px dashed #ddd;
+  border-radius: 10px;
+  background: #fafafa;
+  cursor: pointer;
+  overflow: hidden;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+  margin-top: 4px;
+  box-sizing: border-box;
+}
+.thumb-upload-zone.dark { background: #1e1e1e; border-color: #444; }
+.thumb-upload-zone.dragging { border-color: #4f46e5; background: #f0effe; }
+.thumb-upload-zone.dragging.dark { background: #1a1833; }
+.thumb-upload-zone:hover { border-color: #aaa; }
+.thumb-upload-zone.dark:hover { border-color: #666; }
+.thumb-upload-zone:has(img) {
+  border-color: transparent;
+  background: transparent;
+  min-height: unset;
+}
+
+.thumb-preview-img {
+  width: 60%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+.thumb-upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 20px;
+  color: #888;
+  font-size: 0.84rem;
+  text-align: center;
+}
+.thumb-upload-sub { font-size: 0.75rem; color: #bbb; }
+
+.thumb-uploading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  border-radius: 8px;
+}
+
+.thumb-error-msg {
+  color: #e55;
+  font-size: 0.78rem;
+  margin: 4px 0 0;
+}
+
+.thumb-revert-btn {
+  all: unset;
+  cursor: pointer;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: #888;
+  text-decoration: underline;
+  display: inline-block;
+}
+.thumb-revert-btn:hover { color: #444; }
+
+/* 요리명 편집 input */
+.recipe-edit-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 0.88rem;
+  font-family: inherit;
+  outline: none;
+  background: #fafafa;
+  color: #111;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.recipe-edit-input.dark { background: #1e1e1e; color: #ddd; border-color: #444; }
+.recipe-edit-input:focus { border-color: #4f46e5; }

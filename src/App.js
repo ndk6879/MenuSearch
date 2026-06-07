@@ -14,19 +14,91 @@ import translations from "./i18n";
 import chefConfig from "./chefConfig";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from './firebase';
-import { collection, doc, getDocs, setDoc, deleteField, updateDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, setDoc, deleteField, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from './firebase';
 
 const IS_DEV = process.env.NODE_ENV === "development";
 
 // ── 편집 패널: 자체 state로 관리해 App 리렌더 방지 ──
-function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, uploaderName, onSave, onCancel, onSaveThumbnail, onClearThumbnail }) {
+function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, uploaderName, onSave, onCancel, onSaveThumbnail, onClearThumbnail }) {
   const [draft, setDraft] = useState(initialDraft);
-  const [thumbInput, setThumbInput] = useState(thumbnailUrl || '');
+  const [thumbPreview, setThumbPreview] = useState(thumbnailUrl || null);
+  const [thumbUploading, setThumbUploading] = useState(false);
+  const [thumbError, setThumbError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [ingredientsList, setIngredientsList] = useState(() =>
+    initialDraft.mainIngredients ? initialDraft.mainIngredients.split('\n').filter(Boolean) : []
+  );
+  const [ingInput, setIngInput] = useState('');
+  const [ingComposing, setIngComposing] = useState(false);
+  const [stepsList, setStepsList] = useState(() =>
+    initialDraft.steps ? initialDraft.steps.split('\n').filter(Boolean) : ['']
+  );
   const tipLabel = uploaderName ? `${uploaderName}'s TIP` : t.tip;
+
+  const addIngredient = (val) => {
+    const v = (val ?? ingInput).trim();
+    if (v) { setIngredientsList(l => [...l, v]); setIngInput(''); }
+  };
+
+  const handleThumbFile = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setThumbError('이미지 파일만 업로드 가능합니다.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setThumbError('5MB 이하 파일만 업로드 가능합니다.'); return; }
+    setThumbError('');
+    setThumbUploading(true);
+    const localPreview = URL.createObjectURL(file);
+    setThumbPreview(localPreview);
+    try {
+      const ytId = recipeUrl?.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || Date.now();
+      const storageRef = ref(storage, `thumbnails/${ytId}_${Date.now()}`);
+      await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(storageRef);
+      onSaveThumbnail(downloadUrl);
+      setThumbPreview(downloadUrl);
+    } catch (e) {
+      setThumbError('업로드 실패. 다시 시도해주세요.');
+      setThumbPreview(thumbnailUrl || null);
+    } finally {
+      setThumbUploading(false);
+    }
+  };
+
+  const makeStepHandlers = (list, setList, prefix) => ({
+    onChange: (i, val) => { const n = [...list]; n[i] = val; setList(n); },
+    onKeyDown: (e, i) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const n = [...list]; n.splice(i + 1, 0, ''); setList(n);
+        setTimeout(() => document.getElementById(`${prefix}-${i + 1}`)?.focus(), 0);
+      }
+      if (e.key === 'Backspace' && list[i] === '' && list.length > 1) {
+        e.preventDefault();
+        setList(list.filter((_, idx) => idx !== i));
+        setTimeout(() => document.getElementById(`${prefix}-${Math.max(0, i - 1)}`)?.focus(), 0);
+      }
+    },
+    onRemove: (i) => setList(list.filter((_, idx) => idx !== i)),
+    onAdd: () => setList([...list, '']),
+  });
+
+  const stepHandlers = makeStepHandlers(stepsList, setStepsList, 'step-input');
+
+  const handleSave = () => {
+    onSave({ ...draft, mainIngredients: ingredientsList.filter(Boolean).join('\n'), steps: stepsList.filter(Boolean).join('\n') });
+  };
 
   return (
     <div className="recipe-edit-panel">
-      <label className="recipe-edit-field-label">
+      <label className="recipe-edit-field-label">요리명</label>
+      <input
+        className={`recipe-edit-input${darkMode ? ' dark' : ''}`}
+        value={draft.name || ''}
+        onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
+        placeholder="요리 이름"
+      />
+      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>
         {tipLabel} <span style={{ fontWeight: 400, opacity: 0.5 }}>(선택)</span>
       </label>
       <textarea
@@ -36,61 +108,83 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, uploaderName
         rows={3}
         placeholder="재료 준비 팁이나 맛을 더하는 포인트를 남겨보세요"
       />
-      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>{t.mainIngredients} <span style={{ fontWeight: 400, opacity: 0.5 }}>(한 줄에 하나)</span></label>
-      <textarea
-        className={`recipe-edit-textarea${darkMode ? ' dark' : ''}`}
-        value={draft.mainIngredients}
-        onChange={e => setDraft(d => ({ ...d, mainIngredients: e.target.value }))}
-        rows={5}
-        placeholder={"파스타\n베이컨\n파마산 치즈"}
-      />
-      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>{t.seasonings} <span style={{ fontWeight: 400, opacity: 0.5 }}>(한 줄에 하나)</span></label>
-      <textarea
-        className={`recipe-edit-textarea${darkMode ? ' dark' : ''}`}
-        value={draft.seasonings}
-        onChange={e => setDraft(d => ({ ...d, seasonings: e.target.value }))}
-        rows={4}
-        placeholder={"올리브 오일\n소금\n후추"}
-      />
-      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>{t.steps} <span style={{ fontWeight: 400, opacity: 0.5 }}>(한 줄에 한 스텝)</span></label>
-      <textarea
-        className={`recipe-edit-textarea${darkMode ? ' dark' : ''}`}
-        value={draft.steps}
-        onChange={e => setDraft(d => ({ ...d, steps: e.target.value }))}
-        rows={7}
-        placeholder={"팬에 올리브오일을 두르고\n마늘을 볶는다"}
-      />
+      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>RECIPE</label>
+      <div className={`ing-chips-container${darkMode ? ' dark' : ''}`}>
+        {ingredientsList.map((ing, i) => (
+          <span key={i} className={`ing-chip${darkMode ? ' dark' : ''}`}>
+            {ing}
+            <button className="ing-chip-remove" onClick={() => setIngredientsList(l => l.filter((_, idx) => idx !== i))}>×</button>
+          </span>
+        ))}
+        <div className="ing-chip-add-row">
+          <input
+            className={`ing-chip-input${darkMode ? ' dark' : ''}`}
+            value={ingInput}
+            onChange={e => setIngInput(e.target.value)}
+            onCompositionStart={() => setIngComposing(true)}
+            onCompositionEnd={e => { setIngComposing(false); setIngInput(e.target.value); }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !ingComposing) { e.preventDefault(); addIngredient(); }
+            }}
+            placeholder="재료 추가 후 Enter"
+          />
+          <button className="ing-chip-add-btn" onClick={() => addIngredient()}>추가</button>
+        </div>
+      </div>
+      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>INSTRUCTION</label>
+      <div className="steps-edit-list">
+        {stepsList.map((step, i) => (
+          <div key={i} className="step-edit-row">
+            <span className="step-edit-number">{i + 1}.</span>
+            <input
+              id={`step-input-${i}`}
+              className={`step-edit-input${darkMode ? ' dark' : ''}`}
+              value={step}
+              onChange={e => stepHandlers.onChange(i, e.target.value)}
+              onKeyDown={e => stepHandlers.onKeyDown(e, i)}
+              placeholder={`스텝 ${i + 1}`}
+            />
+            {stepsList.length > 1 && (
+              <button className="step-edit-remove" onClick={() => stepHandlers.onRemove(i)}>×</button>
+            )}
+          </div>
+        ))}
+        <button className="step-edit-add" onClick={stepHandlers.onAdd}>+ 스텝 추가</button>
+      </div>
 
       <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>
-        썸네일 URL 변경 <span style={{ fontWeight: 400, opacity: 0.5 }}>(선택)</span>
+        썸네일 <span style={{ fontWeight: 400, opacity: 0.5 }}>(선택)</span>
       </label>
-      <textarea
-        className={`recipe-edit-textarea${darkMode ? ' dark' : ''}`}
-        value={thumbInput}
-        onChange={e => setThumbInput(e.target.value)}
-        rows={2}
-        placeholder={"https://img.youtube.com/vi/{VIDEO_ID}/maxresdefault.jpg"}
-      />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
-        {thumbnailUrl && (
-          <button
-            className="recipe-edit-cancel-btn"
-            onClick={() => { setThumbInput(''); onClearThumbnail(); }}
-          >
-            원본으로
-          </button>
+      <div
+        className={`thumb-upload-zone${isDragging ? ' dragging' : ''}${darkMode ? ' dark' : ''}`}
+        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={e => { e.preventDefault(); setIsDragging(false); handleThumbFile(e.dataTransfer.files[0]); }}
+        onClick={() => document.getElementById('thumb-file-input').click()}
+      >
+        {thumbPreview ? (
+          <img src={thumbPreview} alt="썸네일 미리보기" className="thumb-preview-img" />
+        ) : (
+          <div className="thumb-upload-placeholder">
+            <span>사진을 드래그하거나 클릭해서 업로드</span>
+            <span className="thumb-upload-sub">JPG, PNG, WEBP · 최대 5MB</span>
+          </div>
         )}
-        <button
-          className="thumbnail-save-btn"
-          onClick={() => { if (thumbInput.trim()) onSaveThumbnail(thumbInput.trim()); }}
-        >
-          썸네일 저장
-        </button>
+        {thumbUploading && <div className="thumb-uploading-overlay">업로드 중...</div>}
       </div>
+      <input id="thumb-file-input" type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={e => handleThumbFile(e.target.files[0])} />
+      {thumbError && <p className="thumb-error-msg">{thumbError}</p>}
+      {thumbnailUrl && (
+        <button className="thumb-revert-btn"
+          onClick={() => { setThumbPreview(null); onClearThumbnail(); }}>
+          원본으로 되돌리기
+        </button>
+      )}
 
       <div className="recipe-edit-actions">
         <button className="recipe-edit-cancel-btn" onClick={onCancel}>취소</button>
-        <button className="recipe-edit-save-btn" onClick={() => onSave(draft)}>저장</button>
+        <button className="recipe-edit-save-btn" onClick={handleSave}>저장</button>
       </div>
     </div>
   );
@@ -130,7 +224,7 @@ function LoginModal({ open, onClose, onLoginSuccess, darkMode }) {
       <div className="login-modal">
         <h3 className="login-modal-title">로그인</h3>
         <div className="login-modal-notice">
-          일반 사용자 회원가입 · 로그인은 <strong>Coming Soon!</strong>
+          현재는 크리에이터 전용 베타입니다. 곧 모두에게 오픈돼요 :)
         </div>
         <div className="login-field">
           <label className="login-label">아이디</label>
@@ -200,6 +294,97 @@ function extractYouTubeId(url) {
   return match ? match[1] : null;
 }
 
+const RecipeCard = React.memo(function RecipeCard({
+  item, thumbnailSrc, isHidden, isSaved, isMyRecipe, isCreator, isDuplicate,
+  selectedIngredientValues, selectedIngredients, language,
+  normalizeIng,
+  onOpen, onToggleSave, onToggleHidden, onEdit, onDelete,
+}) {
+  const allNormalized = [...new Set((item.ingredients || []).map(ing => normalizeIng(ing)))];
+  const mainIngs = allNormalized.filter(ing => !SEASONINGS.has(ing));
+  const seasoningIngs = allNormalized.filter(ing => SEASONINGS.has(ing));
+  const highlightedMain = mainIngs.filter(ing => selectedIngredientValues.has(ing.toLowerCase()));
+  const restMain = mainIngs.filter(ing => !selectedIngredientValues.has(ing.toLowerCase()));
+  const cardIngredients = [...highlightedMain, ...restMain];
+  const matchCount = mainIngs.filter(ing => {
+    const normalizedIng = normalizeIng(ing);
+    return selectedIngredients.filter(s => s.group !== "menu").some(opt => {
+      const normalizedVal = normalizeIng(opt.value);
+      if (parentMap[normalizedVal]) {
+        const allVariants = [normalizedVal, ...parentMap[normalizedVal].map(c => normalizeIng(c))];
+        return allVariants.includes(normalizedIng);
+      }
+      return normalizedIng.toLowerCase() === normalizedVal.toLowerCase();
+    });
+  }).length;
+
+  return (
+    <li className={`menu-card${isHidden ? ' card-hidden' : ''}`} onClick={onOpen}>
+      {thumbnailSrc && (
+        <img src={thumbnailSrc} alt={item.name} className="menu-thumbnail" loading="lazy" decoding="async" />
+      )}
+      {isDuplicate && (
+        <span className="menu-duplicate-badge">중복</span>
+      )}
+      {isMyRecipe ? (
+        <div className="menu-card-actions">
+          <button className="menu-card-action-btn" onClick={onToggleHidden}>
+            {isHidden ? '비공개' : '공개'}
+          </button>
+          <button className="menu-card-action-btn" onClick={onEdit}>편집</button>
+        </div>
+      ) : IS_DEV && (
+        <button
+          className={`menu-card-save-btn${isSaved ? " saved" : ""}`}
+          onClick={onToggleSave}
+          title={isSaved ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
+        >
+          {isSaved ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
+        </button>
+      )}
+      <div className="menu-text">
+        <div className="menu-name">{item.name || "No Name"}</div>
+        {item.uploader && (
+          <div className="menu-chef-row">
+            <img
+              src={channelProfiles[item.uploader] || ""}
+              alt={item.uploader}
+              className="menu-chef-avatar"
+              onError={(e) => { e.target.style.display = "none"; }}
+            />
+            <span className="menu-uploader">{item.uploader}</span>
+            {matchCount > 0 && (
+              <span className="menu-match-badge">{matchCount}/{mainIngs.length}</span>
+            )}
+          </div>
+        )}
+        <div className="ingredient-tags">
+          {cardIngredients.slice(0, 5).map((ing, i) => {
+            const isHighlighted = selectedIngredientValues.has(ing.toLowerCase());
+            return (
+              <span key={i} className="pill-tip-wrapper" data-tip={ing}>
+                <span className={`ingredient-pill${isHighlighted ? " ingredient-pill-highlight" : ""}`}>
+                  {ing}
+                </span>
+              </span>
+            );
+          })}
+          {cardIngredients.length > 5 && (
+            <span className="ingredient-pill ingredient-pill-more">
+              +{cardIngredients.length - 5}
+            </span>
+          )}
+          {seasoningIngs.length > 0 && (
+            <span className="ingredient-pill ingredient-pill--seasoning ingredient-pill--seasoning-card">
+              {language === "kr" ? `+양념 ${seasoningIngs.length}` : `+Seasonings ${seasoningIngs.length}`}
+            </span>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+});
+
 const EN_PLURAL_MAP = {
   "eggs": "egg", "egg yolks": "egg yolk",
   "tomatoes": "tomato", "onions": "onion", "green onions": "green onion",
@@ -259,6 +444,53 @@ const isValidRecipe = (item) =>
   item.name !== "분석 불가" &&
   !(item.ingredients || []).includes("Only 제품 설명 OR 홍보");
 
+const SEASONINGS = new Set([
+  "소금","후추","설탕","밀가루","기름","면수","샐러리 소금","백후추","핑크 페퍼콘","슈가파우더","아이싱 슈가",
+  "올리브 오일","식용유","참기름","들기름","고추기름","오리 기름","트러플","트러플 오일","화이트 트러플 오일","오일",
+  "간장","된장","고추장","고춧가루","참치액","연두","새우젓","액젓",
+  "청주","미림","유자청","청하",
+  "식초","발사믹 식초","화이트 발사믹","사과 식초","와인 식초","레드와인 식초","화이트 와인 비니거",
+  "꿀","조청","물엿","올리고당","매실청","매실액",
+  "케첩","마요네즈","굴소스","굴 소스","우스터 소스","타바스코","타바스코 소스","스리라차 소스","디종 머스타드","홀그레인 머스타드",
+  "치킨스톡","치킨 스톡","코인 육수","야채 육수","채소 육수","조개 육수","해물 육수",
+  "월계수잎","타임","로즈마리","오레가노","차이브","민트","파슬리","허브","양꼬치 시즈닝",
+  "깨","흰깨","검은깨","통깨",
+  "파프리카 파우더","파프리카 가루","스모크 파프리카","넛맥","계피","클로브",
+  "전분","베이킹 파우더","MSG","옥수수 전분","클래식 비네그레트",
+  "salt","pepper","sugar","flour","oil",
+  "olive oil","sesame oil","vegetable oil","perilla oil","chili oil",
+  "truffle","truffle oil","white truffle oil",
+  "soy sauce","miso","gochujang","red pepper flakes","fish sauce","salted shrimp",
+  "rice wine","mirin","yuja syrup","cheongha","sake",
+  "vinegar","balsamic vinegar","balsamic glaze","white balsamic","apple cider vinegar",
+  "wine vinegar","red wine vinegar","white wine vinegar",
+  "honey","corn syrup","rice syrup","oligosaccharide","plum syrup",
+  "ketchup","mayonnaise","oyster sauce","worcestershire sauce","hot sauce",
+  "tabasco","sriracha","dijon mustard","whole grain mustard",
+  "chicken stock","vegetable stock","seafood stock","chicken broth","vegetable broth","broth","beef stock",
+  "bay leaf","thyme","rosemary","oregano","chives","mint","herb",
+  "parsley","basil","dill","cilantro",
+  "black pepper","white pepper","pink peppercorns","cayenne pepper",
+  "peperoncino","chili powder","red pepper powder","gochugaru",
+  "paprika powder","smoked paprika","nutmeg","cinnamon","clove",
+  "curry powder","celery salt",
+  "cornstarch","starch","baking powder","msg",
+  "brown sugar","powdered sugar","classic vinaigrette","perilla seed powder",
+]);
+
+const parentMap = {
+  "돼지고기": ["삼겹살","목살","항정살","돼지등갈비","돼지 뒷다리살","돼지 앞다리살","돼지 등심","돼지갈비","듀록"],
+  "닭고기": ["닭가슴살","닭다리","닭다리살","수비드 닭가슴살","닭발","닭뼈","닭간","토종닭 다리"],
+  "소고기": ["소고기 갈비살","안심","양갈비","LA갈비","소고기 등심","한우패티","토마호크","채끝살","우둔살","우삼겹","떡갈비"],
+  "치즈": ["파마산 치즈","크림치즈","페타 치즈","부라타 치즈","블루 치즈","까망베르 치즈","고르곤졸라 치즈","리코타 치즈","모짜렐라 치즈","그뤼에르 치즈","체다 치즈"],
+  "김치": ["묵은지","백김치"],
+  "버섯": ["표고 버섯","느타리 버섯","팽이 버섯","새송이 버섯","포르치니 버섯","양송이 버섯"],
+  "토마토": ["방울토마토","선드라이토마토","토마토소스","토마토홀"],
+  "식초": ["발사믹 식초","화이트 발사믹"],
+  "빵": ["식빵"],
+  "파스타": ["스파게티","링귀네","펜네","부카티니","카펠리니","탈리아텔레"],
+};
+
 function App() {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -275,12 +507,12 @@ function App() {
   const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
   const [language, setLanguage] = useState(defaultLanguage);
   const t = translations[language];
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('findish_dark') === 'true');
   const [searchActive, setSearchActive] = useState(false);
   const [modalVideoPlaying, setModalVideoPlaying] = useState(false);
 
   const [creatorUser, setCreatorUser] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem('findish_creator')) || null; } catch { return null; }
+    try { return JSON.parse(localStorage.getItem('findish_creator')) || null; } catch { return null; }
   });
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [thumbnailOverrides, setThumbnailOverrides] = useState(() => {
@@ -290,11 +522,11 @@ function App() {
     try { return JSON.parse(localStorage.getItem('findish_recipe_edits')) || {}; } catch { return {}; }
   });
 
-  // Firestore에서 전체 편집 데이터 로드 (앱 시작 시 1회)
+  // Firestore 실시간 리스너 (onSnapshot) — 다른 기기 변경사항 즉시 반영
   useEffect(() => {
-    const loadFromFirestore = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, 'recipe_edits'));
+    const unsub = onSnapshot(
+      collection(db, 'recipe_edits'),
+      (snapshot) => {
         const edits = {};
         const thumbs = {};
         snapshot.forEach(docSnap => {
@@ -304,36 +536,61 @@ function App() {
           if (Object.keys(editFields).length > 0) edits[url] = editFields;
           if (thumbnail) thumbs[url] = thumbnail;
         });
-        if (Object.keys(edits).length > 0) setRecipeEdits(edits);
-        if (Object.keys(thumbs).length > 0) setThumbnailOverrides(thumbs);
-      } catch (e) {
-        console.warn('Firestore 로드 실패, localStorage 사용:', e);
-      }
-    };
-    loadFromFirestore();
+        setRecipeEdits(prev => {
+          const merged = { ...prev, ...edits };
+          localStorage.setItem('findish_recipe_edits', JSON.stringify(merged));
+          return merged;
+        });
+        setThumbnailOverrides(thumbs);
+        localStorage.setItem('findish_thumbnails', JSON.stringify(thumbs));
+      },
+      (e) => console.warn('Firestore 리스너 실패, localStorage 사용:', e)
+    );
+    return () => unsub();
   }, []);
   const [modalEditMode, setModalEditMode] = useState(false);
   const [editDraftInit, setEditDraftInit] = useState({ mainIngredients: '', seasonings: '', steps: '', tip: '' });
+  const [deletedKeys, setDeletedKeys] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('findish_deleted_urls');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+  const [confirmDialog, setConfirmDialog] = useState(null); // { message, onConfirm }
 
-  const currentRawData = (language === "en" ? menuData_en : menuData_kr)
-    .filter(item => !CHEF_FILTER || item.uploader === CHEF_FILTER);
+  const currentRawData = useMemo(() =>
+    (language === "en" ? menuData_en : menuData_kr)
+      .filter(item => !CHEF_FILTER || item.uploader === CHEF_FILTER),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [language]
+  );
 
-  const sortedData = [...currentRawData]
-    .sort((a, b) => new Date(b.upload_date) - new Date(a.upload_date))
-    .map(item => {
-      const edit = recipeEdits[item.url];
-      let ingredients = item.ingredients || [];
-      // 편집된 재료가 있으면 병합해서 검색에도 반영
-      if (edit && (edit.mainIngredients?.length > 0 || edit.seasonings?.length > 0)) {
-        ingredients = [...(edit.mainIngredients || []), ...(edit.seasonings || [])];
-      }
-      return {
-        ...item,
-        ingredients: Array.isArray(ingredients) ? [...ingredients].sort() : [],
-      };
-    });
+  const sortedData = useMemo(() =>
+    [...currentRawData]
+      .sort((a, b) => new Date(b.upload_date) - new Date(a.upload_date))
+      .map(item => {
+        const edit = recipeEdits[item.url];
+        let ingredients = item.ingredients || [];
+        if (edit && (edit.mainIngredients?.length > 0 || edit.seasonings?.length > 0)) {
+          ingredients = [...(edit.mainIngredients || []), ...(edit.seasonings || [])];
+        }
+        return {
+          ...item,
+          name: edit?.name || item.name,
+          hidden: edit?.hidden || false,
+          ingredients: Array.isArray(ingredients) ? [...ingredients].sort() : [],
+        };
+      }),
+    [currentRawData, recipeEdits]
+  );
 
-  const validRecipes = sortedData.filter(isValidRecipe);
+  const isCreator = !!creatorUser;
+  const validRecipes = useMemo(() =>
+    sortedData.filter(item =>
+      isValidRecipe(item) && (!(recipeEdits[item.url]?.hidden) || isCreator)
+    ),
+    [sortedData, recipeEdits, isCreator]
+  );
 
   const POPULAR_TAG_BLOCKLIST = new Set([
     "소금", "후추", "설탕", "물", "식용유", "올리브 오일", "올리브오일", "올리브유",
@@ -379,7 +636,11 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
-  const toggleDarkMode = () => setDarkMode(prev => !prev);
+  const toggleDarkMode = () => setDarkMode(prev => {
+    const next = !prev;
+    localStorage.setItem('findish_dark', String(next));
+    return next;
+  });
 
   const toggleSave = (url) => {
     setSavedRecipes(prev => {
@@ -391,13 +652,13 @@ function App() {
 
   const handleLoginSuccess = (user) => {
     setCreatorUser(user);
-    sessionStorage.setItem('findish_creator', JSON.stringify(user));
+    localStorage.setItem('findish_creator', JSON.stringify(user));
     setLoginModalOpen(false);
   };
 
   const handleLogout = () => {
     setCreatorUser(null);
-    sessionStorage.removeItem('findish_creator');
+    localStorage.removeItem('findish_creator');
   };
 
   const saveThumbnailOverride = (recipeUrl, thumbnailUrl) => {
@@ -434,9 +695,14 @@ function App() {
     const cleanedSteps = rawSteps.map(s =>
       s.replace(/^\d+[.)]\s*/, '').replace(/\n/g, ' ').trim()
     ).filter(Boolean);
+    const combinedIngredients = [
+      ...(saved.mainIngredients || mainList),
+      ...(saved.seasonings || seasoningList),
+    ];
     setEditDraftInit({
-      mainIngredients: (saved.mainIngredients || mainList).join('\n'),
-      seasonings: (saved.seasonings || seasoningList).join('\n'),
+      name: saved.name || recipe.name || '',
+      mainIngredients: combinedIngredients.join('\n'),
+      seasonings: '',
       steps: cleanedSteps.join('\n'),
       tip: saved.tip || '',
     });
@@ -444,21 +710,37 @@ function App() {
   };
 
   const saveEditDraft = (recipeUrl, draft) => {
+    const existing = recipeEdits[recipeUrl] || {};
     const updates = {
+      ...(existing.hidden !== undefined ? { hidden: existing.hidden } : {}),
+      name: draft.name?.trim() || '',
       mainIngredients: draft.mainIngredients.split('\n').map(s => s.trim()).filter(Boolean),
-      seasonings: draft.seasonings.split('\n').map(s => s.trim()).filter(Boolean),
+      seasonings: [],
       steps: draft.steps.split('\n').map(s => s.trim()).filter(Boolean),
       tip: draft.tip.trim(),
     };
-    // 로컬 즉시 반영
     const updated = { ...recipeEdits, [recipeUrl]: updates };
     setRecipeEdits(updated);
     localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
     setModalEditMode(false);
-    // Firestore 백그라운드 저장
     const ytId = extractYouTubeId(recipeUrl);
     if (ytId) {
       setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, ...updates }, { merge: true })
+        .catch(e => console.warn('Firestore 저장 실패:', e));
+    }
+  };
+
+  const toggleHidden = (e, recipeUrl) => {
+    e.stopPropagation();
+    const existing = recipeEdits[recipeUrl] || {};
+    const newHidden = !existing.hidden;
+    const updates = { ...existing, hidden: newHidden };
+    const updated = { ...recipeEdits, [recipeUrl]: updates };
+    setRecipeEdits(updated);
+    localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
+    const ytId = extractYouTubeId(recipeUrl);
+    if (ytId) {
+      setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, hidden: newHidden }, { merge: true })
         .catch(e => console.warn('Firestore 저장 실패:', e));
     }
   };
@@ -703,19 +985,6 @@ function App() {
 
   // ── 상위어 맵: "돼지고기" 검색 시 삼겹살/목살 등 포함 레시피도 매칭 ──
   // 하지만 삼겹살/목살은 여전히 개별 검색 가능
-  const parentMap = {
-    "돼지고기": ["삼겹살", "목살", "항정살", "돼지등갈비", "돼지 뒷다리살", "돼지 앞다리살", "돼지 등심", "돼지갈비", "듀록"],
-    "닭고기": ["닭가슴살", "닭다리", "닭다리살", "수비드 닭가슴살", "닭발", "닭뼈", "닭간", "토종닭 다리"],
-    "소고기": ["소고기 갈비살", "안심", "양갈비", "LA갈비", "소고기 등심", "한우패티", "토마호크", "채끝살", "우둔살", "우삼겹", "떡갈비"],
-    "치즈": ["파마산 치즈", "크림치즈", "페타 치즈", "부라타 치즈", "블루 치즈", "까망베르 치즈", "고르곤졸라 치즈", "리코타 치즈", "모짜렐라 치즈", "그뤼에르 치즈", "체다 치즈"],
-    "김치": ["묵은지", "백김치"],
-    "버섯": ["표고 버섯", "느타리 버섯", "팽이 버섯", "새송이 버섯", "포르치니 버섯", "양송이 버섯"],
-    "토마토": ["방울토마토", "선드라이토마토", "토마토소스", "토마토홀"],
-    "식초": ["발사믹 식초", "화이트 발사믹"],
-    "빵": ["식빵"],
-    "파스타": ["스파게티", "링귀네", "펜네", "부카티니", "카펠리니", "탈리아텔레"],
-  };
-
   // ── 패턴 기반 자동 정규화: 산지 접두사 / 용량 제거 ──
   const autoNormalize = (ing) => {
     let s = ing.trim();
@@ -727,7 +996,8 @@ function App() {
   };
 
   // autoNormalize → synonymMap 순서로 정규화 (EN 모드는 소문자 + 복수형 통일)
-  const normalizeIng = (ing) => {
+  // useCallback으로 안정화 — language 변경 시에만 재생성
+  const normalizeIng = React.useCallback((ing) => {
     if (language === "en") {
       const lower = ing.trim().toLowerCase();
       const depluraled = EN_PLURAL_MAP[lower] || lower;
@@ -735,93 +1005,16 @@ function App() {
     }
     const auto = autoNormalize(ing);
     return synonymMap[auto] || synonymMap[ing] || auto;
-  };
+  }, [language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 드롭다운에서 제외할 기본 재료 (너무 흔해서 검색 의미 없음)
   const EXCLUDED_INGREDIENTS = new Set([
     "소금", "후추", "물", "설탕", "밀가루", "기름", "면수",
-    // 육수류
     "육수", "야채 육수", "채소 육수", "조개 육수", "해물 육수",
-    // EN
     "salt", "pepper", "water", "sugar", "flour", "oil", "pasta water",
     "cooking oil", "kitchen twine",
   ]);
 
-  // 양념류 정의 — 카드 pill에서 숨기고, 모달에서 "양념 & 소스" 섹션으로 분리 표시
-  const SEASONINGS = new Set([
-    // ── 기본 양념 ──
-    "소금", "후추", "설탕", "밀가루", "기름", "면수",
-    // 소금 파생형
-    "샐러리 소금",
-    // 후추 파생형 (synonymMap에 없는 것)
-    "백후추", "핑크 페퍼콘",
-    // 설탕 파생형
-    "슈가파우더", "아이싱 슈가",
-
-    // ── 기름/오일류 ──
-    "올리브 오일", "식용유", "참기름", "들기름", "고추기름", "오리 기름",
-    "트러플", "트러플 오일", "화이트 트러플 오일", "오일",
-
-    // ── 발효/간장류 ──
-    "간장", "된장", "고추장", "고춧가루", "참치액", "연두", "새우젓", "액젓",
-
-    // ── 술류 ──
-    "청주", "미림", "유자청", "청하",
-
-    // ── 식초류 ──
-    "식초", "발사믹 식초", "화이트 발사믹", "사과 식초", "와인 식초", "레드와인 식초",
-    "화이트 와인 비니거",
-
-    // ── 당류 ──
-    "꿀", "조청", "물엿", "올리고당", "매실청", "매실액",
-
-    // ── 소스/드레싱 ──
-    "케첩", "마요네즈", "굴소스", "굴 소스", "우스터 소스",
-    "타바스코", "타바스코 소스", "스리라차 소스",
-    "디종 머스타드", "홀그레인 머스타드",
-
-    // ── 스톡/육수 ──
-    "치킨스톡", "치킨 스톡", "코인 육수",
-    "야채 육수", "채소 육수", "조개 육수", "해물 육수",
-
-    // ── 건허브/향신료 ──
-    "월계수잎", "타임", "로즈마리", "오레가노",
-    "차이브", "민트", "파슬리",
-    "허브", "양꼬치 시즈닝",
-    // ── 고명/장식 ──
-    "깨", "흰깨", "검은깨", "통깨",
-
-    // ── 파우더/가루류 ──
-    "파프리카 파우더", "파프리카 가루", "스모크 파프리카", "넛맥", "계피", "클로브",
-
-    // ── 기타 조미료 ──
-    "전분", "베이킹 파우더", "MSG", "옥수수 전분",
-
-    // ── 드레싱 ──
-    "클래식 비네그레트",
-
-    // ── EN equivalents ──
-    "salt", "pepper", "sugar", "flour", "oil",
-    "olive oil", "sesame oil", "vegetable oil", "perilla oil", "chili oil",
-    "truffle", "truffle oil", "white truffle oil",
-    "soy sauce", "miso", "gochujang", "red pepper flakes", "fish sauce", "salted shrimp",
-    "rice wine", "mirin", "yuja syrup", "cheongha", "sake",
-    "vinegar", "balsamic vinegar", "balsamic glaze", "white balsamic", "apple cider vinegar",
-    "wine vinegar", "red wine vinegar", "white wine vinegar",
-    "honey", "corn syrup", "rice syrup", "oligosaccharide", "plum syrup",
-    "ketchup", "mayonnaise", "oyster sauce", "worcestershire sauce", "hot sauce",
-    "tabasco", "sriracha", "dijon mustard", "whole grain mustard",
-    "chicken stock", "vegetable stock", "seafood stock", "chicken broth", "vegetable broth", "broth", "beef stock",
-    "bay leaf", "thyme", "rosemary", "oregano", "chives", "mint", "herb",
-    "parsley", "basil", "dill", "cilantro",
-    "black pepper", "white pepper", "pink peppercorns", "cayenne pepper",
-    "peperoncino", "chili powder", "red pepper powder", "gochugaru",
-    "paprika powder", "smoked paprika", "nutmeg", "cinnamon", "clove",
-    "curry powder", "celery salt",
-    "cornstarch", "starch", "baking powder", "msg",
-    "brown sugar", "powdered sugar",
-    "classic vinaigrette", "perilla seed powder",
-  ]);
 
   // 노이즈 재료 필터 (조리 설명 문장 등)
   const isNoisyIngredient = (ing) => {
@@ -898,41 +1091,50 @@ function App() {
     setSearchResults(filtered);
   };
 
-  const allIngredientsRaw = sortedData
-    .flatMap((item) => item.ingredients || [])
-    .filter((ing) => typeof ing === "string" && ing !== "Only 제품 설명 OR 홍보");
-
-  // 정규화된 재료별 등장 횟수 집계
-  const ingredientFreq = {};
-  for (const ing of allIngredientsRaw) {
-    if (isNoisyIngredient(ing)) continue;
-    const normalized = normalizeIng(ing);
-    if (isNoisyIngredient(normalized)) continue;
-    ingredientFreq[normalized] = (ingredientFreq[normalized] || 0) + 1;
-  }
-
-  const normalizedIngredientsSet = new Set();
-  const ingredientOptions = [];
-
-  for (const [normalized, count] of Object.entries(ingredientFreq)) {
-    if (count <= 2) continue; // 2회 이하 재료는 드롭다운에서 제외
-    if (!normalizedIngredientsSet.has(normalized)) {
-      normalizedIngredientsSet.add(normalized);
-      ingredientOptions.push({ value: normalized, label: normalized });
+  const ingredientOptions = useMemo(() => {
+    const allIngredientsRaw = sortedData
+      .flatMap((item) => item.ingredients || [])
+      .filter((ing) => typeof ing === "string" && ing !== "Only 제품 설명 OR 홍보");
+    const ingredientFreq = {};
+    for (const ing of allIngredientsRaw) {
+      if (isNoisyIngredient(ing)) continue;
+      const normalized = normalizeIng(ing);
+      if (isNoisyIngredient(normalized)) continue;
+      ingredientFreq[normalized] = (ingredientFreq[normalized] || 0) + 1;
     }
-  }
-
-  // 상위어(돼지고기, 닭고기 등)는 KR 모드에서만 추가 (EN 모드는 영어 재료로 대체)
-  if (language === "kr") {
-    for (const parent of Object.keys(parentMap)) {
-      if (!normalizedIngredientsSet.has(parent)) {
-        normalizedIngredientsSet.add(parent);
-        ingredientOptions.push({ value: parent, label: parent });
+    const normalizedIngredientsSet = new Set();
+    const options = [];
+    const editedIngredientSet = new Set();
+    Object.values(recipeEdits).forEach(edit => {
+      [...(edit.mainIngredients || []), ...(edit.seasonings || [])].forEach(ing => {
+        if (typeof ing === 'string' && ing.trim()) editedIngredientSet.add(normalizeIng(ing.trim()));
+      });
+    });
+    for (const [normalized, count] of Object.entries(ingredientFreq)) {
+      if (count <= 2) continue;
+      if (!normalizedIngredientsSet.has(normalized)) {
+        normalizedIngredientsSet.add(normalized);
+        options.push({ value: normalized, label: normalized });
       }
     }
-  }
-
-  ingredientOptions.sort((a, b) => a.label.localeCompare(b.label, "ko"));
+    editedIngredientSet.forEach(normalized => {
+      if (normalized && !normalizedIngredientsSet.has(normalized)) {
+        normalizedIngredientsSet.add(normalized);
+        options.push({ value: normalized, label: normalized });
+      }
+    });
+    if (language === "kr") {
+      for (const parent of Object.keys(parentMap)) {
+        if (!normalizedIngredientsSet.has(parent)) {
+          normalizedIngredientsSet.add(parent);
+          options.push({ value: parent, label: parent });
+        }
+      }
+    }
+    options.sort((a, b) => a.label.localeCompare(b.label, "ko"));
+    return options;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedData, recipeEdits, language]);
 
   // 메뉴명 옵션 (그룹 분리)
   const menuNameOptions = validRecipes
@@ -1002,7 +1204,7 @@ function App() {
       },
     ];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIngredients]);
+  }, [selectedIngredients, recipeEdits]);
 
 const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
   const [selectedChef, setSelectedChef] = useState("all");
@@ -1021,10 +1223,17 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
     new Set(validRecipes.map((r) => r.uploader).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b, "ko"));
 
+  // 검색 입력 디바운스 (150ms) — 모바일 성능 개선
+  const [debouncedInput, setDebouncedInput] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedInput(searchInputValue), 150);
+    return () => clearTimeout(t);
+  }, [searchInputValue]);
+
   // 태그 미선택 + 타이핑 중일 때 라이브 필터링
   const liveFilteredData = useMemo(() => {
-    if (searchActive || !searchInputValue.trim()) return null;
-    const q = searchInputValue.trim().toLowerCase();
+    if (searchActive || !debouncedInput.trim()) return null;
+    const q = debouncedInput.trim().toLowerCase();
     return sortedData.filter(item =>
       isValidRecipe(item) && (
         (item.name || "").toLowerCase().includes(q) ||
@@ -1032,125 +1241,87 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       )
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInputValue, searchActive]);
+  }, [debouncedInput, searchActive, sortedData]);
 
-  const filteredResults = (liveFilteredData || searchResults.filter(isValidRecipe)).filter((r) =>
-    selectedChef === "all" ? true : r.uploader === selectedChef
+  const filteredResults = useMemo(() =>
+    (liveFilteredData || searchResults.filter(isValidRecipe))
+      .filter(r => !(recipeEdits[r.url]?.hidden) || isCreator)
+      .filter(r => selectedChef === "all" ? true : r.uploader === selectedChef)
+      .filter(r => !deletedKeys.has(r.url)),
+    [liveFilteredData, searchResults, recipeEdits, isCreator, selectedChef, deletedKeys]
   );
 
-  const sortedResults = [...filteredResults].sort((a, b) => {
-    if (allMenuSort === "name") {
-      return (a.name || "").localeCompare(b.name || "", "ko");
-    }
-    return new Date(b.upload_date) - new Date(a.upload_date);
-  });
-
-  const selectedIngredientValues = new Set(
-    selectedIngredients.map(s => normalizeIng(s.value).toLowerCase())
+  const sortedResults = useMemo(() =>
+    [...filteredResults].sort((a, b) =>
+      allMenuSort === "name"
+        ? (a.name || "").localeCompare(b.name || "", "ko")
+        : new Date(b.upload_date) - new Date(a.upload_date)
+    ),
+    [filteredResults, allMenuSort]
   );
 
-  const RecipeCard = ({ item }) => {
+  const selectedIngredientValues = useMemo(() =>
+    new Set(selectedIngredients.map(s => normalizeIng(s.value).toLowerCase())),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedIngredients]
+  );
+
+  const duplicateUrls = useMemo(() => {
+    const counts = {};
+    validRecipes.forEach(item => {
+      const url = (item.url || "").trim();
+      if (url) counts[url] = (counts[url] || 0) + 1;
+    });
+    return new Set(Object.keys(counts).filter(u => counts[u] > 1));
+  }, [validRecipes]);
+
+  const handleDeleteRecipe = (e, url, name) => {
+    e.stopPropagation();
+    setConfirmDialog({
+      message: `'${name}' 레시피를 삭제하시겠습니까?`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          const res = await fetch("http://localhost:8000/delete-recipe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ video_url: url, name }),
+          });
+          const data = await res.json();
+          if (data.ok && data.deleted) {
+            setDeletedKeys(prev => {
+              const next = new Set([...prev, url]);
+              try { sessionStorage.setItem('findish_deleted_urls', JSON.stringify([...next])); } catch {}
+              return next;
+            });
+            setSearchResults(prev => prev.filter(r => r.url !== url));
+            if (recipeModal?.url === url && recipeModal?.name === name) setRecipeModal(null);
+          }
+        } catch {}
+      },
+    });
+  };
+
+  const makeCardProps = (item) => {
     const ytId = extractYouTubeId(item.url);
-    const thumbnailSrc = thumbnailOverrides[item.url] || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null);
-    const allNormalized = [...new Set(
-      (item.ingredients || []).map(ing => normalizeIng(ing))
-    )];
-
-    // 주재료 vs 양념 분리
-    const mainIngs = allNormalized.filter(ing => !SEASONINGS.has(ing));
-    const seasoningIngs = allNormalized.filter(ing => SEASONINGS.has(ing));
-
-    // 주재료 중 선택한 것 앞으로
-    const highlightedMain = mainIngs.filter(ing => selectedIngredientValues.has(ing.toLowerCase()));
-    const restMain = mainIngs.filter(ing => !selectedIngredientValues.has(ing.toLowerCase()));
-    const cardIngredients = [...highlightedMain, ...restMain];
-
-    const matchCount = mainIngs.filter(ing => {
-      const normalizedIng = normalizeIng(ing);
-      return selectedIngredients.filter(s => s.group !== "menu").some(opt => {
-        const normalizedVal = normalizeIng(opt.value);
-        if (parentMap[normalizedVal]) {
-          const allVariants = [normalizedVal, ...parentMap[normalizedVal].map(c => normalizeIng(c))];
-          return allVariants.includes(normalizedIng);
-        }
-        return normalizedIng.toLowerCase() === normalizedVal.toLowerCase();
-      });
-    }).length;
-
-    const isSaved = savedRecipes.includes(item.url);
-    const isMyRecipe = creatorUser && creatorUser.uploaderName === item.uploader;
-    return (
-      <li className="menu-card" onClick={() => { setRecipeModal(item); setModalVideoPlaying(false); setModalEditMode(false); }}>
-        {thumbnailSrc && (
-          <img
-            src={thumbnailSrc}
-            alt={item.name}
-            className="menu-thumbnail"
-            loading="lazy"
-            decoding="async"
-          />
-        )}
-        {isMyRecipe ? (
-          <button
-            className="menu-card-edit-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              setRecipeModal(item);
-              setModalVideoPlaying(false);
-              openEditMode(item);
-            }}
-            title="편집"
-          >
-            ✏️
-          </button>
-        ) : IS_DEV && (
-          <button
-            className={`menu-card-save-btn${isSaved ? " saved" : ""}`}
-            onClick={(e) => { e.stopPropagation(); toggleSave(item.url); }}
-            title={isSaved ? (language === "kr" ? "저장 취소" : "Unsave") : (language === "kr" ? "저장하기" : "Save")}
-          >
-            {isSaved ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
-          </button>
-        )}
-        <div className="menu-text">
-          <div className="menu-name">{item.name || "No Name"}</div>
-          {item.uploader && (
-            <div className="menu-chef-row">
-              <img
-                src={channelProfiles[item.uploader] || ""}
-                alt={item.uploader}
-                className="menu-chef-avatar"
-                onError={(e) => { e.target.style.display = "none"; }}
-              />
-              <span className="menu-uploader">{item.uploader}</span>
-              {matchCount > 0 && (
-                <span className="menu-match-badge">{matchCount}/{mainIngs.length}</span>
-              )}
-            </div>
-          )}
-          <div className="ingredient-tags">
-            {cardIngredients.slice(0, 5).map((ing, i) => {
-              const isHighlighted = selectedIngredientValues.has(ing.toLowerCase());
-              return (
-                <span key={i} className={`ingredient-pill${isHighlighted ? " ingredient-pill-highlight" : ""}`}>
-                  {ing}
-                </span>
-              );
-            })}
-            {cardIngredients.length > 5 && (
-              <span className="ingredient-pill ingredient-pill-more">
-                +{cardIngredients.length - 5}
-              </span>
-            )}
-            {seasoningIngs.length > 0 && (
-              <span className="ingredient-pill ingredient-pill--seasoning ingredient-pill--seasoning-card">
-                {language === "kr" ? `+양념 ${seasoningIngs.length}` : `+Seasonings ${seasoningIngs.length}`}
-              </span>
-            )}
-          </div>
-        </div>
-      </li>
-    );
+    return {
+      item,
+      thumbnailSrc: thumbnailOverrides[item.url] || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null),
+      isHidden: !!recipeEdits[item.url]?.hidden,
+      isSaved: savedRecipes.includes(item.url),
+      isMyRecipe: !!(creatorUser && creatorUser.uploaderName === item.uploader),
+      isCreator,
+      selectedIngredientValues,
+      selectedIngredients,
+      language,
+      normalizeIng,
+      onOpen: () => { setRecipeModal(item); setModalVideoPlaying(false); setModalEditMode(false); },
+      onToggleSave: (e) => { e.stopPropagation(); toggleSave(item.url); },
+      isDuplicate: duplicateUrls.has((item.url || "").trim()),
+      onToggleHidden: (e) => toggleHidden(e, item.url),
+      onEdit: (e) => { e.stopPropagation(); setRecipeModal(item); setModalVideoPlaying(false); openEditMode(item); },
+      onDelete: (e) => handleDeleteRecipe(e, item.url, item.name),
+    };
   };
 
   const recipeCount = validRecipes.length;
@@ -1205,6 +1376,11 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           <button onClick={toggleDarkMode} className="dark-toggle">
             {darkMode ? "Light" : "Dark"}
           </button>
+          {window.location.hostname === 'localhost' && (
+            <button onClick={() => setAnalyzeOpen(true)} className="dark-toggle">
+              Analyze
+            </button>
+          )}
           {creatorUser ? (
             <>
               <span className="header-creator-name">{creatorUser.username}</span>
@@ -1230,16 +1406,31 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       />
 
       {/* Recipe Detail Modal */}
-      <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); }} darkMode={darkMode}>
+      <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); }} darkMode={darkMode} hideClose>
         {recipeModal && (
           <div className="recipe-modal">
             <div className="recipe-modal-header">
               <h2 className="recipe-modal-title">{recipeModal.name}</h2>
-              {creatorUser && creatorUser.uploaderName === recipeModal.uploader && !modalEditMode && (
-                <button className="recipe-edit-toggle-btn" onClick={() => openEditMode(recipeModal)}>
-                  ✏️ 편집
-                </button>
+              {creatorUser && !modalEditMode && (
+                <>
+                  {creatorUser.uploaderName === recipeModal.uploader && (
+                    <>
+                      <button
+                        className={`recipe-edit-toggle-btn${recipeEdits[recipeModal.url]?.hidden ? ' btn-hidden-state' : ''}`}
+                        onClick={(e) => toggleHidden(e, recipeModal.url)}
+                      >
+                        {recipeEdits[recipeModal.url]?.hidden ? '비공개' : '공개'}
+                      </button>
+                      <button className="recipe-edit-toggle-btn" onClick={() => openEditMode(recipeModal)}>
+                        편집
+                      </button>
+                    </>
+                  )}
+                </>
               )}
+              <button className="recipe-modal-close-btn" onClick={() => { setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); }}>
+                &times;
+              </button>
             </div>
             <div className="recipe-modal-meta">
               <img
@@ -1290,7 +1481,6 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               );
             })()}
             {(() => {
-              const isMyRecipe = creatorUser && creatorUser.uploaderName === recipeModal.uploader;
               const savedEdit = recipeEdits[recipeModal.url] || {};
               const displaySteps = savedEdit.steps || recipeModal.steps || [];
               const displayTip = savedEdit.tip || '';
@@ -1321,51 +1511,44 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                   ) : (
                     <>
                       {/* TIP 섹션 — 셰프 직접 입력, 맨 위 */}
-                      {(displayTip || isMyRecipe) && (
-                        <div className="recipe-tip-section">
-                          <span className="recipe-tip-label">
-                            {recipeModal.uploader ? `${recipeModal.uploader}'s TIP` : t.tip}
-                          </span>
-                          <p className="recipe-tip-text">
-                            {displayTip || (language === 'kr' ? '곧 업데이트 예정' : 'Coming soon')}
-                          </p>
-                        </div>
-                      )}
+                      <div className="recipe-tip-section">
+                        <span className="recipe-tip-label">
+                          {recipeModal.uploader ? `${recipeModal.uploader}'s TIP` : t.tip}
+                        </span>
+                        <p className="recipe-tip-text" style={!displayTip ? { opacity: 0.4 } : {}}>
+                          {displayTip || (language === 'kr' ? '곧 올라올 예정이에요!' : 'Coming soon!')}
+                        </p>
+                      </div>
 
-                      {/* 주재료 섹션 */}
-                      {sortedMain.length > 0 && (
+                      {/* RECIPE 섹션 — 주재료 + 양념&소스 묶음 */}
+                      {(sortedMain.length > 0 || seasoningList.length > 0) && (
                         <div className="recipe-modal-section">
-                          <h3 className="recipe-modal-section-title">{t.mainIngredients}</h3>
+                          <h3 className="recipe-modal-section-title">RECIPE</h3>
                           <div className="ingredient-group-pills">
                             {sortedMain.map((ing, i) => {
                               const isHighlighted = selectedIngredientValues.has(ing.toLowerCase());
                               return (
-                                <span key={i} className={`ingredient-pill${isHighlighted ? ' ingredient-pill-highlight' : ''}`}>
-                                  {ing}
+                                <span key={`main-${i}`} className="pill-tip-wrapper" data-tip={ing}>
+                                  <span className={`ingredient-pill${isHighlighted ? ' ingredient-pill-highlight' : ''}`}>
+                                    {ing}
+                                  </span>
                                 </span>
                               );
                             })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 양념&소스 섹션 */}
-                      {seasoningList.length > 0 && (
-                        <div className="recipe-modal-section">
-                          <h3 className="recipe-modal-section-title">{t.seasonings}</h3>
-                          <div className="ingredient-group-pills">
                             {seasoningList.map((ing, i) => (
-                              <span key={i} className="ingredient-pill ingredient-pill--seasoning">
-                                {ing}
+                              <span key={`sea-${i}`} className="pill-tip-wrapper" data-tip={ing}>
+                                <span className="ingredient-pill ingredient-pill--seasoning">
+                                  {ing}
+                                </span>
                               </span>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {/* Steps 섹션 */}
+                      {/* Instruction 섹션 */}
                       <div className="recipe-modal-steps">
-                        <h3 className="recipe-modal-section-title">{t.steps}</h3>
+                        <h3 className="recipe-modal-section-title">INSTRUCTION</h3>
                         {displaySteps.length > 0 ? (
                           <ol>
                             {displaySteps.map((step, i) => (
@@ -1403,9 +1586,9 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           ) : (
             <ul className="menu-list grid-list">
               {validRecipes
-                .filter(item => savedRecipes.includes(item.url))
-                .map((item, idx) => (
-                  <RecipeCard key={`saved-${idx}`} item={item} />
+                .filter(item => savedRecipes.includes(item.url) && !deletedKeys.has(item.url))
+                .map((item) => (
+                  <RecipeCard key={item.url} {...makeCardProps(item)} />
                 ))}
             </ul>
           )}
@@ -1491,11 +1674,11 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                   : `${sortedResults.length} recipe${sortedResults.length !== 1 ? "s" : ""} with ${selectedIngredients.map(s => s.label).join(" + ")}`}
               </div>
             )}
-            {!searchActive && searchInputValue.trim() && liveFilteredData && (
+            {!searchActive && debouncedInput.trim() && liveFilteredData && (
               <div className="hero-result-msg">
                 {language === "kr"
-                  ? `"${searchInputValue}" 관련 요리 ${sortedResults.length}가지`
-                  : `${sortedResults.length} recipe${sortedResults.length !== 1 ? "s" : ""} for "${searchInputValue}"`}
+                  ? `"${debouncedInput}" 관련 요리 ${sortedResults.length}가지`
+                  : `${sortedResults.length} recipe${sortedResults.length !== 1 ? "s" : ""} for "${debouncedInput}"`}
               </div>
             )}
 
@@ -1590,8 +1773,8 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               </div>
               <ul className="menu-list grid-list">
                 {sortedResults.length > 0 ? (
-                  sortedResults.map((item, idx) => (
-                    <RecipeCard key={`all-${idx}`} item={item} />
+                  sortedResults.map((item) => (
+                    <RecipeCard key={item.url} {...makeCardProps(item)} />
                   ))
                 ) : (
                   <p className="no-results">{t.noResults}</p>
@@ -1613,6 +1796,58 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
             </div>
           </footer>
         </>
+      )}
+
+      {confirmDialog && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          onClick={() => setConfirmDialog(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: darkMode ? "#1e1e1e" : "#fff",
+              color: darkMode ? "#f0f0f0" : "#111",
+              borderRadius: 16,
+              padding: "28px 32px",
+              minWidth: 280,
+              maxWidth: 360,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.22)",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ margin: "0 0 24px", fontSize: 15, lineHeight: 1.6 }}>
+              {confirmDialog.message}
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                onClick={() => setConfirmDialog(null)}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
+                  background: darkMode ? "#2a2a2a" : "#f0f0f0",
+                  color: darkMode ? "#ccc" : "#555",
+                  fontSize: 14, fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmDialog.onConfirm}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
+                  background: "#e53e3e", color: "#fff",
+                  fontSize: 14, fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
