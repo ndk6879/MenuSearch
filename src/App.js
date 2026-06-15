@@ -46,14 +46,6 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
     return { name: text.trim(), amount: '' };
   };
 
-  const handleIngNameBlur = () => {
-    if (!ingInput.trim()) return;
-    const parsed = parseIngredientInput(ingInput);
-    if (parsed.amount) {
-      setIngInput(parsed.name);
-      setIngAmountInput(parsed.amount);
-    }
-  };
   const startEditIng = (i, ing) => {
     const parsed = parseIngredientInput(ing);
     setEditingIngIndex(i);
