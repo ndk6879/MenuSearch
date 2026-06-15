@@ -25,7 +25,7 @@ module.exports = async function handler(req, res) {
     });
     const result = JSON.parse(message.content[0].text.trim());
     return res.status(200).json(result);
-  } catch {
-    return res.status(200).json({ name: text.trim(), amount: '' });
+  } catch (err) {
+    return res.status(200).json({ name: text.trim(), amount: '', _err: err?.message || String(err) });
   }
 };
