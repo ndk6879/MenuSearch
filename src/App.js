@@ -1628,29 +1628,19 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                         </p>
                       </div>
 
-                      {/* RECIPE 섹션 — 주재료 + 양념&소스 묶음 */}
+                      {/* RECIPE 섹션 — 테이블 리스트 */}
                       {(sortedMain.length > 0 || seasoningList.length > 0) && (
                         <div className="recipe-modal-section">
                           <h3 className="recipe-modal-section-title">RECIPE</h3>
-                          <div className="ingredient-group-pills">
-                            {sortedMain.map((ing, i) => {
-                              const isHighlighted = selectedIngredientValues.has(ing.toLowerCase());
-                              const displayName = parseIngText(ing).name;
+                          <div className={`recipe-ing-pills${darkMode ? ' dark' : ''}`}>
+                            {[...sortedMain, ...seasoningList].map((ing, i) => {
+                              const { name, amount } = parseIngText(ing);
+                              const isHighlighted = selectedIngredientValues.has(ing.toLowerCase()) || selectedIngredientValues.has(name.toLowerCase());
+                              const isSeasoning = i >= sortedMain.length;
                               return (
-                                <span key={`main-${i}`} className="pill-tip-wrapper" data-tip={ing}>
-                                  <span className={`ingredient-pill${isHighlighted ? ' ingredient-pill-highlight' : ''}`}>
-                                    {displayName}
-                                  </span>
-                                </span>
-                              );
-                            })}
-                            {seasoningList.map((ing, i) => {
-                              const displayName = parseIngText(ing).name;
-                              return (
-                                <span key={`sea-${i}`} className="pill-tip-wrapper" data-tip={ing}>
-                                  <span className="ingredient-pill ingredient-pill--seasoning">
-                                    {displayName}
-                                  </span>
+                                <span key={i} className={`recipe-ing-pill${isHighlighted ? ' highlighted' : ''}${isSeasoning ? ' seasoning' : ''}`}>
+                                  {name}
+                                  {amount && <span className="recipe-ing-pill-amount">{amount}</span>}
                                 </span>
                               );
                             })}

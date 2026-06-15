@@ -911,6 +911,54 @@ body {
   font-weight: 600;
 }
 
+.recipe-ing-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.recipe-ing-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.83rem;
+  background: rgba(120,120,120,0.1);
+  border: 1px solid rgba(120,120,120,0.15);
+}
+
+.app.light .recipe-ing-pill.highlighted {
+  background: #fff3e0;
+  border-color: #fcd9a0;
+  font-weight: 600;
+  color: #b06820;
+}
+
+.app.dark .recipe-ing-pill.highlighted {
+  background: #2a1a06;
+  border-color: #5a3a10;
+  font-weight: 600;
+  color: #c08840;
+}
+
+.recipe-ing-pill.seasoning {
+  opacity: 0.55;
+  font-size: 0.78rem;
+}
+
+.recipe-ing-pill-amount {
+  font-size: 0.75rem;
+  opacity: 0.65;
+  font-weight: 400;
+}
+
+.recipe-ing-pills.dark .recipe-ing-pill {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.1);
+}
+
+
 .recipe-modal-steps {
   padding: 0;
   margin-top: 18px;
