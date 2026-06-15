@@ -472,6 +472,37 @@ def delete_recipe():
         return jsonify({"ok": False, "error": f"삭제 실패: {e}"}), 500
 
 
+@app.route('/parse-ingredient', methods=['POST'])
+def parse_ingredient():
+    import anthropic as _anthropic
+    import json as _json
+    data = request.get_json() or {}
+    text = data.get('text', '').strip()
+    if not text:
+        return jsonify({'name': text, 'amount': ''})
+    try:
+        client = _anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+        msg = client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=60,
+            messages=[{
+                'role': 'user',
+                'content': (
+                    f'요리 재료 텍스트를 재료명과 수량으로 분리해서 JSON만 반환하세요. '
+                    f'수량이 없으면 amount는 빈 문자열.\n'
+                    f'예시: "양파 5개"→{{"name":"양파","amount":"5개"}}, '
+                    f'"간장 작은1숟"→{{"name":"간장","amount":"작은1숟"}}, '
+                    f'"소금"→{{"name":"소금","amount":""}}\n'
+                    f'텍스트: "{text}"'
+                )
+            }]
+        )
+        result = _json.loads(msg.content[0].text.strip())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'name': text, 'amount': ''})
+
+
 # ──────────────────────────────────────────────
 # AI 셰프: /api/chat  (Vercel AI Data Stream Protocol)
 # ──────────────────────────────────────────────

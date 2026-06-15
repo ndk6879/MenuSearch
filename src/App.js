@@ -33,6 +33,9 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
   const [ingInput, setIngInput] = useState('');
   const [ingAmountInput, setIngAmountInput] = useState('');
   const [ingComposing, setIngComposing] = useState(false);
+  const [editingIngIndex, setEditingIngIndex] = useState(null);
+  const [editingIngName, setEditingIngName] = useState('');
+  const [editingIngAmount, setEditingIngAmount] = useState('');
 
   // 숫자+단위 or 숫자없는 특수단위(약간/조금 등) 감지
   const QUANTITY_PATTERN = /^(.+?)\s+(\d[\d/.]*\s*(?:봉지|숟가락|작은술|큰술|티스푼|스푼|그램|밀리리터|밀리|미리|덩어리|움큼|꼬집|방울|가닥|줄기|묶음|뭉치|조각|토막|포기|줌|컵|봉|팩|병|캔|장|마리|알|통|쪽|인분|뿌리|대|근|모|판|ml|ML|kg|KG|mg|개|g|G|L|l|cc|T|t)|약간|조금|조금씩|적당량|적당히|한줌|두줌|한꼬집|두꼬집|반컵|반개|조금)$/;
@@ -51,6 +54,22 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
       setIngAmountInput(parsed.amount);
     }
   };
+  const startEditIng = (i, ing) => {
+    const parsed = parseIngredientInput(ing);
+    setEditingIngIndex(i);
+    setEditingIngName(parsed.name || ing);
+    setEditingIngAmount(parsed.amount || '');
+  };
+
+  const saveEditIng = () => {
+    if (!editingIngName.trim()) return;
+    const combined = editingIngAmount.trim()
+      ? `${editingIngName.trim()} ${editingIngAmount.trim()}`
+      : editingIngName.trim();
+    setIngredientsList(l => l.map((item, idx) => idx === editingIngIndex ? combined : item));
+    setEditingIngIndex(null);
+  };
+
   const [stepsList, setStepsList] = useState(() =>
     initialDraft.steps ? initialDraft.steps.split('\n').filter(Boolean) : ['']
   );
@@ -166,11 +185,38 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
         )}
         {ingredientsList.map((ing, i) => {
           const parsed = parseIngredientInput(ing);
+          if (editingIngIndex === i) {
+            return (
+              <div key={i} className={`ing-list-row ing-list-row--editing${darkMode ? ' dark' : ''}`}>
+                <input
+                  className={`ing-edit-name${darkMode ? ' dark' : ''}`}
+                  value={editingIngName}
+                  onChange={e => setEditingIngName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveEditIng(); if (e.key === 'Escape') setEditingIngIndex(null); }}
+                  autoFocus
+                />
+                <input
+                  className={`ing-edit-amount${darkMode ? ' dark' : ''}`}
+                  value={editingIngAmount}
+                  onChange={e => setEditingIngAmount(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveEditIng(); if (e.key === 'Escape') setEditingIngIndex(null); }}
+                  placeholder="수량"
+                />
+                <div className="ing-edit-actions">
+                  <button className="ing-edit-save" onClick={saveEditIng}>✓</button>
+                  <button className="ing-edit-cancel" onClick={() => setEditingIngIndex(null)}>✕</button>
+                </div>
+              </div>
+            );
+          }
           return (
             <div key={i} className={`ing-list-row${darkMode ? ' dark' : ''}`}>
               <span className="ing-list-name">{parsed.name || ing}</span>
               <span className="ing-list-amount">{parsed.amount}</span>
-              <button className="ing-list-remove" onClick={() => setIngredientsList(l => l.filter((_, idx) => idx !== i))}>×</button>
+              <div className="ing-list-actions">
+                <button className="ing-list-edit" onClick={() => startEditIng(i, ing)}>✎</button>
+                <button className="ing-list-remove" onClick={() => setIngredientsList(l => l.filter((_, idx) => idx !== i))}>×</button>
+              </div>
             </div>
           );
         })}

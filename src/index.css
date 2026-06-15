@@ -2363,6 +2363,138 @@ button.header-logo {
 }
 
 /* ===== Ingredient Chips Editor ===== */
+.ing-list-container {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fafafa;
+}
+.ing-list-container.dark { border-color: #444; background: #1e1e1e; }
+.ing-list-header {
+  display: grid;
+  grid-template-columns: 1fr 80px 28px;
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  color: #999;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #eee;
+}
+.ing-list-header.dark { border-bottom-color: #333; }
+.ing-list-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 52px;
+  align-items: center;
+  padding: 7px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.85rem;
+}
+.ing-list-row.dark { border-bottom-color: #2a2a2a; color: #ddd; }
+.ing-list-row--editing {
+  grid-template-columns: 1fr 80px 52px;
+  gap: 4px;
+  padding: 5px 12px;
+}
+.ing-list-name { color: inherit; }
+.ing-list-amount { color: #888; font-size: 0.82rem; }
+.ing-list-actions { display: flex; gap: 4px; justify-content: flex-end; }
+.ing-list-edit {
+  all: unset;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 0.9rem;
+}
+.ing-list-edit:hover { color: #4f46e5; }
+.ing-list-remove {
+  all: unset;
+  cursor: pointer;
+  color: #ccc;
+  font-size: 1rem;
+}
+.ing-list-remove:hover { color: #e55; }
+.ing-edit-name {
+  flex: 1;
+  border: none;
+  border-bottom: 1px solid #4f46e5;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: inherit;
+  padding: 1px 2px;
+}
+.ing-edit-amount {
+  width: 72px;
+  border: none;
+  border-bottom: 1px solid #4f46e5;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #888;
+  padding: 1px 2px;
+}
+.ing-edit-amount::placeholder { color: #ccc; }
+.ing-edit-actions { display: flex; gap: 4px; justify-content: flex-end; }
+.ing-edit-save {
+  all: unset;
+  cursor: pointer;
+  color: #4f46e5;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.ing-edit-cancel {
+  all: unset;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 0.9rem;
+}
+.ing-edit-cancel:hover { color: #e55; }
+.ing-add-row {
+  display: flex;
+  align-items: center;
+  padding: 7px 12px;
+  gap: 6px;
+  border-top: 1px dashed #e0e0e0;
+}
+.ing-add-row.dark { border-top-color: #333; }
+.ing-add-name {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #111;
+  padding: 2px 0;
+}
+.ing-add-name.dark { color: #ddd; }
+.ing-add-name::placeholder { color: #bbb; }
+.ing-add-amount {
+  flex: 0 0 72px;
+  border: none;
+  border-left: 1px solid #e0e0e0;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #111;
+  padding: 2px 8px;
+}
+.ing-add-amount.dark { border-left-color: #444; color: #ddd; }
+.ing-add-amount::placeholder { color: #bbb; }
+.ing-add-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: #4f46e5;
+  font-weight: 500;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+.ing-add-btn:hover { opacity: 0.7; }
+
 .ing-chips-container {
   display: flex;
   flex-wrap: wrap;
@@ -2413,7 +2545,13 @@ button.header-logo {
   color: #111;
   padding: 2px 4px;
 }
+.ing-chip-input--amount {
+  flex: 0 0 80px;
+  border-left: 1px solid #e0e0e0;
+  padding-left: 8px;
+}
 .ing-chip-input.dark { color: #ddd; }
+.ing-chip-input--amount.dark { border-left-color: #444; }
 .ing-chip-input::placeholder { color: #aaa; }
 .ing-chip-add-btn {
   all: unset;
