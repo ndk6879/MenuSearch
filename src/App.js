@@ -37,14 +37,7 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
   const [editingIngName, setEditingIngName] = useState('');
   const [editingIngAmount, setEditingIngAmount] = useState('');
 
-  // 숫자+단위 or 숫자없는 특수단위(약간/조금 등) 감지
-  const QUANTITY_PATTERN = /^(.+?)\s+(\d[\d/.]*\s*(?:봉지|숟가락|작은술|큰술|티스푼|스푼|그램|밀리리터|밀리|미리|덩어리|움큼|꼬집|방울|가닥|줄기|묶음|뭉치|조각|토막|포기|줌|컵|봉|팩|병|캔|장|마리|알|통|쪽|인분|뿌리|대|근|모|판|ml|ML|kg|KG|mg|개|g|G|L|l|cc|T|t)|약간|조금|조금씩|적당량|적당히|한줌|두줌|한꼬집|두꼬집|반컵|반개|조금)$/;
-
-  const parseIngredientInput = (text) => {
-    const match = text.trim().match(QUANTITY_PATTERN);
-    if (match) return { name: match[1].trim(), amount: match[2].trim() };
-    return { name: text.trim(), amount: '' };
-  };
+  const parseIngredientInput = parseIngText;
 
   const startEditIng = (i, ing) => {
     const parsed = parseIngredientInput(ing);
@@ -365,6 +358,12 @@ function LoginModal({ open, onClose, onLoginSuccess, darkMode }) {
   );
 }
 
+const ING_QUANTITY_RE = /^(.+?)\s+(\d[\d/.]*\s*(?:봉지|숟가락|작은술|큰술|티스푼|스푼|그램|밀리리터|밀리|미리|덩어리|움큼|꼬집|방울|가닥|줄기|묶음|뭉치|조각|토막|포기|줌|컵|봉|팩|병|캔|장|마리|알|통|쪽|인분|뿌리|대|근|모|판|ml|ML|kg|KG|mg|개|g|G|L|l|cc|T|t)|약간|조금|조금씩|적당량|적당히|한줌|두줌|한꼬집|두꼬집|반컵|반개|조금)$/;
+const parseIngText = (str) => {
+  const m = str.trim().match(ING_QUANTITY_RE);
+  return m ? { name: m[1].trim(), amount: m[2].trim() } : { name: str.trim(), amount: '' };
+};
+
 // slug → chefKey 역방향 맵
 const slugToKey = Object.entries(chefConfig).reduce((acc, [key, val]) => {
   if (val.slug) acc[val.slug] = key;
@@ -469,10 +468,11 @@ const RecipeCard = React.memo(function RecipeCard({
         <div className="ingredient-tags">
           {cardIngredients.slice(0, 5).map((ing, i) => {
             const isHighlighted = selectedIngredientValues.has(ing.toLowerCase());
+            const displayName = parseIngText(ing).name;
             return (
               <span key={i} className="pill-tip-wrapper" data-tip={ing}>
                 <span className={`ingredient-pill${isHighlighted ? " ingredient-pill-highlight" : ""}`}>
-                  {ing}
+                  {displayName}
                 </span>
               </span>
             );
@@ -1635,21 +1635,25 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                           <div className="ingredient-group-pills">
                             {sortedMain.map((ing, i) => {
                               const isHighlighted = selectedIngredientValues.has(ing.toLowerCase());
+                              const displayName = parseIngText(ing).name;
                               return (
                                 <span key={`main-${i}`} className="pill-tip-wrapper" data-tip={ing}>
                                   <span className={`ingredient-pill${isHighlighted ? ' ingredient-pill-highlight' : ''}`}>
-                                    {ing}
+                                    {displayName}
                                   </span>
                                 </span>
                               );
                             })}
-                            {seasoningList.map((ing, i) => (
-                              <span key={`sea-${i}`} className="pill-tip-wrapper" data-tip={ing}>
-                                <span className="ingredient-pill ingredient-pill--seasoning">
-                                  {ing}
+                            {seasoningList.map((ing, i) => {
+                              const displayName = parseIngText(ing).name;
+                              return (
+                                <span key={`sea-${i}`} className="pill-tip-wrapper" data-tip={ing}>
+                                  <span className="ingredient-pill ingredient-pill--seasoning">
+                                    {displayName}
+                                  </span>
                                 </span>
-                              </span>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
