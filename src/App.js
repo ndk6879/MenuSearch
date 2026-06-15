@@ -31,15 +31,62 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
     initialDraft.mainIngredients ? initialDraft.mainIngredients.split('\n').filter(Boolean) : []
   );
   const [ingInput, setIngInput] = useState('');
+  const [ingAmountInput, setIngAmountInput] = useState('');
   const [ingComposing, setIngComposing] = useState(false);
+
+  // 숫자+단위 or 숫자없는 특수단위(약간/조금 등) 감지
+  const QUANTITY_PATTERN = /^(.+?)\s+(\d[\d/.]*\s*(?:봉지|숟가락|작은술|큰술|티스푼|스푼|그램|밀리리터|밀리|미리|덩어리|움큼|꼬집|방울|가닥|줄기|묶음|뭉치|조각|토막|포기|줌|컵|봉|팩|병|캔|장|마리|알|통|쪽|인분|뿌리|대|근|모|판|ml|ML|kg|KG|mg|개|g|G|L|l|cc|T|t)|약간|조금|조금씩|적당량|적당히|한줌|두줌|한꼬집|두꼬집|반컵|반개|조금)$/;
+
+  const parseIngredientInput = (text) => {
+    const match = text.trim().match(QUANTITY_PATTERN);
+    if (match) return { name: match[1].trim(), amount: match[2].trim() };
+    return { name: text.trim(), amount: '' };
+  };
+
+  const handleIngNameBlur = () => {
+    if (!ingInput.trim()) return;
+    const parsed = parseIngredientInput(ingInput);
+    if (parsed.amount) {
+      setIngInput(parsed.name);
+      setIngAmountInput(parsed.amount);
+    }
+  };
   const [stepsList, setStepsList] = useState(() =>
     initialDraft.steps ? initialDraft.steps.split('\n').filter(Boolean) : ['']
   );
   const tipLabel = uploaderName ? `${uploaderName}'s TIP` : t.tip;
 
-  const addIngredient = (val) => {
-    const v = (val ?? ingInput).trim();
-    if (v) { setIngredientsList(l => [...l, v]); setIngInput(''); }
+  const [ingParsing, setIngParsing] = useState(false);
+
+  const addIngredient = async (val) => {
+    const rawName = (val ?? ingInput).trim();
+    const rawAmount = ingAmountInput.trim();
+    if (!rawName) return;
+    let name = rawName;
+    let amount = rawAmount;
+    if (rawName && !rawAmount) {
+      try {
+        setIngParsing(true);
+        const res = await fetch('/api/parse-ingredient', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: rawName }),
+        });
+        const data = await res.json();
+        name = data.name || rawName;
+        amount = data.amount || '';
+      } catch {
+        const parsed = parseIngredientInput(rawName);
+        name = parsed.name;
+        amount = parsed.amount;
+      } finally {
+        setIngParsing(false);
+      }
+    }
+    const combined = amount ? `${name} ${amount}` : name;
+    setIngredientsList(l => [...l, combined]);
+    setIngInput('');
+    setIngAmountInput('');
   };
 
   const handleThumbFile = async (file) => {
@@ -109,16 +156,27 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
         placeholder="재료 준비 팁이나 맛을 더하는 포인트를 남겨보세요"
       />
       <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>RECIPE</label>
-      <div className={`ing-chips-container${darkMode ? ' dark' : ''}`}>
-        {ingredientsList.map((ing, i) => (
-          <span key={i} className={`ing-chip${darkMode ? ' dark' : ''}`}>
-            {ing}
-            <button className="ing-chip-remove" onClick={() => setIngredientsList(l => l.filter((_, idx) => idx !== i))}>×</button>
-          </span>
-        ))}
-        <div className="ing-chip-add-row">
+      <div className={`ing-list-container${darkMode ? ' dark' : ''}`}>
+        {ingredientsList.length > 0 && (
+          <div className={`ing-list-header${darkMode ? ' dark' : ''}`}>
+            <span>재료</span>
+            <span>수량</span>
+            <span />
+          </div>
+        )}
+        {ingredientsList.map((ing, i) => {
+          const parsed = parseIngredientInput(ing);
+          return (
+            <div key={i} className={`ing-list-row${darkMode ? ' dark' : ''}`}>
+              <span className="ing-list-name">{parsed.name || ing}</span>
+              <span className="ing-list-amount">{parsed.amount}</span>
+              <button className="ing-list-remove" onClick={() => setIngredientsList(l => l.filter((_, idx) => idx !== i))}>×</button>
+            </div>
+          );
+        })}
+        <div className={`ing-add-row${darkMode ? ' dark' : ''}`}>
           <input
-            className={`ing-chip-input${darkMode ? ' dark' : ''}`}
+            className={`ing-add-name${darkMode ? ' dark' : ''}`}
             value={ingInput}
             onChange={e => setIngInput(e.target.value)}
             onCompositionStart={() => setIngComposing(true)}
@@ -126,9 +184,21 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
             onKeyDown={e => {
               if (e.key === 'Enter' && !ingComposing) { e.preventDefault(); addIngredient(); }
             }}
-            placeholder="재료 추가 후 Enter"
+            placeholder="재료명 (예: 양파 5개)"
           />
-          <button className="ing-chip-add-btn" onClick={() => addIngredient()}>추가</button>
+          <input
+            id="ing-amount-input"
+            className={`ing-add-amount${darkMode ? ' dark' : ''}`}
+            value={ingAmountInput}
+            onChange={e => setIngAmountInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); addIngredient(); }
+            }}
+            placeholder="수량"
+          />
+          <button className="ing-add-btn" onClick={() => addIngredient()} disabled={ingParsing}>
+            {ingParsing ? '...' : '추가'}
+          </button>
         </div>
       </div>
       <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>INSTRUCTION</label>
