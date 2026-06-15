@@ -23,7 +23,8 @@ module.exports = async function handler(req, res) {
 텍스트: "${text.trim()}"`
       }]
     });
-    const result = JSON.parse(message.content[0].text.trim());
+    const raw = message.content[0].text.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '');
+    const result = JSON.parse(raw);
     return res.status(200).json(result);
   } catch (err) {
     return res.status(200).json({ name: text.trim(), amount: '', _err: err?.message || String(err) });
