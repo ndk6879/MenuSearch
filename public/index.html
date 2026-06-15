@@ -25,6 +25,14 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>Findish</title>
+    <script>
+      window.onerror = function(msg, src, line, col, err) {
+        document.getElementById('root').innerHTML =
+          '<pre style="padding:20px;color:red;white-space:pre-wrap">' +
+          'JS ERROR:\n' + msg + '\n' + src + ':' + line + '\n' + (err && err.stack ? err.stack : '') +
+          '</pre>';
+      };
+    </script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-BEEFQ4BM3R"></script>
     <script>
