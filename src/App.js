@@ -79,8 +79,8 @@ function SortableIngRow({ id, ing, index, darkMode, editingIngIndex, editingIngN
         <span className="ing-list-name">{parsed.name || ing}</span>
         {parsed.amount && <span className="ing-list-amount">{parsed.amount}</span>}
         <div className="ing-list-actions">
-          <button className="ing-list-edit" onClick={() => startEditIng(index, ing)}>✎</button>
-          <button className="ing-list-remove" onClick={() => setIngredientsList(l => l.filter((_, idx) => idx !== index))}>×</button>
+          <button className="ing-list-edit" onPointerDown={e => e.stopPropagation()} onClick={() => startEditIng(index, ing)}>✎</button>
+          <button className="ing-list-remove" onPointerDown={e => e.stopPropagation()} onClick={() => setIngredientsList(l => l.filter((_, idx) => idx !== index))}>×</button>
         </div>
       </div>
     </div>
@@ -100,6 +100,7 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
   const [ingInput, setIngInput] = useState('');
   const [ingAmountInput, setIngAmountInput] = useState('');
   const [ingComposing, setIngComposing] = useState(false);
+  const [stepComposing, setStepComposing] = useState(false);
   const nameInputRef = useRef(null);
   const [editingIngIndex, setEditingIngIndex] = useState(null);
   const [editingIngName, setEditingIngName] = useState('');
@@ -234,7 +235,7 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
   const makeStepHandlers = (list, setList, prefix) => ({
     onChange: (i, val) => { const n = [...list]; n[i] = val; setList(n); },
     onKeyDown: (e, i) => {
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !stepComposing) {
         e.preventDefault();
         const n = [...list]; n.splice(i + 1, 0, ''); setList(n);
         setTimeout(() => document.getElementById(`${prefix}-${i + 1}`)?.focus(), 0);
@@ -280,9 +281,7 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
       {draftBanner && (
         <div className={`draft-restore-banner${darkMode ? ' dark' : ''}`}>
           <span>
-            <strong>"{draftBanner.draft?.name || '이전 작업'}"</strong> 임시 저장 —{' '}
-            재료 {(draftBanner.ingredientsList || []).filter(Boolean).length}개,{' '}
-            스텝 {(draftBanner.stepsList || []).filter(Boolean).length}개
+            <strong>"{draftBanner.draft?.name || '이전 작업'}"</strong> 임시 저장된 내용이 있어요.
           </span>
           <div>
             <button className="draft-restore-btn" onClick={() => {
@@ -472,6 +471,8 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
                 stepHandlers.onChange(i, e.target.value);
                 setRestoredStepItems(prev => { if (!prev) return prev; const next = new Set(prev); next.delete(step); return next.size ? next : null; });
               }}
+              onCompositionStart={() => setStepComposing(true)}
+              onCompositionEnd={() => setStepComposing(false)}
               onKeyDown={e => stepHandlers.onKeyDown(e, i)}
               placeholder={`스텝 ${i + 1}`}
             />
