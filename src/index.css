@@ -2411,42 +2411,43 @@ button.header-logo {
 }
 
 /* ===== Ingredient Chips Editor ===== */
+.ing-list-outer { position: relative; }
 .ing-list-container {
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 8px 8px 0 0;
+  border-bottom: none;
   overflow: hidden;
   background: #fafafa;
 }
 .ing-list-container.dark { border-color: #444; background: #1e1e1e; }
-.ing-list-header {
-  display: grid;
-  grid-template-columns: 1fr 80px 28px;
-  padding: 6px 12px;
-  font-size: 0.72rem;
-  color: #999;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #eee;
-}
-.ing-list-header.dark { border-bottom-color: #333; }
+.ing-list-header { display: none; }
 .ing-list-row {
-  display: grid;
-  grid-template-columns: 1fr 80px 52px;
+  display: flex;
   align-items: center;
-  padding: 7px 12px;
+  padding: 5px 12px;
   border-bottom: 1px solid #f0f0f0;
   font-size: 0.85rem;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
+.ing-list-row:active { cursor: grabbing; }
+.ing-list-row button { cursor: pointer; user-select: auto; touch-action: auto; }
 .ing-list-row.dark { border-bottom-color: #2a2a2a; color: #ddd; }
+.ing-list-row.restored { background: rgba(99,179,237,0.13); border-left: 3px solid #63b3ed; }
+.ing-list-row.restored.dark { background: rgba(99,179,237,0.08); border-left-color: #4a90d9; }
 .ing-list-row--editing {
-  grid-template-columns: 1fr 80px 52px;
   gap: 4px;
   padding: 5px 12px;
 }
-.ing-list-name { color: inherit; }
-.ing-list-amount { color: #888; font-size: 0.82rem; }
-.ing-list-actions { display: flex; gap: 4px; justify-content: flex-end; }
+.ing-list-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ing-list-name { color: inherit; white-space: nowrap; }
+.ing-list-amount { color: #999; font-size: 0.8rem; white-space: nowrap; }
+.ing-list-actions { display: flex; gap: 2px; margin-left: 4px; }
 .ing-list-edit {
   all: unset;
   cursor: pointer;
@@ -2504,11 +2505,14 @@ button.header-logo {
   align-items: center;
   padding: 7px 12px;
   gap: 6px;
+  border: 1px solid #ddd;
   border-top: 1px dashed #e0e0e0;
+  border-radius: 0 0 8px 8px;
+  background: #fafafa;
 }
-.ing-add-row.dark { border-top-color: #333; }
+.ing-add-row.dark { border-color: #444; border-top-color: #333; background: #1e1e1e; }
 .ing-add-name {
-  flex: 1;
+  width: 100%;
   border: none;
   outline: none;
   background: transparent;
@@ -2681,33 +2685,55 @@ button.header-logo {
 .modal-content.modal-dark .recipe-edit-textarea:focus,
 .recipe-edit-textarea.dark:focus { border-color: #6366f1; }
 
-.recipe-edit-actions {
+.recipe-edit-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+}
+.recipe-edit-topbar.dark {
+  border-bottom-color: #333;
+  background: #1a1a1a;
+}
+.recipe-edit-topbar-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.recipe-edit-topbar-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
-  margin-top: 14px;
 }
 
 .recipe-edit-cancel-btn {
   all: unset;
   cursor: pointer;
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-size: 0.88rem;
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 0.84rem;
   font-weight: 500;
   transition: opacity 0.15s;
+  background: #f0f0f0;
+  color: #555;
 }
-.modal-content.modal-light .recipe-edit-cancel-btn { background: #f0f0f0; color: #555; }
-.modal-content.modal-dark  .recipe-edit-cancel-btn { background: #2a2a2a; color: #aaa; }
+.recipe-edit-cancel-btn.dark { background: #2a2a2a; color: #aaa; }
 
 .recipe-edit-save-btn {
   all: unset;
   cursor: pointer;
-  padding: 8px 20px;
-  border-radius: 8px;
+  padding: 6px 16px;
+  border-radius: 7px;
   background: #4f46e5;
   color: #fff;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 600;
   transition: opacity 0.15s;
 }
@@ -2722,18 +2748,68 @@ button.header-logo {
   gap: 0;
 }
 
+.recipe-tip-label-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
 .recipe-tip-label {
   font-size: 0.95rem;
   font-weight: 600;
-  margin: 0 0 6px;
-  display: block;
+}
+
+.recipe-tip-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgba(120,120,120,0.15);
+  color: #999;
+  font-size: 0.55rem;
+  font-weight: 700;
+  cursor: default;
+  position: relative;
+  flex-shrink: 0;
+  margin-left: -2px;
+}
+
+.recipe-tip-info::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 0;
+  transform: none;
+  background: #333;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 400;
+  padding: 3px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+.recipe-tip-info:hover::after {
+  opacity: 1;
 }
 
 .recipe-tip-text {
   font-size: 0.9rem;
-  line-height: 1.7;
+  line-height: 1.8;
   margin: 0;
-  white-space: pre-wrap;
+}
+
+.recipe-tip-line {
+  display: block;
+  font-style: italic;
 }
 
 /* ===== Creator Edit Badge on Card ===== */
@@ -2826,6 +2902,7 @@ button.header-logo {
 /* steps 편집 UI */
 .steps-edit-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
 .step-edit-row { display: flex; align-items: center; gap: 6px; }
+.step-edit-row.restored { background: rgba(99,179,237,0.13); border-radius: 6px; border-left: 3px solid #63b3ed; padding-left: 4px; }
 .step-edit-number { font-size: 0.82rem; font-weight: 600; color: #888; min-width: 20px; text-align: right; flex-shrink: 0; }
 .step-edit-input {
   flex: 1;
@@ -2946,3 +3023,84 @@ button.header-logo {
 }
 .recipe-edit-input.dark { background: #1e1e1e; color: #ddd; border-color: #444; }
 .recipe-edit-input:focus { border-color: #4f46e5; }
+
+/* drag handle */
+.ing-drag-handle {
+  color: #bbb;
+  font-size: 1rem;
+  padding: 0 6px 0 2px;
+  flex-shrink: 0;
+}
+
+/* draft restoration banner */
+.draft-restore-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(99,179,237,0.12);
+  border: 1px solid rgba(99,179,237,0.3);
+  border-radius: 8px;
+  font-size: 0.83rem;
+  margin-bottom: 12px;
+}
+.draft-restore-banner.dark {
+  background: rgba(99,179,237,0.08);
+  border-color: rgba(99,179,237,0.2);
+  color: #ccc;
+}
+.draft-restore-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #4f46e5;
+  color: #fff;
+  margin-left: 8px;
+}
+.draft-dismiss-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  color: #888;
+  margin-left: 4px;
+}
+
+/* autocomplete dropdown */
+.ing-autocomplete-wrap { position: relative; flex: 1; }
+.ing-suggestions {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  z-index: 100;
+  overflow: hidden;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.ing-suggestions.dark {
+  background: #1e1e1e;
+  border-color: #444;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.ing-suggestion-item {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.ing-suggestion-item:hover,
+.ing-suggestion-item.active {
+  background: rgba(79,70,229,0.08);
+}
+.ing-suggestions.dark .ing-suggestion-item:hover,
+.ing-suggestions.dark .ing-suggestion-item.active {
+  background: rgba(79,70,229,0.2);
+}

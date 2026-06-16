@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import "./App.css";
 import TagSearch from "./TagSearch";
 import menuData_kr from "./menuData_kr";
@@ -17,8 +17,75 @@ import { db } from './firebase';
 import { collection, doc, onSnapshot, setDoc, deleteField, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
+import { DndContext, closestCenter } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const IS_DEV = process.env.NODE_ENV === "development";
+
+const ING_QUANTITY_RE = /^(.+?)\s+(\d[\d/.]*\s*(?:봉지|숟가락|작은술|큰술|티스푼|스푼|그램|밀리리터|밀리|미리|덩어리|움큼|꼬집|방울|가닥|줄기|묶음|뭉치|조각|토막|포기|줌|컵|봉|팩|병|캔|장|마리|알|통|쪽|인분|뿌리|대|근|모|판|ml|ML|kg|KG|mg|개|g|G|L|l|cc|T|t)|약간|조금|조금씩|적당량|적당히|한줌|두줌|한꼬집|두꼬집|반컵|반개|조금)$/;
+const parseIngText = (str) => {
+  const m = str.trim().match(ING_QUANTITY_RE);
+  return m ? { name: m[1].trim(), amount: m[2].trim() } : { name: str.trim(), amount: '' };
+};
+
+const ALL_INGREDIENT_NAMES = (() => {
+  const names = new Set();
+  menuData_kr.forEach(item => {
+    (item.ingredients || item['재료'] || []).forEach(raw => {
+      const { name } = parseIngText(String(raw));
+      if (name) names.add(name);
+    });
+  });
+  return [...names].sort((a, b) => a.localeCompare(b, 'ko'));
+})();
+
+function SortableIngRow({ id, ing, index, darkMode, editingIngIndex, editingIngName, editingIngAmount, setEditingIngName, setEditingIngAmount, setEditingIngIndex, saveEditIng, startEditIng, setIngredientsList, parseIngredientInput, isRestored, onClearRestored }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging: isSortableDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isSortableDragging ? 0.5 : 1,
+  };
+  const parsed = parseIngredientInput(ing);
+  if (editingIngIndex === index) {
+    return (
+      <div ref={setNodeRef} style={style} className={`ing-list-row ing-list-row--editing${darkMode ? ' dark' : ''}`}>
+        <input
+          className={`ing-edit-name${darkMode ? ' dark' : ''}`}
+          value={editingIngName}
+          onChange={e => { setEditingIngName(e.target.value); onClearRestored?.(); }}
+          onKeyDown={e => { if (e.key === 'Enter') saveEditIng(); if (e.key === 'Escape') setEditingIngIndex(null); }}
+          autoFocus
+        />
+        <input
+          className={`ing-edit-amount${darkMode ? ' dark' : ''}`}
+          value={editingIngAmount}
+          onChange={e => setEditingIngAmount(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') saveEditIng(); if (e.key === 'Escape') setEditingIngIndex(null); }}
+          placeholder="수량"
+        />
+        <div className="ing-edit-actions">
+          <button className="ing-edit-save" onClick={saveEditIng}>✓</button>
+          <button className="ing-edit-cancel" onClick={() => setEditingIngIndex(null)}>✕</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div ref={setNodeRef} style={style} className={`ing-list-row${isRestored ? ' restored' : ''}${darkMode ? ' dark' : ''}`} {...listeners} {...attributes}>
+      <span className="ing-drag-handle">⠿</span>
+      <div className="ing-list-main">
+        <span className="ing-list-name">{parsed.name || ing}</span>
+        {parsed.amount && <span className="ing-list-amount">{parsed.amount}</span>}
+        <div className="ing-list-actions">
+          <button className="ing-list-edit" onClick={() => startEditIng(index, ing)}>✎</button>
+          <button className="ing-list-remove" onClick={() => setIngredientsList(l => l.filter((_, idx) => idx !== index))}>×</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── 편집 패널: 자체 state로 관리해 App 리렌더 방지 ──
 function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, uploaderName, onSave, onCancel, onSaveThumbnail, onClearThumbnail }) {
@@ -33,9 +100,25 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
   const [ingInput, setIngInput] = useState('');
   const [ingAmountInput, setIngAmountInput] = useState('');
   const [ingComposing, setIngComposing] = useState(false);
+  const nameInputRef = useRef(null);
   const [editingIngIndex, setEditingIngIndex] = useState(null);
   const [editingIngName, setEditingIngName] = useState('');
   const [editingIngAmount, setEditingIngAmount] = useState('');
+
+  // autocomplete state
+  const [ingSuggestions, setIingSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggIdx, setActiveSuggIdx] = useState(-1);
+
+  // restored item highlight — stored as Set<string> (item values) so drag reorder doesn't break it
+  const [restoredItems, setRestoredItems] = useState(null); // null | Set<string>
+  const [restoredStepItems, setRestoredStepItems] = useState(null); // null | Set<string>
+
+  // draft restore banner state
+  const [draftBanner, setDraftBanner] = useState(null); // null | { draft, ingredientsList, stepsList, savedAt }
+
+  const draftKey = `findish_draft_${recipeUrl}`;
+  const autoSaveTimer = useRef(null);
 
   const parseIngredientInput = parseIngText;
 
@@ -61,6 +144,34 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
   const tipLabel = uploaderName ? `${uploaderName}'s TIP` : t.tip;
 
   const [ingParsing, setIngParsing] = useState(false);
+
+  // Check localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(draftKey);
+    if (saved) {
+      try { setDraftBanner(JSON.parse(saved)); } catch {}
+    }
+    // beforeunload warning
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-save with 500ms debounce
+  useEffect(() => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      localStorage.setItem(draftKey, JSON.stringify({ draft, ingredientsList, stepsList, savedAt: Date.now() }));
+    }, 500);
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, ingredientsList, stepsList]);
 
   const addIngredient = async (val) => {
     const rawName = (val ?? ingInput).trim();
@@ -91,6 +202,10 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
     setIngredientsList(l => [...l, combined]);
     setIngInput('');
     setIngAmountInput('');
+    setShowSuggestions(false);
+    setIingSuggestions([]);
+    setActiveSuggIdx(-1);
+    setTimeout(() => nameInputRef.current?.focus(), 0);
   };
 
   const handleThumbFile = async (file) => {
@@ -137,11 +252,66 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
   const stepHandlers = makeStepHandlers(stepsList, setStepsList, 'step-input');
 
   const handleSave = () => {
+    localStorage.removeItem(draftKey);
     onSave({ ...draft, mainIngredients: ingredientsList.filter(Boolean).join('\n'), steps: stepsList.filter(Boolean).join('\n') });
+  };
+
+  const handleCancel = () => {
+    const saved = localStorage.getItem(draftKey);
+    if (saved) {
+      if (window.confirm('작업 중인 내용이 있습니다. 취소하시겠습니까?')) {
+        localStorage.removeItem(draftKey);
+        onCancel();
+      }
+    } else {
+      onCancel();
+    }
   };
 
   return (
     <div className="recipe-edit-panel">
+      <div className={`recipe-edit-topbar${darkMode ? ' dark' : ''}`}>
+        <span className="recipe-edit-topbar-title">편집 중</span>
+        <div className="recipe-edit-topbar-actions">
+          <button className={`recipe-edit-cancel-btn${darkMode ? ' dark' : ''}`} onClick={handleCancel}>취소</button>
+          <button className={`recipe-edit-save-btn${darkMode ? ' dark' : ''}`} onClick={handleSave}>저장</button>
+        </div>
+      </div>
+      {draftBanner && (
+        <div className={`draft-restore-banner${darkMode ? ' dark' : ''}`}>
+          <span>
+            <strong>"{draftBanner.draft?.name || '이전 작업'}"</strong> 임시 저장 —{' '}
+            재료 {(draftBanner.ingredientsList || []).filter(Boolean).length}개,{' '}
+            스텝 {(draftBanner.stepsList || []).filter(Boolean).length}개
+          </span>
+          <div>
+            <button className="draft-restore-btn" onClick={() => {
+              if (draftBanner.draft) setDraft(draftBanner.draft);
+              if (draftBanner.ingredientsList) {
+                const currentSet = new Set(ingredientsList.filter(Boolean));
+                const diffValues = new Set(
+                  draftBanner.ingredientsList.filter(item => item && !currentSet.has(item))
+                );
+                setIngredientsList(draftBanner.ingredientsList);
+                setRestoredItems(diffValues.size > 0 ? diffValues : null);
+              }
+              if (draftBanner.stepsList) {
+                const currentStepSet = new Set(stepsList.filter(Boolean));
+                const diffStepValues = new Set(
+                  draftBanner.stepsList.filter(item => item && !currentStepSet.has(item))
+                );
+                setStepsList(draftBanner.stepsList);
+                setRestoredStepItems(diffStepValues.size > 0 ? diffStepValues : null);
+              }
+              setDraftBanner(null);
+            }}>복원</button>
+            <button className="draft-dismiss-btn" onClick={() => {
+              localStorage.removeItem(draftKey);
+              setDraftBanner(null);
+            }}>무시</button>
+          </div>
+        </div>
+      )}
       <label className="recipe-edit-field-label">요리명</label>
       <input
         className={`recipe-edit-input${darkMode ? ' dark' : ''}`}
@@ -150,7 +320,7 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
         placeholder="요리 이름"
       />
       <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>
-        {tipLabel} <span style={{ fontWeight: 400, opacity: 0.5 }}>(선택)</span>
+        👨‍🍳 {tipLabel} <span style={{ fontWeight: 400, opacity: 0.5 }}>(선택)</span>
       </label>
       <textarea
         className={`recipe-edit-textarea${darkMode ? ' dark' : ''}`}
@@ -160,63 +330,120 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
         placeholder="재료 준비 팁이나 맛을 더하는 포인트를 남겨보세요"
       />
       <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>RECIPE</label>
-      <div className={`ing-list-container${darkMode ? ' dark' : ''}`}>
-        {ingredientsList.length > 0 && (
-          <div className={`ing-list-header${darkMode ? ' dark' : ''}`}>
-            <span>재료</span>
-            <span>수량</span>
-            <span />
-          </div>
-        )}
-        {ingredientsList.map((ing, i) => {
-          const parsed = parseIngredientInput(ing);
-          if (editingIngIndex === i) {
-            return (
-              <div key={i} className={`ing-list-row ing-list-row--editing${darkMode ? ' dark' : ''}`}>
-                <input
-                  className={`ing-edit-name${darkMode ? ' dark' : ''}`}
-                  value={editingIngName}
-                  onChange={e => setEditingIngName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') saveEditIng(); if (e.key === 'Escape') setEditingIngIndex(null); }}
-                  autoFocus
-                />
-                <input
-                  className={`ing-edit-amount${darkMode ? ' dark' : ''}`}
-                  value={editingIngAmount}
-                  onChange={e => setEditingIngAmount(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') saveEditIng(); if (e.key === 'Escape') setEditingIngIndex(null); }}
-                  placeholder="수량"
-                />
-                <div className="ing-edit-actions">
-                  <button className="ing-edit-save" onClick={saveEditIng}>✓</button>
-                  <button className="ing-edit-cancel" onClick={() => setEditingIngIndex(null)}>✕</button>
-                </div>
-              </div>
-            );
-          }
-          return (
-            <div key={i} className={`ing-list-row${darkMode ? ' dark' : ''}`}>
-              <span className="ing-list-name">{parsed.name || ing}</span>
-              <span className="ing-list-amount">{parsed.amount}</span>
-              <div className="ing-list-actions">
-                <button className="ing-list-edit" onClick={() => startEditIng(i, ing)}>✎</button>
-                <button className="ing-list-remove" onClick={() => setIngredientsList(l => l.filter((_, idx) => idx !== i))}>×</button>
-              </div>
+      <div className="ing-list-outer">
+        <div className={`ing-list-container${darkMode ? ' dark' : ''}`}>
+          {ingredientsList.length > 0 && (
+            <div className={`ing-list-header${darkMode ? ' dark' : ''}`}>
+              <span>재료</span>
+              <span>수량</span>
+              <span />
             </div>
-          );
-        })}
+          )}
+          <DndContext collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
+            if (!over || active.id === over.id) return;
+            const oldIndex = parseInt(active.id, 10);
+            const newIndex = parseInt(over.id, 10);
+            setIngredientsList(l => arrayMove(l, oldIndex, newIndex));
+          }}>
+            <SortableContext items={ingredientsList.map((_, i) => String(i))} strategy={verticalListSortingStrategy}>
+              {ingredientsList.map((ing, i) => (
+                <SortableIngRow
+                  key={String(i)}
+                  id={String(i)}
+                  ing={ing}
+                  index={i}
+                  darkMode={darkMode}
+                  editingIngIndex={editingIngIndex}
+                  editingIngName={editingIngName}
+                  editingIngAmount={editingIngAmount}
+                  setEditingIngName={setEditingIngName}
+                  setEditingIngAmount={setEditingIngAmount}
+                  setEditingIngIndex={setEditingIngIndex}
+                  saveEditIng={saveEditIng}
+                  startEditIng={startEditIng}
+                  setIngredientsList={setIngredientsList}
+                  parseIngredientInput={parseIngredientInput}
+                  isRestored={restoredItems?.has(ing) ?? false}
+                  onClearRestored={() => setRestoredItems(prev => { if (!prev) return prev; const next = new Set(prev); next.delete(ing); return next.size ? next : null; })}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
         <div className={`ing-add-row${darkMode ? ' dark' : ''}`}>
-          <input
-            className={`ing-add-name${darkMode ? ' dark' : ''}`}
-            value={ingInput}
-            onChange={e => setIngInput(e.target.value)}
-            onCompositionStart={() => setIngComposing(true)}
-            onCompositionEnd={e => { setIngComposing(false); setIngInput(e.target.value); }}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !ingComposing) { e.preventDefault(); addIngredient(); }
-            }}
-            placeholder="재료명 (예: 양파 5개)"
-          />
+          <div className="ing-autocomplete-wrap">
+            <input
+              ref={nameInputRef}
+              className={`ing-add-name${darkMode ? ' dark' : ''}`}
+              value={ingInput}
+              onChange={e => {
+                const val = e.target.value;
+                setIngInput(val);
+                if (val.trim()) {
+                  const filtered = ALL_INGREDIENT_NAMES.filter(n => n.includes(val.trim())).slice(0, 8);
+                  setIingSuggestions(filtered);
+                  setShowSuggestions(filtered.length > 0);
+                  setActiveSuggIdx(-1);
+                } else {
+                  setShowSuggestions(false);
+                  setIingSuggestions([]);
+                }
+              }}
+              onCompositionStart={() => setIngComposing(true)}
+              onCompositionEnd={e => { setIngComposing(false); setIngInput(e.target.value); }}
+              onKeyDown={e => {
+                if (showSuggestions && ingSuggestions.length > 0) {
+                  if (e.key === 'ArrowDown') { e.preventDefault(); setActiveSuggIdx(i => Math.min(i + 1, ingSuggestions.length - 1)); return; }
+                  if (e.key === 'ArrowUp') { e.preventDefault(); setActiveSuggIdx(i => Math.max(i - 1, -1)); return; }
+                  if (e.key === 'Escape') { setShowSuggestions(false); return; }
+                  if (e.key === 'Enter' && !ingComposing) {
+                    e.preventDefault();
+                    if (activeSuggIdx >= 0) {
+                      setIngInput(ingSuggestions[activeSuggIdx] + ' ');
+                      setShowSuggestions(false);
+                      setActiveSuggIdx(-1);
+                    } else {
+                      setShowSuggestions(false);
+                      setActiveSuggIdx(-1);
+                    }
+                    return;
+                  }
+                } else {
+                  if (e.key === 'Enter' && !ingComposing) {
+                    e.preventDefault();
+                    if (!ingAmountInput.trim()) {
+                      const parsed = parseIngredientInput(ingInput.trim());
+                      if (parsed.amount) {
+                        setIngInput(parsed.name);
+                        setIngAmountInput(parsed.amount);
+                        setTimeout(() => document.getElementById('ing-amount-input')?.focus(), 0);
+                        return;
+                      }
+                    }
+                    addIngredient();
+                  }
+                }
+              }}
+              onBlur={() => { setTimeout(() => setShowSuggestions(false), 150); }}
+              placeholder="재료명 (예: 양파 5개)"
+            />
+            {showSuggestions && ingSuggestions.length > 0 && (
+              <div className={`ing-suggestions${darkMode ? ' dark' : ''}`}>
+                {ingSuggestions.map((s, idx) => (
+                  <div
+                    key={s}
+                    className={`ing-suggestion-item${idx === activeSuggIdx ? ' active' : ''}`}
+                    onMouseDown={() => {
+                      setIngInput(s + ' ');
+                      setShowSuggestions(false);
+                      setActiveSuggIdx(-1);
+                      setTimeout(() => nameInputRef.current?.focus(), 0);
+                    }}
+                  >{s}</div>
+                ))}
+              </div>
+            )}
+          </div>
           <input
             id="ing-amount-input"
             className={`ing-add-amount${darkMode ? ' dark' : ''}`}
@@ -231,17 +458,20 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
             {ingParsing ? '...' : '추가'}
           </button>
         </div>
-      </div>
+      </div>{/* ing-list-outer */}
       <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>INSTRUCTION</label>
       <div className="steps-edit-list">
         {stepsList.map((step, i) => (
-          <div key={i} className="step-edit-row">
+          <div key={i} className={`step-edit-row${restoredStepItems?.has(step) ? ' restored' : ''}`}>
             <span className="step-edit-number">{i + 1}.</span>
             <input
               id={`step-input-${i}`}
               className={`step-edit-input${darkMode ? ' dark' : ''}`}
               value={step}
-              onChange={e => stepHandlers.onChange(i, e.target.value)}
+              onChange={e => {
+                stepHandlers.onChange(i, e.target.value);
+                setRestoredStepItems(prev => { if (!prev) return prev; const next = new Set(prev); next.delete(step); return next.size ? next : null; });
+              }}
               onKeyDown={e => stepHandlers.onKeyDown(e, i)}
               placeholder={`스텝 ${i + 1}`}
             />
@@ -283,10 +513,6 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
         </button>
       )}
 
-      <div className="recipe-edit-actions">
-        <button className="recipe-edit-cancel-btn" onClick={onCancel}>취소</button>
-        <button className="recipe-edit-save-btn" onClick={handleSave}>저장</button>
-      </div>
     </div>
   );
 }
@@ -357,12 +583,6 @@ function LoginModal({ open, onClose, onLoginSuccess, darkMode }) {
     </Modal>
   );
 }
-
-const ING_QUANTITY_RE = /^(.+?)\s+(\d[\d/.]*\s*(?:봉지|숟가락|작은술|큰술|티스푼|스푼|그램|밀리리터|밀리|미리|덩어리|움큼|꼬집|방울|가닥|줄기|묶음|뭉치|조각|토막|포기|줌|컵|봉|팩|병|캔|장|마리|알|통|쪽|인분|뿌리|대|근|모|판|ml|ML|kg|KG|mg|개|g|G|L|l|cc|T|t)|약간|조금|조금씩|적당량|적당히|한줌|두줌|한꼬집|두꼬집|반컵|반개|조금)$/;
-const parseIngText = (str) => {
-  const m = str.trim().match(ING_QUANTITY_RE);
-  return m ? { name: m[1].trim(), amount: m[2].trim() } : { name: str.trim(), amount: '' };
-};
 
 // slug → chefKey 역방향 맵
 const slugToKey = Object.entries(chefConfig).reduce((acc, [key, val]) => {
@@ -1514,7 +1734,13 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       />
 
       {/* Recipe Detail Modal */}
-      <Modal open={!!recipeModal} onClose={() => { setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); }} darkMode={darkMode} hideClose>
+      <Modal open={!!recipeModal} onClose={() => {
+        if (modalEditMode) {
+          if (!window.confirm('편집 중인 내용이 있습니다. 나가시겠습니까?')) return;
+          if (recipeModal?.url) localStorage.removeItem(`findish_draft_${recipeModal.url}`);
+        }
+        setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false);
+      }} darkMode={darkMode} hideClose>
         {recipeModal && (
           <div className="recipe-modal">
             <div className="recipe-modal-header">
@@ -1536,7 +1762,13 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                   )}
                 </>
               )}
-              <button className="recipe-modal-close-btn" onClick={() => { setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); }}>
+              <button className="recipe-modal-close-btn" onClick={() => {
+                if (modalEditMode) {
+                  if (!window.confirm('편집 중인 내용이 있습니다. 나가시겠습니까?')) return;
+                  if (recipeModal?.url) localStorage.removeItem(`findish_draft_${recipeModal.url}`);
+                }
+                setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false);
+              }}>
                 &times;
               </button>
             </div>
@@ -1620,11 +1852,23 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                     <>
                       {/* TIP 섹션 — 셰프 직접 입력, 맨 위 */}
                       <div className="recipe-tip-section">
-                        <span className="recipe-tip-label">
-                          {recipeModal.uploader ? `${recipeModal.uploader}'s TIP` : t.tip}
-                        </span>
+                        <div className="recipe-tip-label-wrap">
+                          <span className="recipe-tip-label">
+                            {recipeModal.uploader ? `${recipeModal.uploader}'s TIP` : t.tip}
+                          </span>
+                          {recipeModal.uploader && (
+                            <span
+                              className="recipe-tip-info"
+                              data-tooltip={language === 'kr' ? `${recipeModal.uploader}가 직접 작성한 팁이에요!` : `Written directly by ${recipeModal.uploader}!`}
+                            >?</span>
+                          )}
+                        </div>
                         <p className="recipe-tip-text" style={!displayTip ? { opacity: 0.4 } : {}}>
-                          {displayTip || (language === 'kr' ? '곧 올라올 예정이에요!' : 'Coming soon!')}
+                          {displayTip
+                            ? displayTip.split('\n').map((line, i) => (
+                                <span key={i} className="recipe-tip-line">"{line}"</span>
+                              ))
+                            : (language === 'kr' ? '곧 올라올 예정이에요!' : 'Coming soon!')}
                         </p>
                       </div>
 

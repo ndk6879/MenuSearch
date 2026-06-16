@@ -497,7 +497,10 @@ def parse_ingredient():
                 )
             }]
         )
-        result = _json.loads(msg.content[0].text.strip())
+        raw = msg.content[0].text.strip()
+        raw = _re.sub(r'^```json\s*', '', raw, flags=_re.IGNORECASE)
+        raw = _re.sub(r'```\s*$', '', raw)
+        result = _json.loads(raw)
         return jsonify(result)
     except Exception as e:
         return jsonify({'name': text, 'amount': ''})
