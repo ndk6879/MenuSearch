@@ -2657,6 +2657,28 @@ button.header-logo {
   opacity: 0.65;
 }
 
+.recipe-edit-recipe-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.recipe-servings-input {
+  border: none;
+  border-bottom: 1px solid #ddd;
+  background: transparent;
+  font-size: 0.78rem;
+  color: #555;
+  width: 72px;
+  outline: none;
+  padding: 1px 2px;
+  font-family: inherit;
+  opacity: 0.8;
+}
+.recipe-servings-input::placeholder { color: #bbb; }
+.recipe-servings-input.dark { color: #aaa; border-bottom-color: #444; }
+
 .recipe-edit-textarea {
   width: 100%;
   padding: 10px 12px;

@@ -328,7 +328,15 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
         rows={3}
         placeholder="재료 준비 팁이나 맛을 더하는 포인트를 남겨보세요"
       />
-      <label className="recipe-edit-field-label" style={{ marginTop: 12 }}>RECIPE</label>
+      <div className="recipe-edit-recipe-header" style={{ marginTop: 12 }}>
+        <label className="recipe-edit-field-label" style={{ margin: 0 }}>RECIPE</label>
+        <input
+          className={`recipe-servings-input${darkMode ? ' dark' : ''}`}
+          value={draft.servings || ''}
+          onChange={e => setDraft(d => ({ ...d, servings: e.target.value }))}
+          placeholder="인분"
+        />
+      </div>
       <div className="ing-list-outer">
         <div className={`ing-list-container${darkMode ? ' dark' : ''}`}>
           {ingredientsList.length > 0 && (
@@ -878,7 +886,7 @@ function App() {
     return () => unsub();
   }, []);
   const [modalEditMode, setModalEditMode] = useState(false);
-  const [editDraftInit, setEditDraftInit] = useState({ mainIngredients: '', seasonings: '', steps: '', tip: '' });
+  const [editDraftInit, setEditDraftInit] = useState({ mainIngredients: '', seasonings: '', steps: '', tip: '', servings: '' });
   const [deletedKeys, setDeletedKeys] = useState(() => {
     try {
       const stored = sessionStorage.getItem('findish_deleted_urls');
@@ -1034,6 +1042,7 @@ function App() {
       seasonings: '',
       steps: cleanedSteps.join('\n'),
       tip: saved.tip || '',
+      servings: saved.servings || '',
     });
     setModalEditMode(true);
   };
@@ -1047,6 +1056,7 @@ function App() {
       seasonings: [],
       steps: draft.steps.split('\n').map(s => s.trim()).filter(Boolean),
       tip: draft.tip.trim(),
+      servings: draft.servings?.trim() || '',
     };
     const updated = { ...recipeEdits, [recipeUrl]: updates };
     setRecipeEdits(updated);
@@ -1876,7 +1886,9 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                       {/* RECIPE 섹션 — 테이블 리스트 */}
                       {(sortedMain.length > 0 || seasoningList.length > 0) && (
                         <div className="recipe-modal-section">
-                          <h3 className="recipe-modal-section-title">RECIPE</h3>
+                          <h3 className="recipe-modal-section-title">
+                            RECIPE{savedEdit.servings ? ` (${savedEdit.servings})` : ''}
+                          </h3>
                           <div className={`recipe-ing-pills${darkMode ? ' dark' : ''}`}>
                             {[...sortedMain, ...seasoningList].map((ing, i) => {
                               const { name, amount } = parseIngText(ing);
