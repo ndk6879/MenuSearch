@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 /**
  * 개선 사항
@@ -11,7 +11,7 @@ import React, { useState } from "react";
  */
 export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMode = false }) {
   // === 공통 ===
-  const [tab, setTab] = useState("video"); // "video" | "channel"
+  const [tab, setTab] = useState("video"); // "video" | "channel" | "recent"
 
   // === 영상 분석 탭 (다중 URL) ===
   const [urls, setUrls] = useState([""]); // 최대 5개
@@ -20,6 +20,25 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
   const [urlState, setUrlState] = useState({});
   // recipeSaveStatus: { [`${urlIdx}_${recipeIdx}`]: ""|"saving"|"saved"|"duplicate"|"overwritten"|"error" }
   const [recipeSaveStatus, setRecipeSaveStatus] = useState({});
+  // duplicateData: { [`${urlIdx}_${recipeIdx}`]: existingRecipe }
+  const [duplicateData, setDuplicateData] = useState({});
+  // 최근 분석 결과 — { items: [{url, results}] } 구조, localStorage로 모달 닫아도 유지
+  const [recentResults, setRecentResults] = useState(() => {
+    try {
+      const s = localStorage.getItem("findish_recentResults");
+      const p = s ? JSON.parse(s) : null;
+      if (!p) return null;
+      // 구형 포맷 { url, results } → 신형 { items }
+      if (p.url && p.results) return { items: [{ url: p.url, results: p.results }] };
+      return p;
+    } catch { return null; }
+  });
+
+  useEffect(() => {
+    try {
+      if (recentResults) localStorage.setItem("findish_recentResults", JSON.stringify(recentResults));
+    } catch {}
+  }, [recentResults]);
 
   // === 채널 분석 탭 ===
   const [channelUrl, setChannelUrl] = useState("");
@@ -33,6 +52,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
   const [, setExpandedId] = useState(null);
   const [batchRunning, setBatchRunning] = useState(false);
   const [saveStatus, setSaveStatus] = useState({}); // videoId → "saving"|"saved"|"duplicate"|"overwritten"|"error"|"deleted"
+  const [channelDuplicateData, setChannelDuplicateData] = useState({}); // videoId → 기존 저장 레시피
   const [videoFilter, setVideoFilter] = useState("all"); // "all" | "video" | "shorts"
   const [existingUrls, setExistingUrls] = useState(new Set());
   const [editingId, setEditingId] = useState(null); // 현재 수정 중인 videoId
@@ -101,7 +121,8 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
     });
     setUrlState(initState);
 
-    // 병렬 분석
+    // 병렬 분석 — 성공 결과 누적
+    const successItems = [];
     await Promise.all(
       validTargets.map(async ({ url, idx }) => {
         try {
@@ -125,6 +146,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
               ...prev,
               [idx]: { status: "done", results: data.results, error: "" },
             }));
+            successItems.push({ url, results: data.results });
           } else {
             setUrlState((prev) => ({
               ...prev,
@@ -144,6 +166,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
       })
     );
 
+    if (successItems.length > 0) setRecentResults({ items: successItems });
     setAnalyzing(false);
   };
 
@@ -168,6 +191,9 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
         }));
       } else if (data.reason === "duplicate") {
         setRecipeSaveStatus((prev) => ({ ...prev, [key]: "duplicate" }));
+        if (data.existing) {
+          setDuplicateData((prev) => ({ ...prev, [key]: data.existing }));
+        }
       } else {
         setRecipeSaveStatus((prev) => ({ ...prev, [key]: "error" }));
       }
@@ -245,6 +271,9 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
     setExpandedId(null);
     setSaveStatus({});
 
+    // 최근 분석 — 이번 배치 시작 시 초기화
+    const batchItems = [];
+
     for (const video of targets) {
       setAnalysisStatus((prev) => ({ ...prev, [video.video_id]: "analyzing" }));
 
@@ -268,9 +297,12 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
           const allResults = data.results;
           setAnalysisResults((prev) => ({ ...prev, [video.video_id]: allResults[0] }));
           setAnalysisStatus((prev) => ({ ...prev, [video.video_id]: "done" }));
+          batchItems.push({ url: video.url, results: allResults });
+          setRecentResults({ items: [...batchItems] });
 
           // ✅ 분석 성공 시 모든 결과 자동 저장 (백엔드에서 (url+name) 중복 판단)
           let savedCount = 0;
+          let isDuplicate = false;
           for (const result of allResults) {
             try {
               const saveResp = await fetchWithTimeout(
@@ -286,6 +318,11 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
               if (saveData.ok && saveData.saved) {
                 savedCount++;
                 setExistingUrls((prev) => new Set([...prev, result.video_url]));
+              } else if (saveData.reason === "duplicate") {
+                isDuplicate = true;
+                if (saveData.existing) {
+                  setChannelDuplicateData((prev) => ({ ...prev, [video.video_id]: saveData.existing }));
+                }
               }
             } catch {
               // 자동 저장 실패 시 무시 (수동 저장 가능)
@@ -293,7 +330,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
           }
           if (savedCount > 0) {
             setSaveStatus((prev) => ({ ...prev, [video.video_id]: "saved" }));
-          } else if (existingUrls.has(allResults[0].video_url)) {
+          } else if (isDuplicate || existingUrls.has(allResults[0].video_url)) {
             setSaveStatus((prev) => ({ ...prev, [video.video_id]: "duplicate" }));
           }
         } else {
@@ -409,6 +446,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
               setExistingUrls((prev) => new Set([...prev, firstResult.video_url]));
             } else if (saveData.reason === "duplicate") {
               setSaveStatus((prev) => ({ ...prev, [video.video_id]: "duplicate" }));
+              if (saveData.existing) setChannelDuplicateData((prev) => ({ ...prev, [video.video_id]: saveData.existing }));
             }
           } catch {}
         } else {
@@ -527,6 +565,9 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
         </button>
         <button style={tabStyle(tab === "channel")} onClick={() => setTab("channel")}>
           채널 분석
+        </button>
+        <button style={tabStyle(tab === "recent")} onClick={() => setTab("recent")}>
+          최근 분석{recentResults ? " ✓" : ""}
         </button>
       </div>
 
@@ -675,8 +716,15 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
 
                 {/* 오류 */}
                 {state.status === "error" && (
-                  <div style={{ padding: "10px 14px", color: "#dc2626", fontSize: 14 }}>
-                    {state.error}
+                  <div style={{
+                    padding: "10px 14px",
+                    color: darkMode ? "#f0a055" : "#b45309",
+                    fontSize: 13,
+                    background: darkMode ? "rgba(180,83,9,0.08)" : "#fffbeb",
+                    borderRadius: 6,
+                    margin: "4px 0",
+                  }}>
+                    😅 {state.error === "분석 실패" ? "이 영상은 분석하기 어려웠어요. 다른 영상을 시도해보세요." : state.error}
                   </div>
                 )}
 
@@ -717,8 +765,8 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                 {sv === "overwritten" ? "갱신됨 ✓" : "저장됨 ✓"}
                               </span>
                             ) : sv === "duplicate" ? (
-                              <div style={{ display: "flex", gap: 4 }}>
-                                <span style={{ color: "#b45309", fontSize: 12, fontWeight: 600 }}>중복</span>
+                              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                                <span style={{ color: "#b45309", fontSize: 12, fontWeight: 600 }}>⚠️ 이미 저장됨</span>
                                 <button
                                   onClick={() => saveVideoRecipe(urlIdx, recipeIdx, recipe, true)}
                                   style={{
@@ -746,6 +794,59 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                             )}
                           </div>
                         </div>
+
+                        {/* 덮어쓰기 비교 패널 — 기존 vs 새 데이터 나란히 */}
+                        {sv === "duplicate" && (() => {
+                          const ex = duplicateData[`${urlIdx}_${recipeIdx}`];
+                          const exIngredients = ex ? (ex["재료"] || ex.ingredients || []) : [];
+                          const exSteps = ex ? (ex["순서"] || ex.steps || []) : [];
+                          const cardBase = {
+                            borderRadius: 8, padding: "10px 12px", fontSize: 12,
+                            background: darkMode ? "#1a1a1a" : "#f9f9f9",
+                            border: `1px solid ${darkMode ? "#2a2a2a" : "#e5e7eb"}`,
+                            color: darkMode ? "#d4d4d4" : "#333",
+                          };
+                          return (
+                            <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: ex ? "1fr 1fr" : "1fr", gap: 10 }}>
+                              {ex && (
+                                <div style={{ ...cardBase, borderLeft: "3px solid #f59e0b" }}>
+                                  <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6, color: "#f59e0b" }}>
+                                    💾 기존 저장 데이터
+                                  </div>
+                                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{ex["메뉴"] || ex.name}</div>
+                                  <div style={{ marginBottom: 3 }}>
+                                    <b>재료 ({exIngredients.length}):</b>{" "}
+                                    {exIngredients.slice(0, 6).join(", ")}{exIngredients.length > 6 ? "..." : ""}
+                                  </div>
+                                  <div><b>순서:</b> {exSteps.length}단계</div>
+                                  {exSteps.length > 0 && (
+                                    <ol style={{ marginLeft: 14, marginTop: 4 }}>
+                                      {exSteps.slice(0, 3).map((s, i) => <li key={i} style={{ marginBottom: 2 }}>{s}</li>)}
+                                      {exSteps.length > 3 && <li style={{ listStyle: "none", opacity: 0.6 }}>... 외 {exSteps.length - 3}단계</li>}
+                                    </ol>
+                                  )}
+                                </div>
+                              )}
+                              <div style={{ ...cardBase, borderLeft: "3px solid #22c55e" }}>
+                                <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6, color: "#22c55e" }}>
+                                  🆕 새로 가져온 데이터
+                                </div>
+                                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{recipe.name}</div>
+                                <div style={{ marginBottom: 3 }}>
+                                  <b>재료 ({(recipe.ingredients || []).length}):</b>{" "}
+                                  {(recipe.ingredients || []).slice(0, 6).join(", ")}{(recipe.ingredients || []).length > 6 ? "..." : ""}
+                                </div>
+                                <div><b>순서:</b> {(recipe.steps || []).length}단계</div>
+                                {recipe.steps && recipe.steps.length > 0 && (
+                                  <ol style={{ marginLeft: 14, marginTop: 4 }}>
+                                    {recipe.steps.slice(0, 3).map((s, i) => <li key={i} style={{ marginBottom: 2 }}>{s}</li>)}
+                                    {recipe.steps.length > 3 && <li style={{ listStyle: "none", opacity: 0.6 }}>... 외 {recipe.steps.length - 3}단계</li>}
+                                  </ol>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         <div style={{ marginTop: 8, fontSize: 13 }}>
                           <b>재료 ({(recipe.ingredients || []).length}):</b>{" "}
@@ -876,15 +977,15 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
             <div
               style={{
                 marginTop: 10,
-                color: "#b00020",
-                background: darkMode ? "#2a0000" : "#ffeaea",
-                border: "1px solid #ffbcbc",
+                color: darkMode ? "#f0a055" : "#b45309",
+                background: darkMode ? "rgba(180,83,9,0.08)" : "#fffbeb",
+                border: `1px solid ${darkMode ? "#5a3a00" : "#fcd34d"}`,
                 padding: 10,
                 borderRadius: 8,
-                fontSize: 14,
+                fontSize: 13,
               }}
             >
-              {chError}
+              😅 {chError}
             </div>
           )}
 
@@ -1206,9 +1307,22 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                 ) : (
                                   /* ===== 보기 모드 ===== */
                                   <div>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                      <div><b>메뉴:</b> {res.name}</div>
+                                    {/* 액션 버튼 */}
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                                      <div style={{ fontWeight: 600, fontSize: 14 }}>
+                                        {sv === "duplicate" ? "🔄 이미 저장된 영상이에요 — 비교 후 결정해주세요" : res.name}
+                                      </div>
                                       <div style={{ display: "flex", gap: 6 }}>
+                                        {sv === "duplicate" && (
+                                          <button
+                                            onClick={() => saveRecipe(v.video_id, true)}
+                                            style={{
+                                              background: "#fef3c7", color: "#b45309",
+                                              border: "1px solid #f59e0b", borderRadius: 5,
+                                              padding: "2px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                                            }}
+                                          >새 데이터로 덮어쓰기</button>
+                                        )}
                                         <button
                                           onClick={() => startEdit(v.video_id)}
                                           style={{
@@ -1227,27 +1341,84 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                         )}
                                       </div>
                                     </div>
-                                    <div style={{ marginTop: 4 }}>
-                                      <b>재료 ({(res.ingredients || []).length}):</b>{" "}
-                                      <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>
-                                        (출처: {res.ingredients_source || res.source})
-                                      </span>
-                                      <div style={{ marginTop: 2 }}>
-                                        {(res.ingredients || []).join(", ")}
-                                      </div>
-                                    </div>
-                                    {res.steps && res.steps.length > 0 && (
-                                      <div style={{ marginTop: 4 }}>
-                                        <b>요리 순서:</b>{" "}
-                                        <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>
-                                          (출처: {res.steps_source || res.source})
-                                        </span>
-                                        <ol style={{ marginLeft: 20, marginTop: 2 }}>
-                                          {res.steps.map((s, j) => (
-                                            <li key={j}>{s}</li>
-                                          ))}
-                                        </ol>
-                                      </div>
+
+                                    {/* 중복 시: 2열 비교 */}
+                                    {sv === "duplicate" && channelDuplicateData[v.video_id] ? (() => {
+                                      const ex = channelDuplicateData[v.video_id];
+                                      const exIng = ex["재료"] || ex.ingredients || [];
+                                      const exSteps = ex["순서"] || ex.steps || [];
+                                      const cardBase = {
+                                        borderRadius: 8, padding: "10px 12px", fontSize: 12,
+                                        background: darkMode ? "#1a1a1a" : "#f9f9f9",
+                                        border: `1px solid ${darkMode ? "#2a2a2a" : "#e5e7eb"}`,
+                                        color: darkMode ? "#d4d4d4" : "#333",
+                                      };
+                                      return (
+                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                          {/* 기존 */}
+                                          <div style={{ ...cardBase, borderLeft: "3px solid #f59e0b" }}>
+                                            <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6, color: "#f59e0b", letterSpacing: 0.5 }}>
+                                              💾 기존 저장 데이터
+                                            </div>
+                                            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{ex["메뉴"] || ex.name}</div>
+                                            <div style={{ marginBottom: 4 }}>
+                                              <b>재료 ({exIng.length}):</b> {exIng.join(", ")}
+                                            </div>
+                                            {exSteps.length > 0 && (
+                                              <div>
+                                                <b>요리 순서:</b>
+                                                <ol style={{ marginLeft: 14, marginTop: 3 }}>
+                                                  {exSteps.map((s, i) => <li key={i} style={{ marginBottom: 2 }}>{s}</li>)}
+                                                </ol>
+                                              </div>
+                                            )}
+                                          </div>
+                                          {/* 새 */}
+                                          <div style={{ ...cardBase, borderLeft: "3px solid #22c55e" }}>
+                                            <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6, color: "#22c55e", letterSpacing: 0.5 }}>
+                                              🆕 새로 분석된 데이터
+                                            </div>
+                                            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{res.name}</div>
+                                            <div style={{ marginBottom: 4 }}>
+                                              <b>재료 ({(res.ingredients || []).length}):</b> {(res.ingredients || []).join(", ")}
+                                            </div>
+                                            {res.steps && res.steps.length > 0 && (
+                                              <div>
+                                                <b>요리 순서:</b>
+                                                <ol style={{ marginLeft: 14, marginTop: 3 }}>
+                                                  {res.steps.map((s, i) => <li key={i} style={{ marginBottom: 2 }}>{s}</li>)}
+                                                </ol>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })() : (
+                                      /* 일반 단일 보기 */
+                                      <>
+                                        <div style={{ marginTop: 0 }}>
+                                          <b>재료 ({(res.ingredients || []).length}):</b>{" "}
+                                          <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>
+                                            (출처: {res.ingredients_source || res.source})
+                                          </span>
+                                          <div style={{ marginTop: 2 }}>
+                                            {(res.ingredients || []).join(", ")}
+                                          </div>
+                                        </div>
+                                        {res.steps && res.steps.length > 0 && (
+                                          <div style={{ marginTop: 4 }}>
+                                            <b>요리 순서:</b>{" "}
+                                            <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>
+                                              (출처: {res.steps_source || res.source})
+                                            </span>
+                                            <ol style={{ marginLeft: 20, marginTop: 2 }}>
+                                              {res.steps.map((s, j) => (
+                                                <li key={j}>{s}</li>
+                                              ))}
+                                            </ol>
+                                          </div>
+                                        )}
+                                      </>
                                     )}
                                   </div>
                                 )}
@@ -1263,6 +1434,66 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
             </div>
             );
           })()}
+        </>
+      )}
+
+      {/* ===== 최근 분석 탭 ===== */}
+      {tab === "recent" && (
+        <>
+          {!recentResults || !recentResults.items?.length ? (
+            <div style={{ padding: "24px 0", color: darkMode ? "#666" : "#bbb", textAlign: "center", fontSize: 14 }}>
+              아직 분석한 영상이 없어요.<br />
+              <span style={{ fontSize: 12 }}>영상 분석 또는 채널 분석 탭에서 분석해보세요.</span>
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: 12, color: darkMode ? "#555" : "#bbb", marginBottom: 14 }}>
+                마지막 분석 세션 · 영상 {recentResults.items.length}개
+              </div>
+              {recentResults.items.map((item, itemIdx) => (
+                item.results.map((recipe, i) => (
+                  <div key={`${itemIdx}-${i}`} style={{
+                    padding: "14px 16px",
+                    marginBottom: 10,
+                    borderRadius: 10,
+                    background: darkMode ? "#141414" : "#fff",
+                    border: `1px solid ${darkMode ? "#252525" : "#e8e8e8"}`,
+                    color: darkMode ? "#e0e0e0" : "#222",
+                  }}>
+                    {/* 헤더: 제목 + 유튜브 링크 */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 15 }}>{recipe.name}</div>
+                        <div style={{ fontSize: 12, color: darkMode ? "#666" : "#aaa", marginTop: 2 }}>
+                          {recipe.uploader} · {recipe.upload_date}
+                        </div>
+                      </div>
+                      <a href={item.url} target="_blank" rel="noreferrer" style={{
+                        fontSize: 11, color: darkMode ? "#666" : "#aaa",
+                        textDecoration: "none", flexShrink: 0, marginLeft: 12,
+                        border: `1px solid ${darkMode ? "#333" : "#ddd"}`,
+                        borderRadius: 4, padding: "2px 7px",
+                      }}>↗ YouTube</a>
+                    </div>
+                    {/* 재료 */}
+                    <div style={{ fontSize: 13, marginBottom: 6 }}>
+                      <b>재료 ({(recipe.ingredients || []).length}):</b>{" "}
+                      {(recipe.ingredients || []).join(", ")}
+                    </div>
+                    {/* 순서 */}
+                    {recipe.steps && recipe.steps.length > 0 && (
+                      <div style={{ fontSize: 13 }}>
+                        <b>요리 순서:</b>
+                        <ol style={{ marginLeft: 18, marginTop: 4 }}>
+                          {recipe.steps.map((s, j) => <li key={j}>{s}</li>)}
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ))}
+            </div>
+          )}
         </>
       )}
     </section>

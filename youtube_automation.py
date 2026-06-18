@@ -215,6 +215,23 @@ def _block_matches(block, video_url, name=None):
         return (f'"name": "{name}"' in block or f'"name":"{name}"' in block)
     return True
 
+def get_recipe_by_url(video_url, file_path="src/menuData_kr.js"):
+    """URL로 저장된 레시피 데이터 반환. 없으면 None."""
+    if not os.path.exists(file_path):
+        return None
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    blocks = re.findall(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)?\}', content, re.DOTALL)
+    for block in blocks:
+        try:
+            data = json.loads(block)
+            if data.get("url") == video_url:
+                return data
+        except Exception:
+            continue
+    return None
+
+
 def remove_from_js(video_url, name=None, file_path="src/menuData_kr.js"):
     """menuData_kr.js에서 특정 URL(+이름) 항목을 제거 — 첫 번째 매치 1건만 삭제"""
     if not os.path.exists(file_path):

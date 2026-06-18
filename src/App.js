@@ -1733,7 +1733,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
 
       {/* Analyze Modal */}
       <Modal open={analyzeOpen} onClose={() => setAnalyzeOpen(false)} darkMode={darkMode}>
-        <AnalyzePanel apiBase="http://localhost:8000" />
+        <AnalyzePanel apiBase="http://localhost:8000" darkMode={darkMode} />
       </Modal>
 
       {/* Login Modal */}

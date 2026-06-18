@@ -29,6 +29,15 @@ const chefConfig = {
     youtubeUrl: "https://www.youtube.com/@미뇨끼",
     instagramUrl: "https://www.instagram.com/minyo_kki/",
   },
+  "1분다이어터 1mindiet": {
+    slug: "1mindiet",
+    displayName: "1분다이어터",
+    heroTitle: "1분다이어터의 레시피\n재료로 바로 찾기",
+    heroSubtitle: "1분다이어터의 다이어트 요리를 내 재료로 찾아보세요.",
+    heroTitleEn: "1mindiet's Recipes\nFind by Ingredients",
+    heroSubtitleEn: "Discover 1mindiet's healthy dishes with what you have.",
+    youtubeUrl: "https://www.youtube.com/@1mindiet",
+  },
 };
 
 export default chefConfig;

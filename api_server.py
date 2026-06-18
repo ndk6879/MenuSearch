@@ -13,6 +13,7 @@ from youtube_automation import (
     finalize_js_file,
     get_existing_urls,
     get_existing_url_name_pairs,
+    get_recipe_by_url,
 )
 from youtube_fetch import resolve_channel_id, get_video_list
 
@@ -424,7 +425,8 @@ def save_recipe():
     is_duplicate = is_url_duplicate or (r.get("video_url"), r.get("name")) in existing_pairs
 
     if is_duplicate and not overwrite:
-        return jsonify({"ok": True, "saved": False, "reason": "duplicate"}), 200
+        existing = get_recipe_by_url(r.get("video_url", ""), file_path=SAVE_PATH)
+        return jsonify({"ok": True, "saved": False, "reason": "duplicate", "existing": existing}), 200
 
     try:
         # 덮어쓰기: 기존 항목 삭제 후 새로 추가
