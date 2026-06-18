@@ -1715,7 +1715,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           <button onClick={toggleDarkMode} className="dark-toggle">
             {darkMode ? "Light" : "Dark"}
           </button>
-          {window.location.hostname === 'localhost' && (
+          {window.location.hostname !== 'menu-search.vercel.app' && (
             <button onClick={() => setAnalyzeOpen(true)} className="dark-toggle">
               Analyze
             </button>
