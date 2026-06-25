@@ -524,12 +524,16 @@ def kakao_callback():
     if not _firebase_admin_ready:
         return flask_redirect(f"{state}?kakao_error=server_not_ready")
 
-    token_res = _http.post('https://kauth.kakao.com/oauth/token', data={
+    _cb_token_payload = {
         'grant_type': 'authorization_code',
         'client_id': os.getenv('KAKAO_REST_API_KEY', ''),
         'redirect_uri': KAKAO_CALLBACK_URI,
         'code': code,
-    })
+    }
+    _cs = os.getenv('KAKAO_CLIENT_SECRET', '')
+    if _cs:
+        _cb_token_payload['client_secret'] = _cs
+    token_res = _http.post('https://kauth.kakao.com/oauth/token', data=_cb_token_payload)
     token_data = token_res.json()
     if 'access_token' not in token_data:
         return flask_redirect(f"{state}?kakao_error=token_fail")
@@ -570,12 +574,16 @@ def kakao_auth():
         return jsonify({'error': 'code 또는 redirect_uri 누락'}), 400
 
     # 카카오 액세스 토큰 교환
-    token_res = _http.post('https://kauth.kakao.com/oauth/token', data={
+    token_payload = {
         'grant_type': 'authorization_code',
         'client_id': os.getenv('KAKAO_REST_API_KEY', ''),
         'redirect_uri': redirect_uri,
         'code': code,
-    })
+    }
+    _client_secret = os.getenv('KAKAO_CLIENT_SECRET', '')
+    if _client_secret:
+        token_payload['client_secret'] = _client_secret
+    token_res = _http.post('https://kauth.kakao.com/oauth/token', data=token_payload)
     token_data = token_res.json()
     if 'access_token' not in token_data:
         return jsonify({'error': '카카오 토큰 교환 실패', 'detail': token_data}), 400
