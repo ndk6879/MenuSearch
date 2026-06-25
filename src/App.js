@@ -901,24 +901,27 @@ function App() {
   }, []);
 
 
-  // 카카오 서버사이드 OAuth 콜백 처리 (?kakao_token=... 파라미터 감지)
+  // 카카오 OAuth 콜백 처리 (?code=... 파라미터 감지)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const kakaoToken = params.get('kakao_token');
-    const kakaoUserStr = params.get('kakao_user');
-    const kakaoError = params.get('kakao_error');
-    if (!kakaoToken && !kakaoError) return;
+    const kakaoCode = params.get('code');
+    if (!kakaoCode) return;
     window.history.replaceState({}, '', window.location.pathname);
-    if (kakaoError) { console.error('카카오 로그인 오류:', kakaoError); return; }
     (async () => {
       try {
-        const cred = await signInWithCustomToken(auth, kakaoToken);
-        const kakaoUser = JSON.parse(decodeURIComponent(kakaoUserStr));
+        const res = await fetch(`${API_BASE}/auth/kakao`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: kakaoCode, redirect_uri: window.location.origin }),
+        });
+        const data = await res.json();
+        if (!data.customToken) throw new Error(data.error || 'No token');
+        const cred = await signInWithCustomToken(auth, data.customToken);
         const userData = {
           uid: cred.user.uid,
-          name: kakaoUser.name,
-          photoURL: kakaoUser.photoURL,
-          email: kakaoUser.email || '',
+          name: data.user.name,
+          photoURL: data.user.photoURL,
+          email: data.user.email || '',
           provider: 'kakao',
           lastLoginAt: new Date(),
         };
@@ -1092,7 +1095,12 @@ function App() {
   };
 
   const handleKakaoLogin = () => {
-    window.location.href = `${API_BASE}/auth/kakao/start?from=${encodeURIComponent(window.location.origin)}`;
+    const params = new URLSearchParams({
+      client_id: process.env.REACT_APP_KAKAO_REST_KEY,
+      redirect_uri: window.location.origin,
+      response_type: 'code',
+    });
+    window.location.href = `https://kauth.kakao.com/oauth/authorize?${params}`;
   };
 
   const handleSocialLogout = async () => {
