@@ -877,6 +877,7 @@ function App() {
     try { return JSON.parse(localStorage.getItem('findish_creator')) || null; } catch { return null; }
   });
   const [socialUser, setSocialUser] = useState(null);
+  const [socialLoading, setSocialLoading] = useState(() => !!new URLSearchParams(window.location.search).get('code'));
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [thumbnailOverrides, setThumbnailOverrides] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_thumbnails')) || {}; } catch { return {}; }
@@ -929,6 +930,8 @@ function App() {
         setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true }).catch(() => {});
       } catch (err) {
         console.error('카카오 로그인 실패:', err);
+      } finally {
+        setSocialLoading(false);
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1843,6 +1846,8 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               <span className="header-creator-name">{creatorUser.username}</span>
               <button onClick={handleLogout} className="header-link">로그아웃</button>
             </>
+          ) : socialLoading ? (
+            <span className="header-creator-name" style={{opacity:0.5}}>로그인 중...</span>
           ) : (
             <button onClick={() => setLoginModalOpen(true)} className="header-link header-login-btn">로그인</button>
           )}

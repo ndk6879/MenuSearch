@@ -599,10 +599,11 @@ def kakao_auth():
     if 'id' not in user_data:
         return jsonify({'error': '카카오 사용자 정보 조회 실패', 'detail': user_data}), 400
 
+    print('[KAKAO USER DATA]', user_data)
     kakao_id = str(user_data['id'])
-    profile = user_data.get('kakao_account', {}).get('profile', {})
+    profile = user_data.get('kakao_account', {}).get('profile', user_data.get('properties', {}))
     nickname = profile.get('nickname', '')
-    photo_url = profile.get('profile_image_url', '')
+    photo_url = profile.get('profile_image_url', profile.get('profile_image', ''))
     email = user_data.get('kakao_account', {}).get('email', '')
 
     uid = f'kakao:{kakao_id}'
