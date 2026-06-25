@@ -1096,7 +1096,7 @@ function App() {
 
   const handleKakaoLogin = () => {
     const params = new URLSearchParams({
-      client_id: process.env.REACT_APP_KAKAO_REST_KEY,
+      client_id: (process.env.REACT_APP_KAKAO_REST_KEY || '').trim(),
       redirect_uri: window.location.origin,
       response_type: 'code',
     });
