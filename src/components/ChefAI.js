@@ -56,7 +56,7 @@ export default function ChefAI({ darkMode }) {
     append,
     addToolResult,
     isLoading,
-  } = useChefChat({ api: "/api/chat" });
+  } = useChefChat({ api: `${process.env.REACT_APP_API_BASE || 'http://localhost:8000'}/api/chat` });
 
   // 새 메시지마다 하단 스크롤
   useEffect(() => {

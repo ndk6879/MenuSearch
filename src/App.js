@@ -13,15 +13,17 @@ import AboutSection from "./components/AboutSection";
 import translations from "./i18n";
 import chefConfig from "./chefConfig";
 import { useParams, useNavigate } from "react-router-dom";
-import { db } from './firebase';
-import { collection, doc, onSnapshot, setDoc, deleteField, updateDoc } from 'firebase/firestore';
+import { db, auth } from './firebase';
+import { collection, doc, onSnapshot, setDoc, deleteField, updateDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
+import { GoogleAuthProvider, signInWithPopup, signInWithCustomToken, onAuthStateChanged, signOut } from 'firebase/auth';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 const IS_DEV = process.env.NODE_ENV === "development";
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
 
 const ING_QUANTITY_RE = /^(.+?)\s+(\d[\d/.]*\s*(?:봉지|숟가락|작은술|큰술|티스푼|스푼|그램|밀리리터|밀리|미리|덩어리|움큼|꼬집|방울|가닥|줄기|묶음|뭉치|조각|토막|포기|줌|컵|봉|팩|병|캔|장|마리|알|통|쪽|인분|뿌리|대|근|모|판|ml|ML|kg|KG|mg|개|g|G|L|l|cc|T|t)|약간|조금|조금씩|적당량|적당히|한줌|두줌|한꼬집|두꼬집|반컵|반개|조금)$/;
 const parseIngText = (str) => {
@@ -183,7 +185,7 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
     if (rawName && !rawAmount) {
       try {
         setIngParsing(true);
-        const res = await fetch('/api/parse-ingredient', {
+        const res = await fetch(`${API_BASE}/parse-ingredient`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: rawName }),
@@ -526,11 +528,20 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
   );
 }
 
-// ── 로그인 모달: 자체 state로 관리해 App 리렌더 방지 ──
-function LoginModal({ open, onClose, onLoginSuccess, darkMode }) {
+// ── 로그인 모달 ──
+function LoginModal({ open, onClose, onLoginSuccess, onGoogleLogin, onKakaoLogin, darkMode }) {
+  const [showCreator, setShowCreator] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  const handleClose = () => {
+    onClose();
+    setShowCreator(false);
+    setError('');
+    setUsername('');
+    setPassword('');
+  };
 
   const handleLogin = () => {
     const credsRaw = process.env.REACT_APP_CREATOR_CREDS || '';
@@ -556,38 +567,52 @@ function LoginModal({ open, onClose, onLoginSuccess, darkMode }) {
   };
 
   return (
-    <Modal open={open} onClose={() => { onClose(); setError(''); setUsername(''); setPassword(''); }} darkMode={darkMode}>
+    <Modal open={open} onClose={handleClose} darkMode={darkMode}>
       <div className="login-modal">
-        <h3 className="login-modal-title">로그인</h3>
-        <div className="login-modal-notice">
-          현재는 크리에이터 전용 베타입니다. 곧 모두에게 오픈돼요 :)
-        </div>
-        <div className="login-field">
-          <label className="login-label">아이디</label>
-          <input
-            type="text"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            placeholder="크리에이터 아이디"
-            className={`login-input${darkMode ? ' dark' : ''}`}
-            autoComplete="username"
-          />
-        </div>
-        <div className="login-field">
-          <label className="login-label">비밀번호</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            placeholder="비밀번호"
-            className={`login-input${darkMode ? ' dark' : ''}`}
-            autoComplete="current-password"
-          />
-        </div>
-        {error && <p className="login-error">{error}</p>}
-        <button onClick={handleLogin} className="login-submit-btn">로그인</button>
+        <h3 className="login-modal-title">로그인 / 회원가입</h3>
+
+        <button onClick={onKakaoLogin} className="social-login-btn kakao-btn">
+          <span className="social-btn-icon">💬</span> 카카오로 시작하기
+        </button>
+        <button onClick={onGoogleLogin} className="social-login-btn google-btn">
+          <span className="social-btn-icon">G</span> 구글로 시작하기
+        </button>
+
+        {!showCreator ? (
+          <button onClick={() => setShowCreator(true)} className="creator-login-toggle">
+            크리에이터로 로그인
+          </button>
+        ) : (
+          <>
+            <div className="login-divider" />
+            <div className="login-field">
+              <label className="login-label">아이디</label>
+              <input
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                placeholder="크리에이터 아이디"
+                className={`login-input${darkMode ? ' dark' : ''}`}
+                autoComplete="username"
+              />
+            </div>
+            <div className="login-field">
+              <label className="login-label">비밀번호</label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                placeholder="비밀번호"
+                className={`login-input${darkMode ? ' dark' : ''}`}
+                autoComplete="current-password"
+              />
+            </div>
+            {error && <p className="login-error">{error}</p>}
+            <button onClick={handleLogin} className="login-submit-btn">로그인</button>
+          </>
+        )}
       </div>
     </Modal>
   );
@@ -851,6 +876,7 @@ function App() {
   const [creatorUser, setCreatorUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_creator')) || null; } catch { return null; }
   });
+  const [socialUser, setSocialUser] = useState(null);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [thumbnailOverrides, setThumbnailOverrides] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_thumbnails')) || {}; } catch { return {}; }
@@ -858,6 +884,55 @@ function App() {
   const [recipeEdits, setRecipeEdits] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_recipe_edits')) || {}; } catch { return {}; }
   });
+
+  // Firebase Auth 세션 복원
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (snap.exists()) setSocialUser(snap.data());
+        } catch {}
+      } else {
+        setSocialUser(null);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // 카카오 OAuth 리다이렉트 콜백 처리
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const kakaoCode = params.get('code');
+    if (!kakaoCode) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/kakao`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: kakaoCode, redirect_uri: window.location.origin }),
+        });
+        const data = await res.json();
+        if (!data.customToken) throw new Error(data.error || 'No token');
+        const cred = await signInWithCustomToken(auth, data.customToken);
+        const userData = {
+          uid: cred.user.uid,
+          name: data.user.name,
+          photoURL: data.user.photoURL,
+          email: data.user.email || '',
+          provider: 'kakao',
+          lastLoginAt: new Date(),
+        };
+        await setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true });
+        setSocialUser(userData);
+        setLoginModalOpen(false);
+      } catch (err) {
+        console.error('카카오 로그인 실패:', err);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Firestore 실시간 리스너 (onSnapshot) — 다른 기기 변경사항 즉시 반영
   useEffect(() => {
@@ -996,6 +1071,38 @@ function App() {
   const handleLogout = () => {
     setCreatorUser(null);
     localStorage.removeItem('findish_creator');
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const userData = {
+        uid: user.uid,
+        name: user.displayName,
+        photoURL: user.photoURL,
+        email: user.email,
+        provider: 'google',
+        lastLoginAt: new Date(),
+      };
+      await setDoc(doc(db, 'users', user.uid), userData, { merge: true });
+      setSocialUser(userData);
+      setLoginModalOpen(false);
+    } catch (err) {
+      console.error('Google 로그인 실패:', err);
+    }
+  };
+
+  const handleKakaoLogin = () => {
+    const kakaoKey = process.env.REACT_APP_KAKAO_REST_KEY;
+    const redirectUri = encodeURIComponent(window.location.origin);
+    window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=${kakaoKey}&redirect_uri=${redirectUri}&response_type=code`;
+  };
+
+  const handleSocialLogout = async () => {
+    await signOut(auth);
+    setSocialUser(null);
   };
 
   const saveThumbnailOverride = (recipeUrl, thumbnailUrl) => {
@@ -1621,7 +1728,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
-          const res = await fetch("http://localhost:8000/delete-recipe", {
+          const res = await fetch(`${API_BASE}/delete-recipe`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ video_url: url, name }),
@@ -1720,7 +1827,15 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               Analyze
             </button>
           )}
-          {creatorUser ? (
+          {socialUser ? (
+            <>
+              {socialUser.photoURL && (
+                <img src={socialUser.photoURL} alt="" className="header-profile-img" referrerPolicy="no-referrer" />
+              )}
+              <span className="header-creator-name">{socialUser.name}</span>
+              <button onClick={handleSocialLogout} className="header-link">로그아웃</button>
+            </>
+          ) : creatorUser ? (
             <>
               <span className="header-creator-name">{creatorUser.username}</span>
               <button onClick={handleLogout} className="header-link">로그아웃</button>
@@ -1733,7 +1848,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
 
       {/* Analyze Modal */}
       <Modal open={analyzeOpen} onClose={() => setAnalyzeOpen(false)} darkMode={darkMode}>
-        <AnalyzePanel apiBase="http://localhost:8000" darkMode={darkMode} />
+        <AnalyzePanel apiBase={API_BASE} darkMode={darkMode} />
       </Modal>
 
       {/* Login Modal */}
@@ -1741,6 +1856,8 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
         open={loginModalOpen}
         onClose={() => setLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
+        onGoogleLogin={handleGoogleLogin}
+        onKakaoLogin={handleKakaoLogin}
         darkMode={darkMode}
       />
 

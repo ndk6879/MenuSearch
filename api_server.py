@@ -5,6 +5,7 @@ load_dotenv()
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import requests as _http
 from youtube_automation import (
     analyze_one_video,
     append_to_js,
@@ -18,6 +19,20 @@ from youtube_automation import (
 from youtube_fetch import resolve_channel_id, get_video_list
 
 app = Flask(__name__)
+
+# ── Firebase Admin SDK (Kakao Custom Token 발급용) ──
+_firebase_admin_ready = False
+try:
+    import firebase_admin
+    from firebase_admin import credentials as _fb_creds, auth as _fb_auth
+    import json as _fb_json
+    _sa_json = os.getenv('FIREBASE_SERVICE_ACCOUNT')
+    if _sa_json and not firebase_admin._apps:
+        _sa_dict = _fb_json.loads(_sa_json)
+        firebase_admin.initialize_app(_fb_creds.Certificate(_sa_dict))
+    _firebase_admin_ready = bool(_sa_json and firebase_admin._apps)
+except Exception as _fb_err:
+    print(f'Firebase Admin 초기화 실패: {_fb_err}')
 
 # ──────────────────────────────────────────────
 # 재료 정규화 (저장 시 자동 정리)
@@ -478,6 +493,50 @@ def delete_recipe():
         return jsonify({"ok": True, "deleted": True}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": f"삭제 실패: {e}"}), 500
+
+
+@app.route('/auth/kakao', methods=['POST'])
+def kakao_auth():
+    if not _firebase_admin_ready:
+        return jsonify({'error': 'Firebase Admin 미설정'}), 500
+
+    data = request.get_json() or {}
+    code = data.get('code', '').strip()
+    redirect_uri = data.get('redirect_uri', '').strip()
+    if not code or not redirect_uri:
+        return jsonify({'error': 'code 또는 redirect_uri 누락'}), 400
+
+    # 카카오 액세스 토큰 교환
+    token_res = _http.post('https://kauth.kakao.com/oauth/token', data={
+        'grant_type': 'authorization_code',
+        'client_id': os.getenv('KAKAO_REST_API_KEY', ''),
+        'redirect_uri': redirect_uri,
+        'code': code,
+    })
+    if token_res.status_code != 200:
+        return jsonify({'error': '카카오 토큰 교환 실패', 'detail': token_res.text}), 400
+
+    access_token = token_res.json().get('access_token')
+
+    # 카카오 사용자 정보 조회
+    user_res = _http.get('https://kapi.kakao.com/v2/user/me', headers={
+        'Authorization': f'Bearer {access_token}'
+    })
+    user_data = user_res.json()
+
+    kakao_id = str(user_data.get('id', ''))
+    profile = user_data.get('kakao_account', {}).get('profile', {})
+    nickname = profile.get('nickname', '')
+    photo_url = profile.get('profile_image_url', '')
+    email = user_data.get('kakao_account', {}).get('email', '')
+
+    uid = f'kakao:{kakao_id}'
+    custom_token = _fb_auth.create_custom_token(uid)
+
+    return jsonify({
+        'customToken': custom_token.decode('utf-8'),
+        'user': {'uid': uid, 'name': nickname, 'photoURL': photo_url, 'email': email, 'provider': 'kakao'},
+    })
 
 
 @app.route('/parse-ingredient', methods=['POST'])

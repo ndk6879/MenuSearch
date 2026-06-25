@@ -2209,6 +2209,74 @@ button.header-logo {
 }
 .login-submit-btn:hover { opacity: 0.88; }
 
+/* ===== Social Login ===== */
+.social-login-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  margin-bottom: 10px;
+  transition: opacity 0.15s;
+}
+.social-login-btn:hover { opacity: 0.85; }
+
+.kakao-btn {
+  background: #FEE500;
+  color: #191919;
+}
+.google-btn {
+  background: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+}
+.modal-content.modal-dark .google-btn {
+  background: #2a2a2a;
+  color: #eee;
+  border-color: #444;
+}
+
+.social-btn-icon {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.creator-login-toggle {
+  all: unset;
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 14px;
+  font-size: 0.82rem;
+  opacity: 0.5;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.creator-login-toggle:hover { opacity: 0.8; }
+
+.login-divider {
+  height: 1px;
+  background: #eee;
+  margin: 16px 0;
+}
+.modal-content.modal-dark .login-divider { background: #333; }
+
+/* ===== Header Profile Image ===== */
+.header-profile-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 /* ===== Creator List Section ===== */
 .creator-list-section {
   padding: 3rem 0;
