@@ -909,12 +909,14 @@ function App() {
     window.history.replaceState({}, '', window.location.pathname);
     (async () => {
       try {
+        alert('[DEBUG] 카카오 code 감지됨. Railway 호출 시작...');
         const res = await fetch(`${API_BASE}/auth/kakao`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: kakaoCode, redirect_uri: window.location.origin }),
         });
         const data = await res.json();
+        alert('[DEBUG] Railway 응답: ' + JSON.stringify(data).slice(0, 200));
         if (!data.customToken) throw new Error(data.error || 'No token');
         const cred = await signInWithCustomToken(auth, data.customToken);
         const userData = {
@@ -928,6 +930,7 @@ function App() {
         await setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true });
         setSocialUser(userData);
       } catch (err) {
+        alert('[DEBUG] 오류: ' + err.message);
         console.error('카카오 로그인 실패:', err);
       }
     })();
