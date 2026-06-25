@@ -901,27 +901,24 @@ function App() {
   }, []);
 
 
-  // 카카오 OAuth 콜백 처리 (?code=... 파라미터 감지)
+  // 카카오 서버사이드 OAuth 콜백 처리 (?kakao_token=... 파라미터 감지)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const kakaoCode = params.get('code');
-    if (!kakaoCode) return;
+    const kakaoToken = params.get('kakao_token');
+    const kakaoUserStr = params.get('kakao_user');
+    const kakaoError = params.get('kakao_error');
+    if (!kakaoToken && !kakaoError) return;
     window.history.replaceState({}, '', window.location.pathname);
+    if (kakaoError) { console.error('카카오 로그인 오류:', kakaoError); return; }
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/auth/kakao`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: kakaoCode, redirect_uri: window.location.origin }),
-        });
-        const data = await res.json();
-        if (!data.customToken) throw new Error(data.error || 'No token');
-        const cred = await signInWithCustomToken(auth, data.customToken);
+        const cred = await signInWithCustomToken(auth, kakaoToken);
+        const kakaoUser = JSON.parse(decodeURIComponent(kakaoUserStr));
         const userData = {
           uid: cred.user.uid,
-          name: data.user.name,
-          photoURL: data.user.photoURL,
-          email: data.user.email || '',
+          name: kakaoUser.name,
+          photoURL: kakaoUser.photoURL,
+          email: kakaoUser.email || '',
           provider: 'kakao',
           lastLoginAt: new Date(),
         };
@@ -1095,10 +1092,7 @@ function App() {
   };
 
   const handleKakaoLogin = () => {
-    const kakaoJsKey = process.env.REACT_APP_KAKAO_JS_KEY;
-    if (!window.Kakao) { console.error('Kakao SDK 로드 실패'); return; }
-    if (!window.Kakao.isInitialized()) window.Kakao.init(kakaoJsKey);
-    window.Kakao.Auth.authorize({ redirectUri: window.location.origin });
+    window.location.href = `${API_BASE}/auth/kakao/start?from=${encodeURIComponent(window.location.origin)}`;
   };
 
   const handleSocialLogout = async () => {
