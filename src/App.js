@@ -1099,7 +1099,6 @@ function App() {
       client_id: (process.env.REACT_APP_KAKAO_REST_KEY || '').trim(),
       redirect_uri: window.location.origin,
       response_type: 'code',
-      scope: 'profile_nickname profile_image account_email',
     });
     window.location.href = `https://kauth.kakao.com/oauth/authorize?${params}`;
   };
