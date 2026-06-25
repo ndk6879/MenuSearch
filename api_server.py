@@ -149,9 +149,15 @@ def _clean_ingredients(ingredients: list) -> list:
     return result
 
 
-# 프론트 로컬 CORS 허용
 CORS(app, resources={
-    r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"]}
+    r"/*": {"origins": [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "https://menu-search.vercel.app",
+        "https://menu-search-git-dev-andy-nams-projects.vercel.app",
+    ]}
 })
 
 # ✅ 절대경로 기반으로 menuData_kr.js 지정
@@ -803,4 +809,5 @@ def api_chat():
 
 
 if __name__ == "__main__":
-    app.run(port=8000, debug=True)
+    port = int(os.getenv("PORT", 8000))
+    app.run(host="0.0.0.0", port=port, debug=False)
