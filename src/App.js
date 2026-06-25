@@ -876,7 +876,9 @@ function App() {
   const [creatorUser, setCreatorUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_creator')) || null; } catch { return null; }
   });
-  const [socialUser, setSocialUser] = useState(null);
+  const [socialUser, setSocialUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('findish_social')) || null; } catch { return null; }
+  });
   const [socialLoading, setSocialLoading] = useState(() => !!new URLSearchParams(window.location.search).get('code'));
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [thumbnailOverrides, setThumbnailOverrides] = useState(() => {
@@ -892,10 +894,15 @@ function App() {
       if (firebaseUser) {
         try {
           const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (snap.exists()) setSocialUser(snap.data());
+          if (snap.exists()) {
+            const data = snap.data();
+            setSocialUser(data);
+            localStorage.setItem('findish_social', JSON.stringify(data));
+          }
         } catch {}
       } else {
         setSocialUser(null);
+        localStorage.removeItem('findish_social');
       }
     });
     return () => unsub();
@@ -927,6 +934,7 @@ function App() {
           lastLoginAt: new Date(),
         };
         setSocialUser(userData);
+        localStorage.setItem('findish_social', JSON.stringify(userData));
         setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true }).catch(() => {});
       } catch (err) {
         console.error('카카오 로그인 실패:', err);
@@ -1102,6 +1110,7 @@ function App() {
       client_id: (process.env.REACT_APP_KAKAO_REST_KEY || '').trim(),
       redirect_uri: window.location.origin,
       response_type: 'code',
+      scope: 'profile_nickname profile_image',
     });
     window.location.href = `https://kauth.kakao.com/oauth/authorize?${params}`;
   };
@@ -1109,6 +1118,7 @@ function App() {
   const handleSocialLogout = async () => {
     await signOut(auth);
     setSocialUser(null);
+    localStorage.removeItem('findish_social');
   };
 
   const saveThumbnailOverride = (recipeUrl, thumbnailUrl) => {
