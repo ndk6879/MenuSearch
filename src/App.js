@@ -901,6 +901,39 @@ function App() {
   }, []);
 
 
+  // 카카오 OAuth 콜백 처리 (?code=... 파라미터 감지)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const kakaoCode = params.get('code');
+    if (!kakaoCode) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/kakao`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: kakaoCode, redirect_uri: window.location.origin }),
+        });
+        const data = await res.json();
+        if (!data.customToken) throw new Error(data.error || 'No token');
+        const cred = await signInWithCustomToken(auth, data.customToken);
+        const userData = {
+          uid: cred.user.uid,
+          name: data.user.name,
+          photoURL: data.user.photoURL,
+          email: data.user.email || '',
+          provider: 'kakao',
+          lastLoginAt: new Date(),
+        };
+        await setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true });
+        setSocialUser(userData);
+      } catch (err) {
+        console.error('카카오 로그인 실패:', err);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Firestore 실시간 리스너 (onSnapshot) — 다른 기기 변경사항 즉시 반영
   useEffect(() => {
     const unsub = onSnapshot(
@@ -1065,34 +1098,7 @@ function App() {
     const kakaoJsKey = process.env.REACT_APP_KAKAO_JS_KEY;
     if (!window.Kakao) { console.error('Kakao SDK 로드 실패'); return; }
     if (!window.Kakao.isInitialized()) window.Kakao.init(kakaoJsKey);
-    window.Kakao.Auth.login({
-      success: async (authObj) => {
-        try {
-          const res = await fetch(`${API_BASE}/auth/kakao`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ access_token: authObj.access_token }),
-          });
-          const data = await res.json();
-          if (!data.customToken) throw new Error(data.error || 'No token');
-          const cred = await signInWithCustomToken(auth, data.customToken);
-          const userData = {
-            uid: cred.user.uid,
-            name: data.user.name,
-            photoURL: data.user.photoURL,
-            email: data.user.email || '',
-            provider: 'kakao',
-            lastLoginAt: new Date(),
-          };
-          await setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true });
-          setSocialUser(userData);
-          setLoginModalOpen(false);
-        } catch (err) {
-          console.error('카카오 로그인 실패:', err);
-        }
-      },
-      fail: (err) => console.error('카카오 인증 실패:', err),
-    });
+    window.Kakao.Auth.authorize({ redirectUri: window.location.origin });
   };
 
   const handleSocialLogout = async () => {
