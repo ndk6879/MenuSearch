@@ -925,8 +925,8 @@ function App() {
           provider: 'kakao',
           lastLoginAt: new Date(),
         };
-        await setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true });
         setSocialUser(userData);
+        setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true }).catch(() => {});
       } catch (err) {
         console.error('카카오 로그인 실패:', err);
       }
@@ -1099,6 +1099,7 @@ function App() {
       client_id: (process.env.REACT_APP_KAKAO_REST_KEY || '').trim(),
       redirect_uri: window.location.origin,
       response_type: 'code',
+      scope: 'profile_nickname profile_image account_email',
     });
     window.location.href = `https://kauth.kakao.com/oauth/authorize?${params}`;
   };
