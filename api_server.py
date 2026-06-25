@@ -501,28 +501,18 @@ def kakao_auth():
         return jsonify({'error': 'Firebase Admin 미설정'}), 500
 
     data = request.get_json() or {}
-    code = data.get('code', '').strip()
-    redirect_uri = data.get('redirect_uri', '').strip()
-    if not code or not redirect_uri:
-        return jsonify({'error': 'code 또는 redirect_uri 누락'}), 400
-
-    # 카카오 액세스 토큰 교환
-    token_res = _http.post('https://kauth.kakao.com/oauth/token', data={
-        'grant_type': 'authorization_code',
-        'client_id': os.getenv('KAKAO_REST_API_KEY', ''),
-        'redirect_uri': redirect_uri,
-        'code': code,
-    })
-    if token_res.status_code != 200:
-        return jsonify({'error': '카카오 토큰 교환 실패', 'detail': token_res.text}), 400
-
-    access_token = token_res.json().get('access_token')
+    access_token = data.get('access_token', '').strip()
+    if not access_token:
+        return jsonify({'error': 'access_token 누락'}), 400
 
     # 카카오 사용자 정보 조회
     user_res = _http.get('https://kapi.kakao.com/v2/user/me', headers={
         'Authorization': f'Bearer {access_token}'
     })
     user_data = user_res.json()
+
+    if 'id' not in user_data:
+        return jsonify({'error': '카카오 사용자 정보 조회 실패', 'detail': user_data}), 400
 
     kakao_id = str(user_data.get('id', ''))
     profile = user_data.get('kakao_account', {}).get('profile', {})
