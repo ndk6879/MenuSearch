@@ -530,14 +530,12 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
 
 // ── 로그인 모달 ──
 function LoginModal({ open, onClose, onLoginSuccess, onGoogleLogin, onKakaoLogin, darkMode }) {
-  const [showCreator, setShowCreator] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleClose = () => {
     onClose();
-    setShowCreator(false);
     setError('');
     setUsername('');
     setPassword('');
@@ -569,50 +567,47 @@ function LoginModal({ open, onClose, onLoginSuccess, onGoogleLogin, onKakaoLogin
   return (
     <Modal open={open} onClose={handleClose} darkMode={darkMode}>
       <div className="login-modal">
-        <h3 className="login-modal-title">로그인 / 회원가입</h3>
+        <h3 className="login-modal-title">크리에이터 로그인</h3>
 
-        <button onClick={onKakaoLogin} className="social-login-btn kakao-btn">
-          <span className="social-btn-icon">💬</span> 카카오로 시작하기
-        </button>
-        <button onClick={onGoogleLogin} className="social-login-btn google-btn">
-          <span className="social-btn-icon">G</span> 구글로 시작하기
-        </button>
+        <div className="login-field">
+          <label className="login-label">아이디</label>
+          <input
+            type="text"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            placeholder="크리에이터 아이디"
+            className={`login-input${darkMode ? ' dark' : ''}`}
+            autoComplete="username"
+          />
+        </div>
+        <div className="login-field">
+          <label className="login-label">비밀번호</label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            placeholder="비밀번호"
+            className={`login-input${darkMode ? ' dark' : ''}`}
+            autoComplete="current-password"
+          />
+        </div>
+        {error && <p className="login-error">{error}</p>}
+        <button onClick={handleLogin} className="login-submit-btn">로그인</button>
 
-        {!showCreator ? (
-          <button onClick={() => setShowCreator(true)} className="creator-login-toggle">
-            크리에이터로 로그인
+        <div className="login-divider">또는</div>
+
+        <div className="login-social-group">
+          <button onClick={onKakaoLogin} className="social-login-btn kakao-btn">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.1 1.23 3.94 3.09 5.04L3.75 15l3.4-1.78A8.7 8.7 0 009 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
+            카카오로 로그인
           </button>
-        ) : (
-          <>
-            <div className="login-divider" />
-            <div className="login-field">
-              <label className="login-label">아이디</label>
-              <input
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                placeholder="크리에이터 아이디"
-                className={`login-input${darkMode ? ' dark' : ''}`}
-                autoComplete="username"
-              />
-            </div>
-            <div className="login-field">
-              <label className="login-label">비밀번호</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                placeholder="비밀번호"
-                className={`login-input${darkMode ? ' dark' : ''}`}
-                autoComplete="current-password"
-              />
-            </div>
-            {error && <p className="login-error">{error}</p>}
-            <button onClick={handleLogin} className="login-submit-btn">로그인</button>
-          </>
-        )}
+          <button onClick={onGoogleLogin} className="social-login-btn google-btn">
+            <svg width="16" height="16" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 6.294C4.672 4.169 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+            구글로 로그인
+          </button>
+        </div>
       </div>
     </Modal>
   );
@@ -922,11 +917,15 @@ function App() {
     const redirectUri = window.location.origin + '/kakao-popup';
     (async () => {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 25000);
         const res = await fetch(`${API_BASE}/auth/kakao`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: kakaoCode, redirect_uri: redirectUri }),
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
         const data = await res.json();
         if (data.customToken) {
           window.opener.postMessage({ type: 'KAKAO_AUTH_SUCCESS', customToken: data.customToken, user: data.user }, window.location.origin);

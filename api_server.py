@@ -496,72 +496,6 @@ def delete_recipe():
         return jsonify({"ok": False, "error": f"삭제 실패: {e}"}), 500
 
 
-RAILWAY_URL = os.getenv('RAILWAY_STATIC_URL', os.getenv('RAILWAY_URL', 'https://cooperative-success-production.up.railway.app'))
-KAKAO_CALLBACK_URI = f"https://cooperative-success-production.up.railway.app/auth/kakao/callback"
-
-
-@app.route('/auth/kakao/start')
-def kakao_start():
-    from_url = request.args.get('from', 'https://menu-search.vercel.app')
-    params = urlencode({
-        'client_id': os.getenv('KAKAO_REST_API_KEY', ''),
-        'redirect_uri': KAKAO_CALLBACK_URI,
-        'response_type': 'code',
-        'state': from_url,
-    })
-    return flask_redirect(f"https://kauth.kakao.com/oauth/authorize?{params}")
-
-
-@app.route('/auth/kakao/callback')
-def kakao_callback():
-    code = request.args.get('code', '')
-    state = request.args.get('state', 'https://menu-search.vercel.app')
-    error = request.args.get('error', '')
-
-    if error or not code:
-        return flask_redirect(f"{state}?kakao_error={error or 'no_code'}")
-
-    if not _firebase_admin_ready:
-        return flask_redirect(f"{state}?kakao_error=server_not_ready")
-
-    _cb_token_payload = {
-        'grant_type': 'authorization_code',
-        'client_id': os.getenv('KAKAO_REST_API_KEY', ''),
-        'redirect_uri': KAKAO_CALLBACK_URI,
-        'code': code,
-    }
-    _cs = os.getenv('KAKAO_CLIENT_SECRET', '')
-    if _cs:
-        _cb_token_payload['client_secret'] = _cs
-    token_res = _http.post('https://kauth.kakao.com/oauth/token', data=_cb_token_payload)
-    token_data = token_res.json()
-    if 'access_token' not in token_data:
-        return flask_redirect(f"{state}?kakao_error=token_fail")
-
-    user_res = _http.get('https://kapi.kakao.com/v2/user/me', headers={
-        'Authorization': f"Bearer {token_data['access_token']}"
-    })
-    user_data = user_res.json()
-    if 'id' not in user_data:
-        return flask_redirect(f"{state}?kakao_error=user_fail")
-
-    kakao_id = str(user_data['id'])
-    profile = user_data.get('kakao_account', {}).get('profile', {})
-    nickname = profile.get('nickname', '')
-    photo_url = profile.get('profile_image_url', '')
-    email = user_data.get('kakao_account', {}).get('email', '')
-
-    uid = f'kakao:{kakao_id}'
-    try:
-        custom_token = _fb_auth.create_custom_token(uid).decode('utf-8')
-    except Exception as e:
-        return flask_redirect(f"{state}?kakao_error=firebase_fail")
-
-    import json as _json
-    user_json = quote(_json.dumps({'uid': uid, 'name': nickname, 'photoURL': photo_url, 'email': email, 'provider': 'kakao'}, ensure_ascii=False))
-    return flask_redirect(f"{state}?kakao_token={custom_token}&kakao_user={user_json}")
-
-
 @app.route('/auth/kakao', methods=['POST'])
 def kakao_auth():
     if not _firebase_admin_ready:
@@ -599,7 +533,6 @@ def kakao_auth():
     if 'id' not in user_data:
         return jsonify({'error': '카카오 사용자 정보 조회 실패', 'detail': user_data}), 400
 
-    print('[KAKAO USER DATA]', user_data)
     kakao_id = str(user_data['id'])
     profile = user_data.get('kakao_account', {}).get('profile', user_data.get('properties', {}))
     nickname = profile.get('nickname', '')
