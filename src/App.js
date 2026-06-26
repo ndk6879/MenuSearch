@@ -533,6 +533,7 @@ function LoginModal({ open, onClose, onLoginSuccess, onGoogleLogin, onKakaoLogin
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleClose = () => {
     onClose();
@@ -541,26 +542,25 @@ function LoginModal({ open, onClose, onLoginSuccess, onGoogleLogin, onKakaoLogin
     setPassword('');
   };
 
-  const handleLogin = () => {
-    const credsRaw = process.env.REACT_APP_CREATOR_CREDS || '';
-    const creds = {};
-    credsRaw.split('|').forEach(pair => {
-      const parts = pair.split(':');
-      if (parts.length >= 3) {
-        const alias = parts[0].trim();
-        const pass = parts[1].trim();
-        const uploaderName = parts.slice(2).join(':').trim();
-        if (alias) creds[alias] = { pass, uploaderName };
-      }
-    });
-    const match = creds[username.trim()];
-    if (match && match.pass === password) {
-      onLoginSuccess({ username: username.trim(), uploaderName: match.uploaderName });
+  const handleLogin = async () => {
+    if (!username.trim() || !password) return;
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/creator`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || '로그인 실패'); return; }
+      await onLoginSuccess(data.customToken, data.user);
       setUsername('');
       setPassword('');
-      setError('');
-    } else {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+    } catch {
+      setError('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -594,7 +594,9 @@ function LoginModal({ open, onClose, onLoginSuccess, onGoogleLogin, onKakaoLogin
           />
         </div>
         {error && <p className="login-error">{error}</p>}
-        <button onClick={handleLogin} className="login-submit-btn">로그인</button>
+        <button onClick={handleLogin} className="login-submit-btn" disabled={loading}>
+          {loading ? '로그인 중...' : '로그인'}
+        </button>
 
         <div className="login-divider">또는</div>
 
@@ -689,7 +691,7 @@ const RecipeCard = React.memo(function RecipeCard({
           </button>
           <button className="menu-card-action-btn" onClick={onEdit}>편집</button>
         </div>
-      ) : IS_DEV && (
+      ) : (
         <button
           className={`menu-card-save-btn${isSaved ? " saved" : ""}`}
           onClick={onToggleSave}
@@ -857,9 +859,8 @@ function App() {
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
   const [activeTab, setActiveTab] = useState("home"); // "home" | "chef" | "saved"
-  const [savedRecipes, setSavedRecipes] = useState(
-    () => JSON.parse(localStorage.getItem("savedRecipes") || "[]")
-  );
+  const [savedRecipes, setSavedRecipes] = useState([]);
+  const [toast, setToast] = useState(null); // { message, key }
 
   const defaultLanguage = navigator.language.startsWith("ko") ? "kr" : "en";
   const [language, setLanguage] = useState(defaultLanguage);
@@ -887,6 +888,15 @@ function App() {
     try { return JSON.parse(localStorage.getItem('findish_recipe_edits')) || {}; } catch { return {}; }
   });
 
+  const showToast = (message) => {
+    const key = Date.now();
+    setToast({ message, key });
+    setTimeout(() => setToast(t => t?.key === key ? null : t), 2500);
+  };
+
+  // 현재 로그인한 유저의 Firestore uid (소셜/크리에이터 통합)
+  const currentUid = socialUser?.uid || creatorUser?.uid || null;
+
   // Firebase Auth 세션 복원
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -906,6 +916,20 @@ function App() {
     });
     return () => unsub();
   }, []);
+
+  // 북마크 Firestore 실시간 동기화
+  useEffect(() => {
+    if (!currentUid) { setSavedRecipes([]); return; }
+    const ref = doc(db, 'users', currentUid);
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        setSavedRecipes(snap.data().bookmarks || []);
+      } else {
+        setSavedRecipes([]);
+      }
+    });
+    return () => unsub();
+  }, [currentUid]);
 
 
   // 팝업 모드: 팝업 창 안에서 ?code= 처리 후 부모 창에 메시지 전송
@@ -1122,17 +1146,27 @@ function App() {
     return next;
   });
 
-  const toggleSave = (url) => {
-    setSavedRecipes(prev => {
-      const next = prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url];
-      localStorage.setItem("savedRecipes", JSON.stringify(next));
-      return next;
-    });
+  const toggleSave = async (url) => {
+    if (!currentUid) { setLoginModalOpen(true); return; }
+    const isSaved = savedRecipes.includes(url);
+    const next = isSaved ? savedRecipes.filter(u => u !== url) : [...savedRecipes, url];
+    setSavedRecipes(next); // optimistic update
+    try {
+      await setDoc(doc(db, 'users', currentUid), { bookmarks: next }, { merge: true });
+      showToast(isSaved ? '저장 해제되었습니다.' : '저장되었습니다.');
+    } catch {
+      setSavedRecipes(savedRecipes); // rollback
+      showToast('저장에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
-  const handleLoginSuccess = (user) => {
-    setCreatorUser(user);
-    localStorage.setItem('findish_creator', JSON.stringify(user));
+  const handleLoginSuccess = async (customToken, user) => {
+    try {
+      await signInWithCustomToken(auth, customToken);
+    } catch {}
+    const userData = { ...user, lastLoginAt: new Date() };
+    setCreatorUser(userData);
+    localStorage.setItem('findish_creator', JSON.stringify(userData));
     setLoginModalOpen(false);
   };
 
@@ -1948,6 +1982,13 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
         darkMode={darkMode}
       />
 
+      {/* Toast */}
+      {toast && (
+        <div key={toast.key} className={`toast-notification${darkMode ? ' dark' : ''}`}>
+          {toast.message}
+        </div>
+      )}
+
       {/* Recipe Detail Modal */}
       <Modal open={!!recipeModal} onClose={() => {
         if (modalEditMode) {
@@ -2138,7 +2179,15 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           <h2 className="saved-tab-title">
             {language === "kr" ? "저장한 레시피" : "Saved Recipes"}
           </h2>
-          {savedRecipes.length === 0 ? (
+          {!currentUid ? (
+            <div className="saved-tab-empty">
+              <FaRegBookmark size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
+              <p>{language === "kr" ? "로그인하면 저장한 레시피를 모아볼 수 있어요." : "Log in to see your saved recipes."}</p>
+              <button className="login-submit-btn" style={{ marginTop: 16, maxWidth: 180 }} onClick={() => setLoginModalOpen(true)}>
+                {language === "kr" ? "로그인하기" : "Log in"}
+              </button>
+            </div>
+          ) : savedRecipes.length === 0 ? (
             <div className="saved-tab-empty">
               <FaRegBookmark size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
               <p>{language === "kr" ? "저장된 레시피가 없습니다." : "No saved recipes yet."}</p>

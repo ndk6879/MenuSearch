@@ -496,6 +496,44 @@ def delete_recipe():
         return jsonify({"ok": False, "error": f"삭제 실패: {e}"}), 500
 
 
+@app.route('/auth/creator', methods=['POST'])
+def creator_auth():
+    if not _firebase_admin_ready:
+        return jsonify({'error': 'Firebase Admin 미설정'}), 500
+
+    data = request.get_json() or {}
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+    if not username or not password:
+        return jsonify({'error': '아이디 또는 비밀번호 누락'}), 400
+
+    # CREATOR_CREDS 형식: "alias:pass:uploaderName|alias2:pass2:name2"
+    creds_raw = os.getenv('CREATOR_CREDS', '')
+    creds = {}
+    for pair in creds_raw.split('|'):
+        parts = pair.strip().split(':')
+        if len(parts) >= 3:
+            alias = parts[0].strip()
+            pw = parts[1].strip()
+            uploader_name = ':'.join(parts[2:]).strip()
+            if alias:
+                creds[alias] = {'pass': pw, 'uploaderName': uploader_name}
+
+    match = creds.get(username)
+    if not match or match['pass'] != password:
+        return jsonify({'error': '아이디 또는 비밀번호가 올바르지 않습니다.'}), 401
+
+    uid = f'creator:{username}'
+    try:
+        custom_token = _fb_auth.create_custom_token(uid)
+        return jsonify({
+            'customToken': custom_token.decode('utf-8'),
+            'user': {'uid': uid, 'username': username, 'uploaderName': match['uploaderName'], 'provider': 'creator'},
+        })
+    except Exception as e:
+        return jsonify({'error': f'토큰 발급 실패: {e}'}), 500
+
+
 @app.route('/auth/kakao', methods=['POST'])
 def kakao_auth():
     if not _firebase_admin_ready:
