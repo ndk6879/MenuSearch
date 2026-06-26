@@ -2306,30 +2306,67 @@ button.header-logo {
   bottom: 32px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 12px 24px;
-  border-radius: 24px;
-  font-size: 0.88rem;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 0.85rem;
   font-weight: 500;
   z-index: 9999;
   pointer-events: none;
   animation: toast-in 0.2s ease, toast-out 0.3s ease 2.2s forwards;
   white-space: nowrap;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.15);
 }
 .toast-notification:not(.dark) {
-  background: #111;
-  color: #fff;
+  background: rgba(30, 30, 40, 0.82);
+  color: rgba(255,255,255,0.92);
 }
 .toast-notification.dark {
-  background: #f0f0f0;
-  color: #111;
+  background: rgba(240, 240, 245, 0.82);
+  color: rgba(20,20,30,0.92);
 }
 @keyframes toast-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 @keyframes toast-out {
   from { opacity: 1; }
   to   { opacity: 0; }
+}
+
+/* ===== Header Bookmark Button ===== */
+.header-bookmark-btn {
+  all: unset;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s;
+}
+.header-bookmark-btn:hover { opacity: 1; }
+.app.light .header-bookmark-btn:hover { background: rgba(0,0,0,0.06); }
+.app.dark  .header-bookmark-btn:hover { background: rgba(255,255,255,0.08); }
+
+.header-bookmark-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
 }
 
 .social-auth-spinner {
@@ -2531,6 +2568,33 @@ button.header-logo {
   color: #ccc;
 }
 .recipe-edit-toggle-btn:hover { opacity: 0.7; }
+
+/* ===== Recipe Modal Bookmark Button ===== */
+.recipe-modal-bookmark-btn {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  transition: opacity 0.15s;
+}
+.modal-content.modal-light .recipe-modal-bookmark-btn {
+  background: #f0f0f0;
+  color: #444;
+}
+.modal-content.modal-dark .recipe-modal-bookmark-btn {
+  background: #2a2a2a;
+  color: #ccc;
+}
+.recipe-modal-bookmark-btn.saved {
+  background: #4f46e5 !important;
+  color: #fff !important;
+}
+.recipe-modal-bookmark-btn:hover { opacity: 0.75; }
 .recipe-edit-toggle-btn--delete {
   color: #e53e3e !important;
 }

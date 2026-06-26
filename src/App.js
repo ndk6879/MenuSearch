@@ -689,6 +689,13 @@ const RecipeCard = React.memo(function RecipeCard({
             {isHidden ? '비공개' : '공개'}
           </button>
           <button className="menu-card-action-btn" onClick={onEdit}>편집</button>
+          <button
+            className={`menu-card-action-btn${isSaved ? " saved" : ""}`}
+            onClick={onToggleSave}
+            title={isSaved ? "저장 취소" : "저장하기"}
+          >
+            {isSaved ? <FaBookmark size={12} /> : <FaRegBookmark size={12} />}
+          </button>
         </div>
       ) : (
         <button
@@ -1830,6 +1837,8 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
     [selectedIngredients]
   );
 
+  const savedSet = useMemo(() => new Set(savedRecipes), [savedRecipes]);
+
   const duplicateUrls = useMemo(() => {
     const counts = {};
     validRecipes.forEach(item => {
@@ -1872,7 +1881,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       item,
       thumbnailSrc: thumbnailOverrides[item.url] || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null),
       isHidden: !!recipeEdits[item.url]?.hidden,
-      isSaved: savedRecipes.includes(item.url),
+      isSaved: savedSet.has(item.url),
       isMyRecipe: !!(creatorUser && creatorUser.uploaderName === item.uploader),
       isCreator,
       selectedIngredientValues,
@@ -1943,6 +1952,18 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           {window.location.hostname !== 'menu-search.vercel.app' && (
             <button onClick={() => setAnalyzeOpen(true)} className="dark-toggle">
               Analyze
+            </button>
+          )}
+          {(socialUser || creatorUser) && (
+            <button
+              className="header-bookmark-btn"
+              onClick={() => setActiveTab(t => t === 'saved' ? 'home' : 'saved')}
+              title="저장한 레시피"
+            >
+              <FaBookmark size={14} />
+              {savedRecipes.length > 0 && (
+                <span className="header-bookmark-badge">{savedRecipes.length}</span>
+              )}
             </button>
           )}
           {socialUser ? (
@@ -2016,6 +2037,16 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                     </>
                   )}
                 </>
+              )}
+              {!modalEditMode && currentUid && (
+                <button
+                  className={`recipe-modal-bookmark-btn${savedSet.has(recipeModal.url) ? ' saved' : ''}`}
+                  onClick={() => toggleSave(recipeModal.url)}
+                  title={savedSet.has(recipeModal.url) ? '저장 취소' : '저장하기'}
+                >
+                  {savedSet.has(recipeModal.url) ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
+                  {savedSet.has(recipeModal.url) ? '저장됨' : '저장하기'}
+                </button>
               )}
               <button className="recipe-modal-close-btn" onClick={() => {
                 if (modalEditMode) {
