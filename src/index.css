@@ -2277,6 +2277,17 @@ button.header-logo {
   object-fit: cover;
 }
 
+.social-auth-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(128,128,128,0.3);
+  border-top-color: #888;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ===== Creator List Section ===== */
 .creator-list-section {
   padding: 3rem 0;

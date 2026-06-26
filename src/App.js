@@ -879,7 +879,11 @@ function App() {
   const [socialUser, setSocialUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_social')) || null; } catch { return null; }
   });
-  const [socialLoading, setSocialLoading] = useState(() => !!new URLSearchParams(window.location.search).get('code'));
+  const [socialLoading, setSocialLoading] = useState(() => {
+    const hasCode = !!new URLSearchParams(window.location.search).get('code');
+    const hasCached = !!localStorage.getItem('findish_social');
+    return hasCode && !hasCached;
+  });
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [thumbnailOverrides, setThumbnailOverrides] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_thumbnails')) || {}; } catch { return {}; }
@@ -1857,7 +1861,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               <button onClick={handleLogout} className="header-link">로그아웃</button>
             </>
           ) : socialLoading ? (
-            <span className="header-creator-name" style={{opacity:0.5}}>로그인 중...</span>
+            <span className="social-auth-spinner" />
           ) : (
             <button onClick={() => setLoginModalOpen(true)} className="header-link header-login-btn">로그인</button>
           )}
