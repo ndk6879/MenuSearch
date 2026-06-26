@@ -913,8 +913,62 @@ function App() {
   }, []);
 
 
-  // 카카오 OAuth 콜백 처리 (?code=... 파라미터 감지)
+  // 팝업 모드: 팝업 창 안에서 ?code= 처리 후 부모 창에 메시지 전송
   useEffect(() => {
+    if (!window.opener) return;
+    const params = new URLSearchParams(window.location.search);
+    const kakaoCode = params.get('code');
+    if (!kakaoCode) return;
+    const redirectUri = window.location.origin + '/kakao-popup';
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/kakao`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: kakaoCode, redirect_uri: redirectUri }),
+        });
+        const data = await res.json();
+        if (data.customToken) {
+          window.opener.postMessage({ type: 'KAKAO_AUTH_SUCCESS', customToken: data.customToken, user: data.user }, window.location.origin);
+        }
+      } catch (err) {
+        console.error('팝업 카카오 인증 실패:', err);
+      }
+      window.close();
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 팝업에서 보낸 메시지 수신 → 메인 창에서 로그인 처리
+  useEffect(() => {
+    const handleMessage = async (e) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type !== 'KAKAO_AUTH_SUCCESS') return;
+      try {
+        const cred = await signInWithCustomToken(auth, e.data.customToken);
+        const userData = {
+          uid: cred.user.uid,
+          name: e.data.user.name,
+          photoURL: e.data.user.photoURL,
+          email: e.data.user.email || '',
+          provider: 'kakao',
+          lastLoginAt: new Date(),
+        };
+        setSocialUser(userData);
+        localStorage.setItem('findish_social', JSON.stringify(userData));
+        setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true }).catch(() => {});
+      } catch (err) {
+        console.error('카카오 로그인 최종 처리 실패:', err);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 일반 리다이렉트 방식 폴백 (?code= in main window, popup 아닐 때)
+  useEffect(() => {
+    if (window.opener) return;
     const params = new URLSearchParams(window.location.search);
     const kakaoCode = params.get('code');
     if (!kakaoCode) return;
@@ -1110,13 +1164,25 @@ function App() {
   };
 
   const handleKakaoLogin = () => {
+    const redirectUri = window.location.origin + '/kakao-popup';
     const params = new URLSearchParams({
       client_id: (process.env.REACT_APP_KAKAO_REST_KEY || '').trim(),
-      redirect_uri: window.location.origin,
+      redirect_uri: redirectUri,
       response_type: 'code',
       scope: 'profile_nickname profile_image',
     });
-    window.location.href = `https://kauth.kakao.com/oauth/authorize?${params}`;
+    const kakaoUrl = `https://kauth.kakao.com/oauth/authorize?${params}`;
+    const popup = window.open(kakaoUrl, 'kakao_login', 'width=500,height=700,scrollbars=yes,resizable=yes');
+    if (!popup) {
+      // 팝업 차단 시 리다이렉트 방식으로 폴백
+      const fallback = new URLSearchParams({
+        client_id: (process.env.REACT_APP_KAKAO_REST_KEY || '').trim(),
+        redirect_uri: window.location.origin,
+        response_type: 'code',
+        scope: 'profile_nickname profile_image',
+      });
+      window.location.href = `https://kauth.kakao.com/oauth/authorize?${fallback}`;
+    }
   };
 
   const handleSocialLogout = async () => {
