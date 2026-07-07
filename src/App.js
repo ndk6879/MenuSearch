@@ -877,18 +877,27 @@ function App() {
   });
   const [recipeData, setRecipeData] = useState([]);
 
-  // Supabase에서 레시피 로드
+  // Supabase에서 레시피 로드 (캐시 → 즉시 표시 후 백그라운드 갱신)
   useEffect(() => {
+    const CACHE_KEY = 'findish_recipes_kr_v1';
+    const applyData = (data) => {
+      setRecipeData(data);
+      ALL_INGREDIENT_NAMES = [...new Set(
+        data.flatMap(item => (item.ingredients || []).map(raw => parseIngText(String(raw)).name).filter(Boolean))
+      )].sort((a, b) => a.localeCompare(b, 'ko'));
+    };
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) applyData(JSON.parse(cached));
+    } catch {}
     supabase
       .from('recipes')
-      .select('*')
+      .select('name,url,uploader,upload_date,ingredients,steps,source,status,thumbnail_url,language')
       .eq('language', 'kr')
       .then(({ data }) => {
         if (data) {
-          setRecipeData(data);
-          ALL_INGREDIENT_NAMES = [...new Set(
-            data.flatMap(item => (item.ingredients || []).map(raw => parseIngText(String(raw)).name).filter(Boolean))
-          )].sort((a, b) => a.localeCompare(b, 'ko'));
+          applyData(data);
+          try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
         }
       });
   }, []);
@@ -1006,7 +1015,7 @@ function App() {
         return {
           ...item,
           name: edit?.name || item.name,
-          hidden: item.status === 'hidden' || edit?.hidden || false,
+          hidden: edit?.hidden !== undefined ? edit.hidden : item.status === 'hidden',
           thumbnail: thumbnailOverrides[item.url] || item.thumbnail_url || item.thumbnail || null,
           ingredients: Array.isArray(ingredients) ? [...ingredients].sort() : [],
         };
