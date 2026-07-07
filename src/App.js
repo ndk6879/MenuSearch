@@ -1103,8 +1103,17 @@ function App() {
     setLoginModalOpen(false);
   };
 
+  const _clearSession = () => {
+    setSocialUser(null);
+    setCreatorUser(null);
+    localStorage.removeItem('findish_social');
+    localStorage.removeItem('findish_creator');
+    setSocialLoading(false);
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    _clearSession();
   };
 
   const handleKakaoLogin = () => {
@@ -1115,6 +1124,7 @@ function App() {
 
   const handleSocialLogout = async () => {
     await supabase.auth.signOut();
+    _clearSession();
   };
 
   const saveThumbnailOverride = (recipeUrl, thumbnailUrl) => {
