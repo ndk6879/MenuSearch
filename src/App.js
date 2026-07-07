@@ -1046,6 +1046,14 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
+  // Supabase fetch 완료 후 searchResults 동기화
+  useEffect(() => {
+    if (!searchActive && selectedIngredients.length === 0) {
+      setSearchResults(sortedData);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipeData]);
+
   const toggleDarkMode = () => setDarkMode(prev => {
     const next = !prev;
     localStorage.setItem('findish_dark', String(next));
