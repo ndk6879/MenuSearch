@@ -6,6 +6,9 @@
 
 | 파일 | 내용 |
 |------|------|
+| [code-architecture.md](./code-architecture.md) | 전체 구조, 데이터 흐름, 컴포넌트 분리 기준, 성능 전략 |
+| [data-schema.md](./data-schema.md) | Supabase 테이블, localStorage 캐시, 런타임 데이터 구조 |
+| [adr.md](./adr.md) | 주요 기술 결정 이유 및 포기한 대안 (ADR-001~008) |
 | [auth.md](./auth.md) | 소셜 로그인(카카오/구글) 전체 아키텍처 및 구현 상세 (Supabase 기반) |
 | [deployment.md](./deployment.md) | Vercel + Railway 배포 환경 및 환경변수 |
 | [known-issues.md](./known-issues.md) | 해결된 버그 및 현재 주의사항 |
