@@ -9,9 +9,6 @@
   100% { background-position: 400px 0; }
 }
 
-.menu-card {
-  animation: fadeInUp 0.35s ease both;
-}
 
 .skeleton-card {
   border-radius: 12px;
@@ -462,7 +459,7 @@ body {
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   position: relative;
   will-change: transform;
-  transform: translateZ(0);
+  animation: fadeInUp 0.35s ease both;
 }
 
 .menu-card:hover {
