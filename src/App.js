@@ -18,6 +18,7 @@ import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities';
 
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
+const KAKAO_REST_KEY = process.env.REACT_APP_KAKAO_REST_KEY || '';
 
 const ING_QUANTITY_RE = /^(.+?)\s+(\d[\d/.]*\s*(?:봉지|숟가락|작은술|큰술|티스푼|스푼|그램|밀리리터|밀리|미리|덩어리|움큼|꼬집|방울|가닥|줄기|묶음|뭉치|조각|토막|포기|줌|컵|봉|팩|병|캔|장|마리|알|통|쪽|인분|뿌리|대|근|모|판|ml|ML|kg|KG|mg|개|g|G|L|l|cc|T|t)|약간|조금|조금씩|적당량|적당히|한줌|두줌|한꼬집|두꼬집|반컵|반개|조금)$/;
 const parseIngText = (str) => {
@@ -923,6 +924,25 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 카카오 OAuth 콜백: URL의 ?code= 처리
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (!code) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    fetch(`${API_BASE}/auth/kakao/exchange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, redirect_uri: window.location.origin }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.session) return supabase.auth.setSession(data.session);
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function _applySession(session) {
     const user = session.user;
     if (user.email?.endsWith('@findish.internal')) {
@@ -1087,11 +1107,10 @@ function App() {
     await supabase.auth.signOut();
   };
 
-  const handleKakaoLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'kakao',
-      options: { redirectTo: window.location.origin },
-    });
+  const handleKakaoLogin = () => {
+    const redirectUri = window.location.origin;
+    const kakaoUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${KAKAO_REST_KEY}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    window.location.href = kakaoUrl;
   };
 
   const handleSocialLogout = async () => {
