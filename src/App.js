@@ -1066,13 +1066,13 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
-  // Supabase fetch 완료 후 searchResults 동기화
+  // Supabase fetch 완료 또는 편집(recipeEdits) 변경 후 searchResults 동기화
   useEffect(() => {
     if (!searchActive && selectedIngredients.length === 0) {
       setSearchResults(sortedData);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipeData]);
+  }, [recipeData, recipeEdits]);
 
   const toggleDarkMode = () => setDarkMode(prev => {
     const next = !prev;
@@ -1153,9 +1153,9 @@ function App() {
 
   const openEditMode = (recipe) => {
     const saved = recipeEdits[recipe.url] || {};
-    const all = [...new Set((recipe.ingredients || []).map(ing => normalizeIng(ing)))];
-    const mainList = all.filter(ing => !SEASONINGS.has(ing));
-    const seasoningList = all.filter(ing => SEASONINGS.has(ing));
+    const all = [...new Set(recipe.ingredients || [])];
+    const mainList = all.filter(ing => !SEASONINGS.has(normalizeIng(ing)));
+    const seasoningList = all.filter(ing => SEASONINGS.has(normalizeIng(ing)));
     const rawSteps = saved.steps ? saved.steps : (recipe.steps || []);
     // 앞 번호("1. ") 제거 + 내부 \n을 공백으로 정규화
     const cleanedSteps = rawSteps.map(s =>
@@ -1718,7 +1718,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
 
   const filteredResults = useMemo(() =>
     (liveFilteredData || searchResults.filter(isValidRecipe))
-      .filter(r => !(recipeEdits[r.url]?.hidden) || isCreator)
+      .filter(r => !r.hidden || isCreator)
       .filter(r => selectedChef === "all" ? true : r.uploader === selectedChef)
       .filter(r => !deletedKeys.has(r.url)),
     [liveFilteredData, searchResults, recipeEdits, isCreator, selectedChef, deletedKeys]
@@ -2012,9 +2012,9 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               const displaySteps = savedEdit.steps || recipeModal.steps || [];
               const displayTip = savedEdit.tip || '';
 
-              const all = [...new Set((recipeModal.ingredients || []).map(ing => normalizeIng(ing)))];
-              const mainList = savedEdit.mainIngredients || all.filter(ing => !SEASONINGS.has(ing));
-              const seasoningList = savedEdit.seasonings || all.filter(ing => SEASONINGS.has(ing));
+              const all = [...new Set(recipeModal.ingredients || [])];
+              const mainList = savedEdit.mainIngredients || all.filter(ing => !SEASONINGS.has(normalizeIng(ing)));
+              const seasoningList = savedEdit.seasonings || all.filter(ing => SEASONINGS.has(normalizeIng(ing)));
               const sortedMain = [
                 ...mainList.filter(ing => selectedIngredientValues.has(ing.toLowerCase())),
                 ...mainList.filter(ing => !selectedIngredientValues.has(ing.toLowerCase())),
