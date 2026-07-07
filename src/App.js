@@ -1721,7 +1721,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       .filter(r => !r.hidden || isCreator)
       .filter(r => selectedChef === "all" ? true : r.uploader === selectedChef)
       .filter(r => !deletedKeys.has(r.url)),
-    [liveFilteredData, searchResults, recipeEdits, isCreator, selectedChef, deletedKeys]
+    [liveFilteredData, searchResults, isCreator, selectedChef, deletedKeys]
   );
 
   const sortedResults = useMemo(() =>
