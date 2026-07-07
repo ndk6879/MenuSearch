@@ -2,8 +2,8 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import "./App.css";
 import TagSearch from "./TagSearch";
-import menuData_kr from "./menuData_kr";
 import menuData_en from "./menuData_en";
+import { supabase } from './supabase';
 import { FaBookmark, FaRegBookmark } from "react-icons/fa";
 import Modal from "./components/Modal";
 import AnalyzePanel from "./components/AnalyzePanel";
@@ -13,11 +13,6 @@ import AboutSection from "./components/AboutSection";
 import translations from "./i18n";
 import chefConfig from "./chefConfig";
 import { useParams, useNavigate } from "react-router-dom";
-import { db, auth } from './firebase';
-import { collection, doc, onSnapshot, setDoc, deleteField, updateDoc, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from './firebase';
-import { GoogleAuthProvider, signInWithPopup, signInWithCustomToken, onAuthStateChanged, signOut } from 'firebase/auth';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -30,16 +25,7 @@ const parseIngText = (str) => {
   return m ? { name: m[1].trim(), amount: m[2].trim() } : { name: str.trim(), amount: '' };
 };
 
-const ALL_INGREDIENT_NAMES = (() => {
-  const names = new Set();
-  menuData_kr.forEach(item => {
-    (item.ingredients || item['재료'] || []).forEach(raw => {
-      const { name } = parseIngText(String(raw));
-      if (name) names.add(name);
-    });
-  });
-  return [...names].sort((a, b) => a.localeCompare(b, 'ko'));
-})();
+let ALL_INGREDIENT_NAMES = [];
 
 function SortableIngRow({ id, ing, index, darkMode, editingIngIndex, editingIngName, editingIngAmount, setEditingIngName, setEditingIngAmount, setEditingIngIndex, saveEditIng, startEditIng, setIngredientsList, parseIngredientInput, isRestored, onClearRestored }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging: isSortableDragging } = useSortable({ id });
@@ -220,11 +206,14 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
     setThumbPreview(localPreview);
     try {
       const ytId = recipeUrl?.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || Date.now();
-      const storageRef = ref(storage, `thumbnails/${ytId}_${Date.now()}`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
-      onSaveThumbnail(downloadUrl);
-      setThumbPreview(downloadUrl);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('key', `thumbnails/${ytId}_${Date.now()}`);
+      const uploadRes = await fetch(`${API_BASE}/upload-thumbnail`, { method: 'POST', body: formData });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.ok) throw new Error(uploadData.error || 'upload failed');
+      onSaveThumbnail(uploadData.url);
+      setThumbPreview(uploadData.url);
     } catch (e) {
       setThumbError('업로드 실패. 다시 시도해주세요.');
       setThumbPreview(thumbnailUrl || null);
@@ -528,7 +517,7 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
 }
 
 // ── 로그인 모달 ──
-function LoginModal({ open, onClose, onLoginSuccess, onGoogleLogin, onKakaoLogin, darkMode }) {
+function LoginModal({ open, onClose, onLoginSuccess, onKakaoLogin, darkMode }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -553,7 +542,7 @@ function LoginModal({ open, onClose, onLoginSuccess, onGoogleLogin, onKakaoLogin
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || '로그인 실패'); return; }
-      await onLoginSuccess(data.customToken, data.user);
+      await onLoginSuccess(data.session);
       setUsername('');
       setPassword('');
     } catch {
@@ -603,10 +592,6 @@ function LoginModal({ open, onClose, onLoginSuccess, onGoogleLogin, onKakaoLogin
           <button onClick={onKakaoLogin} className="social-login-btn kakao-btn">
             <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.1 1.23 3.94 3.09 5.04L3.75 15l3.4-1.78A8.7 8.7 0 009 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
             카카오로 로그인
-          </button>
-          <button onClick={onGoogleLogin} className="social-login-btn google-btn">
-            <svg width="16" height="16" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 6.294C4.672 4.169 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
-            구글로 로그인
           </button>
         </div>
       </div>
@@ -881,11 +866,7 @@ function App() {
   const [socialUser, setSocialUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_social')) || null; } catch { return null; }
   });
-  const [socialLoading, setSocialLoading] = useState(() => {
-    const hasCode = !!new URLSearchParams(window.location.search).get('code');
-    const hasCached = !!localStorage.getItem('findish_social');
-    return hasCode && !hasCached;
-  });
+  const [socialLoading, setSocialLoading] = useState(true);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [thumbnailOverrides, setThumbnailOverrides] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_thumbnails')) || {}; } catch { return {}; }
@@ -893,6 +874,23 @@ function App() {
   const [recipeEdits, setRecipeEdits] = useState(() => {
     try { return JSON.parse(localStorage.getItem('findish_recipe_edits')) || {}; } catch { return {}; }
   });
+  const [recipeData, setRecipeData] = useState([]);
+
+  // Supabase에서 레시피 로드
+  useEffect(() => {
+    supabase
+      .from('recipes')
+      .select('*')
+      .eq('language', 'kr')
+      .then(({ data }) => {
+        if (data) {
+          setRecipeData(data);
+          ALL_INGREDIENT_NAMES = [...new Set(
+            data.flatMap(item => (item.ingredients || []).map(raw => parseIngText(String(raw)).name).filter(Boolean))
+          )].sort((a, b) => a.localeCompare(b, 'ko'));
+        }
+      });
+  }, []);
 
   const showToast = (message) => {
     const key = Date.now();
@@ -903,161 +901,62 @@ function App() {
   // 현재 로그인한 유저의 Firestore uid (소셜/크리에이터 통합)
   const currentUid = socialUser?.uid || creatorUser?.uid || null;
 
-  // Firebase Auth 세션 복원
+  // Supabase Auth 세션 감지
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (snap.exists()) {
-            const data = snap.data();
-            setSocialUser(data);
-            localStorage.setItem('findish_social', JSON.stringify(data));
-          }
-        } catch {}
-      } else {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) _applySession(session);
+      setSocialLoading(false);
+    }).catch(() => setSocialLoading(false));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        _applySession(session);
+        setSocialLoading(false);
+      } else if (event === 'SIGNED_OUT') {
         setSocialUser(null);
+        setCreatorUser(null);
         localStorage.removeItem('findish_social');
-      }
-    });
-    return () => unsub();
-  }, []);
-
-  // 북마크 Firestore 실시간 동기화
-  useEffect(() => {
-    if (!currentUid) { setSavedRecipes([]); return; }
-    const ref = doc(db, 'users', currentUid);
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        setSavedRecipes(snap.data().bookmarks || []);
-      } else {
-        setSavedRecipes([]);
-      }
-    });
-    return () => unsub();
-  }, [currentUid]);
-
-
-  // 팝업 모드: 팝업 창 안에서 ?code= 처리 후 부모 창에 메시지 전송
-  useEffect(() => {
-    if (!window.opener) return;
-    const params = new URLSearchParams(window.location.search);
-    const kakaoCode = params.get('code');
-    if (!kakaoCode) return;
-    const redirectUri = window.location.origin + '/kakao-popup';
-    (async () => {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 25000);
-        const res = await fetch(`${API_BASE}/auth/kakao`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: kakaoCode, redirect_uri: redirectUri }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        const data = await res.json();
-        if (data.customToken) {
-          window.opener.postMessage({ type: 'KAKAO_AUTH_SUCCESS', customToken: data.customToken, user: data.user }, window.location.origin);
-        }
-      } catch (err) {
-        console.error('팝업 카카오 인증 실패:', err);
-      }
-      window.close();
-    })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 팝업에서 보낸 메시지 수신 → 메인 창에서 로그인 처리
-  useEffect(() => {
-    const handleMessage = async (e) => {
-      if (e.origin !== window.location.origin) return;
-      if (e.data?.type !== 'KAKAO_AUTH_SUCCESS') return;
-      try {
-        const cred = await signInWithCustomToken(auth, e.data.customToken);
-        const userData = {
-          uid: cred.user.uid,
-          name: e.data.user.name,
-          photoURL: e.data.user.photoURL,
-          email: e.data.user.email || '',
-          provider: 'kakao',
-          lastLoginAt: new Date(),
-        };
-        setSocialUser(userData);
-        localStorage.setItem('findish_social', JSON.stringify(userData));
-        setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true }).catch(() => {});
-      } catch (err) {
-        console.error('카카오 로그인 최종 처리 실패:', err);
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 일반 리다이렉트 방식 폴백 (?code= in main window, popup 아닐 때)
-  useEffect(() => {
-    if (window.opener) return;
-    const params = new URLSearchParams(window.location.search);
-    const kakaoCode = params.get('code');
-    if (!kakaoCode) return;
-    window.history.replaceState({}, '', window.location.pathname);
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/auth/kakao`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: kakaoCode, redirect_uri: window.location.origin }),
-        });
-        const data = await res.json();
-        if (!data.customToken) throw new Error(data.error || 'No token');
-        const cred = await signInWithCustomToken(auth, data.customToken);
-        const userData = {
-          uid: cred.user.uid,
-          name: data.user.name,
-          photoURL: data.user.photoURL,
-          email: data.user.email || '',
-          provider: 'kakao',
-          lastLoginAt: new Date(),
-        };
-        setSocialUser(userData);
-        localStorage.setItem('findish_social', JSON.stringify(userData));
-        setDoc(doc(db, 'users', cred.user.uid), userData, { merge: true }).catch(() => {});
-      } catch (err) {
-        console.error('카카오 로그인 실패:', err);
-      } finally {
+        localStorage.removeItem('findish_creator');
         setSocialLoading(false);
       }
-    })();
+    });
+    return () => subscription.unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Firestore 실시간 리스너 (onSnapshot) — 다른 기기 변경사항 즉시 반영
+  function _applySession(session) {
+    const user = session.user;
+    if (user.email?.endsWith('@findish.internal')) {
+      const alias = user.email.split('@')[0];
+      const userData = {
+        uid: `creator:${alias}`,
+        username: alias,
+        uploaderName: user.user_metadata?.name || alias,
+        provider: 'creator',
+      };
+      setCreatorUser(userData);
+      localStorage.setItem('findish_creator', JSON.stringify(userData));
+    } else {
+      const userData = {
+        uid: user.id,
+        name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+        photoURL: user.user_metadata?.avatar_url || user.user_metadata?.picture || '',
+        email: user.email || '',
+        provider: user.app_metadata?.provider || 'kakao',
+      };
+      setSocialUser(userData);
+      localStorage.setItem('findish_social', JSON.stringify(userData));
+    }
+  }
+
+  // 북마크 Supabase 동기화
   useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, 'recipe_edits'),
-      (snapshot) => {
-        const edits = {};
-        const thumbs = {};
-        snapshot.forEach(docSnap => {
-          const data = docSnap.data();
-          if (!data.url) return;
-          const { url, thumbnail, ...editFields } = data;
-          if (Object.keys(editFields).length > 0) edits[url] = editFields;
-          if (thumbnail) thumbs[url] = thumbnail;
-        });
-        setRecipeEdits(prev => {
-          const merged = { ...prev, ...edits };
-          localStorage.setItem('findish_recipe_edits', JSON.stringify(merged));
-          return merged;
-        });
-        setThumbnailOverrides(thumbs);
-        localStorage.setItem('findish_thumbnails', JSON.stringify(thumbs));
-      },
-      (e) => console.warn('Firestore 리스너 실패, localStorage 사용:', e)
-    );
-    return () => unsub();
-  }, []);
+    if (!currentUid) { setSavedRecipes([]); return; }
+    fetch(`${API_BASE}/api/bookmarks?uid=${encodeURIComponent(currentUid)}`)
+      .then(r => r.json())
+      .then(data => { if (data.ok) setSavedRecipes(data.bookmarks || []); })
+      .catch(() => {});
+  }, [currentUid]);
+
   const [modalEditMode, setModalEditMode] = useState(false);
   const [editDraftInit, setEditDraftInit] = useState({ mainIngredients: '', seasonings: '', steps: '', tip: '', servings: '' });
   const [deletedKeys, setDeletedKeys] = useState(() => {
@@ -1069,10 +968,10 @@ function App() {
   const [confirmDialog, setConfirmDialog] = useState(null); // { message, onConfirm }
 
   const currentRawData = useMemo(() =>
-    (language === "en" ? menuData_en : menuData_kr)
+    (language === "en" ? menuData_en : recipeData)
       .filter(item => !CHEF_FILTER || item.uploader === CHEF_FILTER),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [language]
+    [language, recipeData]
   );
 
   const sortedData = useMemo(() =>
@@ -1087,19 +986,20 @@ function App() {
         return {
           ...item,
           name: edit?.name || item.name,
-          hidden: edit?.hidden || false,
+          hidden: item.status === 'hidden' || edit?.hidden || false,
+          thumbnail: thumbnailOverrides[item.url] || item.thumbnail_url || item.thumbnail || null,
           ingredients: Array.isArray(ingredients) ? [...ingredients].sort() : [],
         };
       }),
-    [currentRawData, recipeEdits]
+    [currentRawData, recipeEdits, thumbnailOverrides]
   );
 
   const isCreator = !!creatorUser;
   const validRecipes = useMemo(() =>
     sortedData.filter(item =>
-      isValidRecipe(item) && (!(recipeEdits[item.url]?.hidden) || isCreator)
+      isValidRecipe(item) && (!item.hidden || isCreator)
     ),
-    [sortedData, recipeEdits, isCreator]
+    [sortedData, isCreator]
   );
 
   const POPULAR_TAG_BLOCKLIST = new Set([
@@ -1158,7 +1058,11 @@ function App() {
     const next = isSaved ? savedRecipes.filter(u => u !== url) : [...savedRecipes, url];
     setSavedRecipes(next); // optimistic update
     try {
-      await setDoc(doc(db, 'users', currentUid), { bookmarks: next }, { merge: true });
+      await fetch(`${API_BASE}/api/bookmarks`, {
+        method: isSaved ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: currentUid, url }),
+      });
       showToast(isSaved ? '저장 해제되었습니다.' : '저장되었습니다.');
     } catch {
       setSavedRecipes(savedRecipes); // rollback
@@ -1166,79 +1070,35 @@ function App() {
     }
   };
 
-  const handleLoginSuccess = async (customToken, user) => {
-    try {
-      await signInWithCustomToken(auth, customToken);
-    } catch {}
-    const userData = { ...user, lastLoginAt: new Date() };
-    setCreatorUser(userData);
-    localStorage.setItem('findish_creator', JSON.stringify(userData));
+  const handleLoginSuccess = async (session) => {
+    await supabase.auth.setSession(session);
     setLoginModalOpen(false);
   };
 
-  const handleLogout = () => {
-    setCreatorUser(null);
-    localStorage.removeItem('findish_creator');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const userData = {
-        uid: user.uid,
-        name: user.displayName,
-        photoURL: user.photoURL,
-        email: user.email,
-        provider: 'google',
-        lastLoginAt: new Date(),
-      };
-      await setDoc(doc(db, 'users', user.uid), userData, { merge: true });
-      setSocialUser(userData);
-      setLoginModalOpen(false);
-    } catch (err) {
-      console.error('Google 로그인 실패:', err);
-    }
-  };
-
-  const handleKakaoLogin = () => {
-    const redirectUri = window.location.origin + '/kakao-popup';
-    const params = new URLSearchParams({
-      client_id: (process.env.REACT_APP_KAKAO_REST_KEY || '').trim(),
-      redirect_uri: redirectUri,
-      response_type: 'code',
-      scope: 'profile_nickname profile_image',
+  const handleKakaoLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: { redirectTo: window.location.origin },
     });
-    const kakaoUrl = `https://kauth.kakao.com/oauth/authorize?${params}`;
-    const popup = window.open(kakaoUrl, 'kakao_login', 'width=500,height=700,scrollbars=yes,resizable=yes');
-    if (!popup) {
-      // 팝업 차단 시 리다이렉트 방식으로 폴백
-      const fallback = new URLSearchParams({
-        client_id: (process.env.REACT_APP_KAKAO_REST_KEY || '').trim(),
-        redirect_uri: window.location.origin,
-        response_type: 'code',
-        scope: 'profile_nickname profile_image',
-      });
-      window.location.href = `https://kauth.kakao.com/oauth/authorize?${fallback}`;
-    }
   };
 
   const handleSocialLogout = async () => {
-    await signOut(auth);
-    setSocialUser(null);
-    localStorage.removeItem('findish_social');
+    await supabase.auth.signOut();
   };
 
   const saveThumbnailOverride = (recipeUrl, thumbnailUrl) => {
     const updated = { ...thumbnailOverrides, [recipeUrl]: thumbnailUrl };
     setThumbnailOverrides(updated);
     localStorage.setItem('findish_thumbnails', JSON.stringify(updated));
-    const ytId = extractYouTubeId(recipeUrl);
-    if (ytId) {
-      setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, thumbnail: thumbnailUrl }, { merge: true })
-        .catch(e => console.warn('썸네일 Firestore 저장 실패:', e));
-    }
+    fetch(`${API_BASE}/api/recipes`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Creator-Uid': creatorUser?.uid || '' },
+      body: JSON.stringify({ url: recipeUrl, thumbnail_url: thumbnailUrl }),
+    }).catch(() => {});
   };
 
   const clearThumbnailOverride = (recipeUrl) => {
@@ -1246,11 +1106,11 @@ function App() {
     delete updated[recipeUrl];
     setThumbnailOverrides(updated);
     localStorage.setItem('findish_thumbnails', JSON.stringify(updated));
-    const ytId = extractYouTubeId(recipeUrl);
-    if (ytId) {
-      updateDoc(doc(db, 'recipe_edits', ytId), { thumbnail: deleteField() })
-        .catch(e => console.warn('썸네일 초기화 Firestore 실패:', e));
-    }
+    fetch(`${API_BASE}/api/recipes`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Creator-Uid': creatorUser?.uid || '' },
+      body: JSON.stringify({ url: recipeUrl, thumbnail_url: null }),
+    }).catch(() => {});
   };
 
 
@@ -1294,11 +1154,16 @@ function App() {
     setRecipeEdits(updated);
     localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
     setModalEditMode(false);
-    const ytId = extractYouTubeId(recipeUrl);
-    if (ytId) {
-      setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, ...updates }, { merge: true })
-        .catch(e => console.warn('Firestore 저장 실패:', e));
-    }
+    fetch(`${API_BASE}/api/recipes`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Creator-Uid': creatorUser?.uid || '' },
+      body: JSON.stringify({
+        url: recipeUrl,
+        name: updates.name,
+        ingredients: [...(updates.mainIngredients || []), ...(updates.seasonings || [])],
+        steps: updates.steps,
+      }),
+    }).catch(() => {});
   };
 
   const toggleHidden = (e, recipeUrl) => {
@@ -1309,11 +1174,11 @@ function App() {
     const updated = { ...recipeEdits, [recipeUrl]: updates };
     setRecipeEdits(updated);
     localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
-    const ytId = extractYouTubeId(recipeUrl);
-    if (ytId) {
-      setDoc(doc(db, 'recipe_edits', ytId), { url: recipeUrl, hidden: newHidden }, { merge: true })
-        .catch(e => console.warn('Firestore 저장 실패:', e));
-    }
+    fetch(`${API_BASE}/api/recipes`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Creator-Uid': creatorUser?.uid || '' },
+      body: JSON.stringify({ url: recipeUrl, status: newHidden ? 'hidden' : 'published' }),
+    }).catch(() => {});
   };
 
   // ── 동의어 맵: 같은 재료의 다른 표기 → 검색/표시 통일 ──
@@ -1997,7 +1862,6 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
         open={loginModalOpen}
         onClose={() => setLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
-        onGoogleLogin={handleGoogleLogin}
         onKakaoLogin={handleKakaoLogin}
         darkMode={darkMode}
       />

@@ -9,31 +9,12 @@ from flask_cors import CORS
 import requests as _http
 from youtube_automation import (
     analyze_one_video,
-    append_to_js,
-    remove_from_js,
     initialize_js_file_if_needed,
-    finalize_js_file,
     get_existing_urls,
-    get_existing_url_name_pairs,
-    get_recipe_by_url,
 )
 from youtube_fetch import resolve_channel_id, get_video_list
 
 app = Flask(__name__)
-
-# ── Firebase Admin SDK (Kakao Custom Token 발급용) ──
-_firebase_admin_ready = False
-try:
-    import firebase_admin
-    from firebase_admin import credentials as _fb_creds, auth as _fb_auth
-    import json as _fb_json
-    _sa_json = os.getenv('FIREBASE_SERVICE_ACCOUNT')
-    if _sa_json and not firebase_admin._apps:
-        _sa_dict = _fb_json.loads(_sa_json)
-        firebase_admin.initialize_app(_fb_creds.Certificate(_sa_dict))
-    _firebase_admin_ready = bool(_sa_json and firebase_admin._apps)
-except Exception as _fb_err:
-    print(f'Firebase Admin 초기화 실패: {_fb_err}')
 
 # ──────────────────────────────────────────────
 # 재료 정규화 (저장 시 자동 정리)
@@ -225,12 +206,13 @@ def analyze_and_save():
             "save_path": SAVE_PATH
         }), 200
 
-    # 2️⃣ 파일 준비 + 중복 체크
-    os.makedirs(os.path.join(BASE_DIR, "src"), exist_ok=True)
-    initialize_js_file_if_needed(SAVE_PATH)
-
-    existing = get_existing_urls(SAVE_PATH)
-    if r["video_url"] in existing:
+    # 2️⃣ Supabase 중복 체크
+    dup_res = _http.get(
+        f'{_supabase_url}/rest/v1/recipes',
+        headers=_sb_headers(),
+        params={'url': f'eq.{r["video_url"]}', 'select': 'url'},
+    )
+    if isinstance(dup_res.json(), list) and len(dup_res.json()) > 0:
         return jsonify({
             "ok": True,
             "saved": False,
@@ -239,21 +221,27 @@ def analyze_and_save():
             "save_path": SAVE_PATH
         }), 200
 
-    # 3️⃣ 저장 시도 (✅ steps까지 함께 저장)
+    # 3️⃣ Supabase upsert
     try:
-        append_to_js(
-            {
-                "메뉴": r["name"],
-                "재료": _clean_ingredients(r["ingredients"]),
-                "순서": r.get("steps", []),   # ← 추가: 요리 순서 저장
-                "출처": r["source"]
-            },
-            r["video_url"],
-            r["uploader"],
-            r["upload_date"],
-            file_path=SAVE_PATH
+        import re as _re3
+        upload_date = _re3.sub(r'^(\d{4})(\d{2})(\d{2})$', r'\1-\2-\3', str(r.get("upload_date", "")))
+        recipe_row = {
+            "name": r["name"],
+            "ingredients": _clean_ingredients(r["ingredients"]),
+            "steps": r.get("steps", []),
+            "source": r["source"],
+            "url": r["video_url"],
+            "uploader": r["uploader"],
+            "upload_date": upload_date or None,
+            "creator_id": r["uploader"] or None,
+            "status": "published",
+            "language": "kr",
+        }
+        _http.post(
+            f'{_supabase_url}/rest/v1/recipes',
+            headers={**_sb_headers(), 'Prefer': 'resolution=merge-duplicates'},
+            json=recipe_row,
         )
-        finalize_js_file(SAVE_PATH)
 
         return jsonify({
             "ok": True,
@@ -420,15 +408,27 @@ def update_channel_profile():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-# ✅ 저장된 URL 목록 조회
+# ✅ 저장된 URL 목록 조회 (Supabase)
 @app.get("/existing-urls")
 def existing_urls():
+    try:
+        res = _http.get(
+            f'{_supabase_url}/rest/v1/recipes',
+            headers=_sb_headers(),
+            params={'select': 'url', 'language': 'eq.kr'},
+        )
+        rows = res.json()
+        if isinstance(rows, list):
+            return jsonify({"ok": True, "urls": [r['url'] for r in rows if r.get('url')]}), 200
+    except Exception:
+        pass
+    # fallback to local file
     initialize_js_file_if_needed(SAVE_PATH)
     urls = list(get_existing_urls(SAVE_PATH))
     return jsonify({"ok": True, "urls": urls}), 200
 
 
-# ✅ 개별 레시피 저장 (overwrite 옵션 지원)
+# ✅ 개별 레시피 저장 (Supabase upsert)
 @app.post("/save-recipe")
 def save_recipe():
     data = request.get_json() or {}
@@ -437,77 +437,81 @@ def save_recipe():
     if not r:
         return jsonify({"ok": False, "error": "result가 비어 있습니다."}), 400
 
-    os.makedirs(os.path.join(BASE_DIR, "src"), exist_ok=True)
-    initialize_js_file_if_needed(SAVE_PATH)
+    video_url = r.get("video_url", "")
+    if not video_url:
+        return jsonify({"ok": False, "error": "video_url 누락"}), 400
 
-    existing_urls = get_existing_urls(SAVE_PATH)
-    existing_pairs = get_existing_url_name_pairs(SAVE_PATH)
-    # URL만 같아도 중복으로 처리 (메뉴명 달라도)
-    is_url_duplicate = r.get("video_url") in existing_urls
-    is_duplicate = is_url_duplicate or (r.get("video_url"), r.get("name")) in existing_pairs
+    # 중복 체크
+    dup_res = _http.get(
+        f'{_supabase_url}/rest/v1/recipes',
+        headers=_sb_headers(),
+        params={'url': f'eq.{video_url}', 'select': 'url,name'},
+    )
+    existing_rows = dup_res.json() if isinstance(dup_res.json(), list) else []
+    is_duplicate = len(existing_rows) > 0
 
     if is_duplicate and not overwrite:
-        existing = get_recipe_by_url(r.get("video_url", ""), file_path=SAVE_PATH)
-        return jsonify({"ok": True, "saved": False, "reason": "duplicate", "existing": existing}), 200
+        return jsonify({"ok": True, "saved": False, "reason": "duplicate",
+                        "existing": existing_rows[0] if existing_rows else None}), 200
 
-    try:
-        # 덮어쓰기: 기존 항목 삭제 후 새로 추가
-        if is_duplicate and overwrite:
-            remove_from_js(r["video_url"], file_path=SAVE_PATH)
+    upload_date = r.get("upload_date", "")
+    if upload_date:
+        upload_date = str(upload_date).replace(r'(\d{4})(\d{2})(\d{2})', r'\1-\2-\3')
+        import re as _re2
+        upload_date = _re2.sub(r'^(\d{4})(\d{2})(\d{2})$', r'\1-\2-\3', str(upload_date))
 
-        append_to_js(
-            {
-                "메뉴": r["name"],
-                "재료": _clean_ingredients(r["ingredients"]),
-                "순서": r.get("steps", []),
-                "출처": r.get("source", "unknown"),
-            },
-            r["video_url"],
-            r.get("uploader", ""),
-            r.get("upload_date", ""),
-            file_path=SAVE_PATH,
-        )
-        finalize_js_file(SAVE_PATH)
-        _auto_update_channel_profile(r.get("uploader", ""), r.get("video_url", ""))
-        return jsonify({"ok": True, "saved": True, "overwritten": is_duplicate}), 200
-    except Exception as e:
-        return jsonify({"ok": False, "saved": False, "error": f"저장 실패: {e}"}), 500
+    recipe = {
+        "name": r.get("name", ""),
+        "ingredients": _clean_ingredients(r.get("ingredients", [])),
+        "steps": r.get("steps", []),
+        "source": r.get("source", ""),
+        "url": video_url,
+        "uploader": r.get("uploader", ""),
+        "upload_date": upload_date or None,
+        "creator_id": r.get("uploader") or None,
+        "status": "published",
+        "language": "kr",
+    }
+
+    upsert_res = _http.post(
+        f'{_supabase_url}/rest/v1/recipes',
+        headers={**_sb_headers(), 'Prefer': 'resolution=merge-duplicates'},
+        json=recipe,
+    )
+    if upsert_res.status_code >= 300:
+        return jsonify({"ok": False, "saved": False, "error": upsert_res.text}), 500
+
+    _auto_update_channel_profile(r.get("uploader", ""), video_url)
+    return jsonify({"ok": True, "saved": True, "overwritten": is_duplicate}), 200
 
 
-# ✅ 저장된 레시피 삭제
+# ✅ 저장된 레시피 삭제 (Supabase)
 @app.post("/delete-recipe")
 def delete_recipe():
     data = request.get_json() or {}
     video_url = data.get("video_url", "").strip()
-    name = data.get("name", "").strip() or None
     if not video_url:
         return jsonify({"ok": False, "error": "video_url이 비어 있습니다."}), 400
 
     try:
-        initialize_js_file_if_needed(SAVE_PATH)
-        existing = get_existing_urls(SAVE_PATH)
-        if video_url not in existing:
-            return jsonify({"ok": True, "deleted": False, "reason": "not_found"}), 200
-
-        remove_from_js(video_url, name=name, file_path=SAVE_PATH)
-        finalize_js_file(SAVE_PATH)
-        return jsonify({"ok": True, "deleted": True}), 200
+        res = _http.delete(
+            f'{_supabase_url}/rest/v1/recipes',
+            headers=_sb_headers(),
+            params={'url': f'eq.{video_url}'},
+        )
+        return jsonify({"ok": True, "deleted": res.status_code < 300}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": f"삭제 실패: {e}"}), 500
 
 
 @app.route('/auth/creator', methods=['POST'])
 def creator_auth():
-    if not _firebase_admin_ready:
-        return jsonify({'error': 'Firebase Admin 미설정'}), 500
-
     data = request.get_json() or {}
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
     if not username or not password:
         return jsonify({'error': '아이디 또는 비밀번호 누락'}), 400
 
-    # CREATOR_CREDS 형식: "alias:pass:uploaderName|alias2:pass2:name2"
     creds_raw = os.getenv('CREATOR_CREDS', '')
     creds = {}
     for pair in creds_raw.split('|'):
@@ -523,67 +527,25 @@ def creator_auth():
     if not match or match['pass'] != password:
         return jsonify({'error': '아이디 또는 비밀번호가 올바르지 않습니다.'}), 401
 
-    uid = f'creator:{username}'
-    try:
-        custom_token = _fb_auth.create_custom_token(uid)
-        return jsonify({
-            'customToken': custom_token.decode('utf-8'),
-            'user': {'uid': uid, 'username': username, 'uploaderName': match['uploaderName'], 'provider': 'creator'},
-        })
-    except Exception as e:
-        return jsonify({'error': f'토큰 발급 실패: {e}'}), 500
-
-
-@app.route('/auth/kakao', methods=['POST'])
-def kakao_auth():
-    if not _firebase_admin_ready:
-        return jsonify({'error': 'Firebase Admin 미설정'}), 500
-
-    data = request.get_json() or {}
-    code = data.get('code', '').strip()
-    redirect_uri = data.get('redirect_uri', '').strip()
-    if not code or not redirect_uri:
-        return jsonify({'error': 'code 또는 redirect_uri 누락'}), 400
-
-    # 카카오 액세스 토큰 교환
-    token_payload = {
-        'grant_type': 'authorization_code',
-        'client_id': os.getenv('KAKAO_REST_API_KEY', ''),
-        'redirect_uri': redirect_uri,
-        'code': code,
-    }
-    _client_secret = os.getenv('KAKAO_CLIENT_SECRET', '')
-    if _client_secret:
-        token_payload['client_secret'] = _client_secret
-    token_res = _http.post('https://kauth.kakao.com/oauth/token', data=token_payload)
+    email = f'{username}@findish.internal'
+    token_res = _http.post(
+        f'{_supabase_url}/auth/v1/token?grant_type=password',
+        headers={'apikey': _supabase_service_key, 'Content-Type': 'application/json'},
+        json={'email': email, 'password': password},
+    )
     token_data = token_res.json()
     if 'access_token' not in token_data:
-        return jsonify({'error': '카카오 토큰 교환 실패', 'detail': token_data}), 400
-
-    access_token = token_data['access_token']
-
-    # 카카오 사용자 정보 조회
-    user_res = _http.get('https://kapi.kakao.com/v2/user/me', headers={
-        'Authorization': f'Bearer {access_token}'
-    })
-    user_data = user_res.json()
-
-    if 'id' not in user_data:
-        return jsonify({'error': '카카오 사용자 정보 조회 실패', 'detail': user_data}), 400
-
-    kakao_id = str(user_data['id'])
-    profile = user_data.get('kakao_account', {}).get('profile', user_data.get('properties', {}))
-    nickname = profile.get('nickname', '')
-    photo_url = profile.get('profile_image_url', profile.get('profile_image', ''))
-    email = user_data.get('kakao_account', {}).get('email', '')
-
-    uid = f'kakao:{kakao_id}'
-    custom_token = _fb_auth.create_custom_token(uid)
+        return jsonify({'error': '세션 생성 실패', 'detail': str(token_data)}), 500
 
     return jsonify({
-        'customToken': custom_token.decode('utf-8'),
-        'user': {'uid': uid, 'name': nickname, 'photoURL': photo_url, 'email': email, 'provider': 'kakao'},
+        'session': {
+            'access_token': token_data['access_token'],
+            'refresh_token': token_data['refresh_token'],
+        },
+        'user': {'uid': f'creator:{username}', 'username': username, 'uploaderName': match['uploaderName'], 'provider': 'creator'},
     })
+
+
 
 
 @app.route('/parse-ingredient', methods=['POST'])
@@ -618,6 +580,146 @@ def parse_ingredient():
         return jsonify(result)
     except Exception as e:
         return jsonify({'name': text, 'amount': ''})
+
+
+# ──────────────────────────────────────────────
+# Supabase 북마크 API
+# ──────────────────────────────────────────────
+_supabase_url = os.getenv('SUPABASE_URL', '').rstrip('/')
+_supabase_service_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
+
+def _sb_headers():
+    return {
+        'apikey': _supabase_service_key,
+        'Authorization': f'Bearer {_supabase_service_key}',
+        'Content-Type': 'application/json',
+    }
+
+@app.get('/api/bookmarks')
+def get_bookmarks():
+    uid = request.args.get('uid', '').strip()
+    if not uid:
+        return jsonify({'ok': False, 'error': 'uid 누락'}), 400
+    try:
+        res = _http.get(
+            f'{_supabase_url}/rest/v1/bookmarks',
+            headers={**_sb_headers(), 'Prefer': 'return=representation'},
+            params={'user_id': f'eq.{uid}', 'select': 'recipe_url'},
+        )
+        rows = res.json()
+        if isinstance(rows, dict) and rows.get('code'):
+            return jsonify({'ok': False, 'error': rows.get('message')}), 500
+        return jsonify({'ok': True, 'bookmarks': [r['recipe_url'] for r in rows]})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@app.post('/api/bookmarks')
+def add_bookmark():
+    data = request.get_json() or {}
+    uid = data.get('uid', '').strip()
+    url = data.get('url', '').strip()
+    if not uid or not url:
+        return jsonify({'ok': False, 'error': 'uid 또는 url 누락'}), 400
+    try:
+        res = _http.post(
+            f'{_supabase_url}/rest/v1/bookmarks',
+            headers={**_sb_headers(), 'Prefer': 'resolution=ignore-duplicates'},
+            json={'user_id': uid, 'recipe_url': url},
+        )
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@app.delete('/api/bookmarks')
+def delete_bookmark():
+    data = request.get_json() or {}
+    uid = data.get('uid', '').strip()
+    url = data.get('url', '').strip()
+    if not uid or not url:
+        return jsonify({'ok': False, 'error': 'uid 또는 url 누락'}), 400
+    try:
+        _http.delete(
+            f'{_supabase_url}/rest/v1/bookmarks',
+            headers=_sb_headers(),
+            params={'user_id': f'eq.{uid}', 'recipe_url': f'eq.{url}'},
+        )
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+# ✅ 레시피 필드 업데이트 (name/ingredients/steps/status/thumbnail_url)
+@app.route('/api/recipes', methods=['PATCH'])
+def patch_recipe():
+    # 크리에이터 인증: CREATOR_CREDS에 등록된 uploader만 허용
+    creator_uid = request.headers.get('X-Creator-Uid', '').strip()
+    if not creator_uid:
+        return jsonify({'ok': False, 'error': '인증 필요'}), 401
+
+    creds_raw = os.getenv('CREATOR_CREDS', '')
+    valid_uids = set()
+    for pair in creds_raw.split('|'):
+        parts = pair.strip().split(':')
+        if len(parts) >= 1:
+            valid_uids.add(f'creator:{parts[0].strip()}')
+
+    if creator_uid not in valid_uids:
+        return jsonify({'ok': False, 'error': '권한 없음'}), 403
+
+    data = request.get_json() or {}
+    url = data.get('url', '').strip()
+    if not url:
+        return jsonify({'ok': False, 'error': 'url 누락'}), 400
+
+    allowed = {'name', 'ingredients', 'steps', 'status', 'thumbnail_url'}
+    valid_statuses = {'published', 'hidden'}
+    updates = {k: v for k, v in data.items() if k in allowed}
+    if 'status' in updates and updates['status'] not in valid_statuses:
+        return jsonify({'ok': False, 'error': '유효하지 않은 status'}), 400
+    if not updates:
+        return jsonify({'ok': False, 'error': '업데이트할 필드 없음'}), 400
+
+    try:
+        res = _http.patch(
+            f'{_supabase_url}/rest/v1/recipes',
+            headers={**_sb_headers(), 'Prefer': 'return=minimal'},
+            params={'url': f'eq.{url}'},
+            json=updates,
+        )
+        return jsonify({'ok': res.status_code < 300})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+# ──────────────────────────────────────────────
+# Cloudflare R2 썸네일 업로드
+# ──────────────────────────────────────────────
+@app.post('/upload-thumbnail')
+def upload_thumbnail():
+    if 'file' not in request.files:
+        return jsonify({'ok': False, 'error': 'file 누락'}), 400
+    file = request.files['file']
+    key = request.form.get('key', f'thumbnails/{file.filename}')
+    try:
+        import boto3 as _boto3
+        r2 = _boto3.client(
+            's3',
+            endpoint_url=f'https://{os.getenv("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com',
+            aws_access_key_id=os.getenv('R2_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('R2_SECRET_ACCESS_KEY'),
+            region_name='auto',
+        )
+        bucket = os.getenv('R2_BUCKET_NAME', 'findish-thumbnails')
+        r2.upload_fileobj(
+            file,
+            bucket,
+            key,
+            ExtraArgs={'ContentType': file.content_type or 'image/jpeg'},
+        )
+        public_url = f'{os.getenv("REACT_APP_R2_PUBLIC_URL", "").rstrip("/")}/{key}'
+        return jsonify({'ok': True, 'url': public_url})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 # ──────────────────────────────────────────────

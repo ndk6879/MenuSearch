@@ -1360,28 +1360,6 @@ const menuData_kr = [
 },
 
 {
-  "name": "",
-  "url": "https://youtu.be/8lIjqDS37OY",
-  "uploader": "1분다이어터 1mindiet",
-  "upload_date": "2026-06-14",
-  "ingredients": [
-    "닭가슴살",
-    "감자",
-    "양파",
-    "여름나물",
-    "소고기",
-    "마늘",
-    "고추장"
-  ],
-  "steps": [],
-  "source": "음성전사"
-},
-
-
-
-  
-
-{
   "name": "삐쪼키리 파스타",
   "url": "https://youtu.be/lIFbiy7hdIg",
   "uploader": "미뇨끼",
