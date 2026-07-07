@@ -1,3 +1,32 @@
+/* ===== Animations ===== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.menu-card {
+  animation: fadeInUp 0.35s ease both;
+}
+
+.skeleton-card {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #e8e8e8;
+  height: 220px;
+  animation: shimmer 1.4s infinite linear;
+  background-image: linear-gradient(90deg, #e8e8e8 25%, #f4f4f4 50%, #e8e8e8 75%);
+  background-size: 800px 100%;
+}
+
+.app.dark .skeleton-card {
+  background-image: linear-gradient(90deg, #222 25%, #2e2e2e 50%, #222 75%);
+}
+
 /* ===== Base ===== */
 html {
   scroll-padding-top: 76px;

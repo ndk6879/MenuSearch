@@ -640,7 +640,7 @@ function extractYouTubeId(url) {
 const RecipeCard = React.memo(function RecipeCard({
   item, thumbnailSrc, isHidden, isSaved, isMyRecipe, isCreator, isDuplicate,
   selectedIngredientValues, selectedIngredients, language,
-  normalizeIng,
+  normalizeIng, style,
   onOpen, onToggleSave, onToggleHidden, onEdit, onDelete,
 }) {
   const allNormalized = [...new Set((item.ingredients || []).map(ing => normalizeIng(ing)))];
@@ -662,7 +662,7 @@ const RecipeCard = React.memo(function RecipeCard({
   }).length;
 
   return (
-    <li className={`menu-card${isHidden ? ' card-hidden' : ''}`} onClick={onOpen}>
+    <li className={`menu-card${isHidden ? ' card-hidden' : ''}`} style={style} onClick={onOpen}>
       {thumbnailSrc && (
         <img src={thumbnailSrc} alt={item.name} className="menu-thumbnail" loading="lazy" decoding="async" />
       )}
@@ -876,12 +876,14 @@ function App() {
     try { return JSON.parse(localStorage.getItem('findish_recipe_edits')) || {}; } catch { return {}; }
   });
   const [recipeData, setRecipeData] = useState([]);
+  const [recipeLoading, setRecipeLoading] = useState(true);
 
   // Supabase에서 레시피 로드 (캐시 → 즉시 표시 후 백그라운드 갱신)
   useEffect(() => {
     const CACHE_KEY = 'findish_recipes_kr_v1';
     const applyData = (data) => {
       setRecipeData(data);
+      setRecipeLoading(false);
       ALL_INGREDIENT_NAMES = [...new Set(
         data.flatMap(item => (item.ingredients || []).map(raw => parseIngText(String(raw)).name).filter(Boolean))
       )].sort((a, b) => a.localeCompare(b, 'ko'));
@@ -2324,9 +2326,13 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                 </div>
               </div>
               <ul className="menu-list grid-list">
-                {sortedResults.length > 0 ? (
-                  sortedResults.map((item) => (
-                    <RecipeCard key={item.url} {...makeCardProps(item)} />
+                {recipeLoading && sortedResults.length === 0 ? (
+                  Array.from({ length: 12 }).map((_, i) => (
+                    <li key={i} className="skeleton-card" style={{ animationDelay: `${i * 0.05}s` }} />
+                  ))
+                ) : sortedResults.length > 0 ? (
+                  sortedResults.map((item, i) => (
+                    <RecipeCard key={item.url} {...makeCardProps(item)} style={{ animationDelay: `${Math.min(i, 11) * 0.04}s` }} />
                   ))
                 ) : (
                   <p className="no-results">{t.noResults}</p>
