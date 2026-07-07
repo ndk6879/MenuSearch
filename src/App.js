@@ -1781,8 +1781,8 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
     const ytId = extractYouTubeId(item.url);
     return {
       item,
-      thumbnailSrc: thumbnailOverrides[item.url] || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null),
-      isHidden: !!recipeEdits[item.url]?.hidden,
+      thumbnailSrc: item.thumbnail || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null),
+      isHidden: !!item.hidden,
       isSaved: savedSet.has(item.url),
       isMyRecipe: !!(creatorUser && creatorUser.uploaderName === item.uploader),
       isCreator,
@@ -2028,7 +2028,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                       initialDraft={editDraftInit}
                       darkMode={darkMode}
                       t={t}
-                      thumbnailUrl={thumbnailOverrides[recipeModal.url] || ''}
+                      thumbnailUrl={thumbnailOverrides[recipeModal.url] || recipeModal.thumbnail_url || ''}
                       uploaderName={recipeModal.uploader}
                       onSave={draft => saveEditDraft(recipeModal.url, draft)}
                       onCancel={() => setModalEditMode(false)}
