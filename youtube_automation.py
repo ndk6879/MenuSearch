@@ -457,7 +457,11 @@ def get_transcript(video_id: str) -> str | None:
 # -----------------------------
 # Groq 텍스트 분석 (고정댓글/더보기란/자막) — 무료
 # -----------------------------
-def ask_groq_from_text(raw_text, source_name=""):
+def ask_groq_from_text(raw_text, source_name="", target="both"):
+    """
+    target: "both" | "ingredients" | "steps"
+    Whisper 단계에서 부족한 항목만 보완할 때 target을 지정해서 호출.
+    """
     if not _groq_client:
         safe_print("❌ GROQ_API_KEY 없음 → 텍스트 분석 불가")
         return None
@@ -471,14 +475,25 @@ def ask_groq_from_text(raw_text, source_name=""):
             "협찬/SNS 링크/구독 요청 등 레시피와 완전히 무관한 내용은 무시하세요. "
             "재료나 순서가 전혀 없을 때만 빈 배열 []로 두세요."
         ),
-        "자막": (
-            "이 텍스트는 유튜브 요리 영상의 자막(스크립트)입니다. "
-            "잡담/광고/인트로/아웃트로/브랜드 멘트는 제외하고 **요리 과정**만 추려서 순서를 만드세요. "
-            "가능하면 명령형 동사(썰다, 볶다, 끓이다 등) 기준으로 3~12단계로 나누세요."
-        )
+        "음성전사": "이 텍스트는 유튜브 요리 영상의 음성을 전사한 내용입니다. 잡담/광고/인트로/아웃트로는 제외하고 요리 관련 내용만 추출하세요.",
     }.get(source_name, "")
 
+    # target에 따라 추출 지시 조정
+    if target == "ingredients":
+        target_instruction = (
+            "⚠️ 이미 순서(조리 과정)는 확보되어 있습니다. **재료 목록만** 추출하세요. "
+            "순서는 빈 배열 []로 두세요."
+        )
+    elif target == "steps":
+        target_instruction = (
+            "⚠️ 이미 재료 목록은 확보되어 있습니다. **조리 순서만** 추출하세요. "
+            "재료는 빈 배열 []로 두세요."
+        )
+    else:
+        target_instruction = ""
+
     prompt = f"""{prefix}
+{target_instruction}
 
 다음 텍스트에서 **메인 메뉴 이름**, **재료(중복 제거)**, **단계별 요리 순서**를 JSON 형식으로만 출력하세요.
 
@@ -575,8 +590,10 @@ def transcribe_with_groq(audio_path: str) -> str | None:
                 response_format="text",
             )
         text = sanitize(str(resp))
-        safe_print(f"✅ [Whisper] 전사 완료 ({len(text)}자)")
-        return text if len(text) > 50 else None
+        # 한국어·영어·숫자·기본 문장부호 외 노이즈 문자(일본어 등) 제거
+        text = re.sub(r'[^\uAC00-\uD7A3\u1100-\u11FF\u3130-\u318F\u0020-\u007Ea-zA-Z0-9\s.,!?()]', '', text).strip()
+        safe_print(f"✅ [Whisper] 전사 완료 ({len(text)}자): {text[:80]}")
+        return text if text else None
     except Exception as e:
         safe_print(f"❌ [Whisper] 전사 실패: {e}")
         return None
@@ -733,7 +750,7 @@ def analyze_one_video(url: str) -> dict:
         all_results = {}
         multi_dish_results = []
 
-        # ---- 텍스트 소스 수집 (자막 포함)
+        # ---- 1순위: 텍스트 소스 수집 (고정댓글 + 더보기란만, 자막 제거)
         text_sources = {}
         if comment_text and comment_text.strip():
             text_sources["고정댓글"] = comment_text
@@ -744,15 +761,9 @@ def analyze_one_video(url: str) -> dict:
         else:
             safe_print("⏭️ [더보기란] 텍스트 없음 → 스킵")
 
-        transcript_text = get_transcript(video_id)
-        if transcript_text:
-            text_sources["자막"] = transcript_text
-        else:
-            safe_print("⏭️ [자막] 없음 → 스킵")
-
         # ---- Groq으로 텍스트 소스 병렬 분석
         safe_print(f"🔍 텍스트 분석 시작 (Groq)...")
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             text_futures = {
                 name: executor.submit(ask_groq_from_text, text, name)
                 for name, text in text_sources.items()
@@ -762,31 +773,35 @@ def analyze_one_video(url: str) -> dict:
                 if parsed:
                     all_results[name] = parsed
 
-        # ---- 오디오 전사 fallback: 텍스트 소스 없거나 재료 부족할 때
-        has_steps = any(len(r.get("순서", [])) >= 1 for r in all_results.values())
-        has_enough_ingredients = any(len(r.get("재료", [])) >= 3 for r in all_results.values())
+        # ---- 텍스트 결과에서 현재까지 확보된 최선값 계산
+        cur_ingredients = []
+        cur_steps = []
+        cur_name = None
+        for src in ["고정댓글", "더보기란"]:
+            if src not in all_results:
+                continue
+            r = all_results[src]
+            if is_valid(r["재료"]) and len(r["재료"]) > len(cur_ingredients):
+                cur_ingredients = r["재료"]
+                cur_name = r["메뉴"]
+            if is_valid(r["순서"]) and len(r["순서"]) > len(cur_steps):
+                cur_steps = r["순서"]
+                if not cur_name:
+                    cur_name = r["메뉴"]
 
-        whisper_text = None
-        if not has_enough_ingredients or not has_steps:
-            safe_print(f"🎙️ 텍스트 소스 부족 → Groq Whisper 오디오 전사 시도...")
-            audio_path = download_audio(video_id)
-            if audio_path:
-                whisper_text = transcribe_with_groq(audio_path)
-                if whisper_text:
-                    text_sources["음성전사"] = whisper_text
-                    parsed = parse_text_source(
-                        ask_groq_from_text(whisper_text, "음성전사"), "음성전사"
-                    )
-                    if parsed:
-                        all_results["음성전사"] = parsed
-        else:
-            safe_print(f"✅ 텍스트 소스 충분 → 오디오 전사 생략")
+        need_ingredients = len(cur_ingredients) < 4
+        need_steps = len(cur_steps) < 3
 
-        # ---- Gemini 영상 분석은 모든 소스 실패 시 마지막 fallback
+        # ---- 2순위: Gemini 영상 분석 — 텍스트에서 재료/순서 부족할 때
         video_raw = None
-        if not all_results:
-            safe_print(f"🎬 모든 소스 실패 → Gemini 영상 분석 마지막 시도...")
+        if need_ingredients or need_steps:
+            missing = []
+            if need_ingredients: missing.append("재료")
+            if need_steps: missing.append("순서")
+            safe_print(f"🎬 텍스트 부족 ({'+'.join(missing)} 미달) → Gemini 영상 분석...")
             video_raw = analyze_video_with_gemini(video_id)
+        else:
+            safe_print(f"✅ 텍스트 소스 충분 (재료 {len(cur_ingredients)}개, 순서 {len(cur_steps)}단계) → 영상 분석 생략")
 
         # ---- 영상 분석 결과 처리
         if video_raw:
@@ -836,7 +851,7 @@ def analyze_one_video(url: str) -> dict:
         best_text_ingredients = None
         best_text_source = None
         best_text_name = None
-        for src in ["고정댓글", "더보기란", "자막", "음성전사"]:
+        for src in ["고정댓글", "더보기란"]:
             if src not in all_results:
                 continue
             p = all_results[src]
@@ -875,7 +890,7 @@ def analyze_one_video(url: str) -> dict:
             best_steps_source = "영상 분석"
             safe_print(f"🎬 [순서] 영상 분석 채택: {len(best_steps)}단계")
         else:
-            for src in ["고정댓글", "더보기란", "자막", "음성전사"]:
+            for src in ["고정댓글", "더보기란"]:
                 if src in all_results and is_valid(all_results[src]["순서"]) and len(all_results[src]["순서"]) >= 1:
                     if not best_steps or len(all_results[src]["순서"]) > len(best_steps):
                         best_steps = all_results[src]["순서"]
