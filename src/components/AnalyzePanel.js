@@ -534,8 +534,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
     return `${m}:${String(s).padStart(2, "0")}`;
   };
 
-  const statusIcon = (s) =>
-    ({ waiting: "\u23F3", analyzing: "\uD83D\uDD04", done: "\u2705", failed: "\u274C" }[s] || "");
+  const statusIcon = (s) => ({ waiting: "·", analyzing: "···", done: "✓", failed: "–" }[s] || "–");
 
   // =====================
   // 탭 스타일
@@ -694,9 +693,9 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                     borderBottom: `1px solid ${darkMode ? "#333" : "#e5e7eb"}`,
                   }}
                 >
-                  {state.status === "loading" && <span style={{ color: "#2563eb" }}>🔄 분석 중...</span>}
-                  {state.status === "done" && <span style={{ color: "#16a34a" }}>✅</span>}
-                  {state.status === "error" && <span style={{ color: "#dc2626" }}>❌</span>}
+                  {state.status === "loading" && <span style={{ color: darkMode ? "#888" : "#666", fontSize: 13 }}>분석 중...</span>}
+                  {state.status === "done" && <span style={{ color: darkMode ? "#aaa" : "#555", fontSize: 14 }}>✓</span>}
+                  {state.status === "error" && <span style={{ color: darkMode ? "#777" : "#999", fontSize: 14 }}>–</span>}
                   {vid ? (
                     <a href={u} target="_blank" rel="noreferrer" style={{ color: darkMode ? "#93b5ff" : "#1d4ed8" }}>
                       {u}
@@ -718,13 +717,11 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                 {state.status === "error" && (
                   <div style={{
                     padding: "10px 14px",
-                    color: darkMode ? "#f0a055" : "#b45309",
+                    color: darkMode ? "#888" : "#666",
                     fontSize: 13,
-                    background: darkMode ? "rgba(180,83,9,0.08)" : "#fffbeb",
-                    borderRadius: 6,
-                    margin: "4px 0",
+                    borderLeft: `2px solid ${darkMode ? "#444" : "#ddd"}`,
                   }}>
-                    😅 {state.error === "분석 실패" ? "이 영상은 분석하기 어려웠어요. 다른 영상을 시도해보세요." : state.error}
+                    {state.error}
                   </div>
                 )}
 
@@ -761,32 +758,32 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                           {/* 저장 버튼 */}
                           <div style={{ flexShrink: 0, marginLeft: 12 }}>
                             {sv === "saved" || sv === "overwritten" ? (
-                              <span style={{ color: "#16a34a", fontWeight: 600, fontSize: 13 }}>
+                              <span style={{ color: darkMode ? "#aaa" : "#666", fontWeight: 500, fontSize: 13 }}>
                                 {sv === "overwritten" ? "갱신됨 ✓" : "저장됨 ✓"}
                               </span>
                             ) : sv === "duplicate" ? (
                               <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                                <span style={{ color: "#b45309", fontSize: 12, fontWeight: 600 }}>⚠️ 이미 저장됨</span>
+                                <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>이미 저장됨</span>
                                 <button
                                   onClick={() => saveVideoRecipe(urlIdx, recipeIdx, recipe, true)}
                                   style={{
-                                    background: "#fef3c7", color: "#b45309",
-                                    border: "1px solid #f59e0b", borderRadius: 6,
-                                    padding: "2px 8px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                                    background: "none", color: darkMode ? "#aaa" : "#666",
+                                    border: `1px solid ${darkMode ? "#444" : "#ccc"}`, borderRadius: 6,
+                                    padding: "2px 8px", fontSize: 12, cursor: "pointer",
                                   }}
                                 >덮어쓰기</button>
                               </div>
                             ) : sv === "error" ? (
-                              <span style={{ color: "#dc2626", fontSize: 13, fontWeight: 600 }}>저장 실패</span>
+                              <span style={{ color: darkMode ? "#888" : "#999", fontSize: 13 }}>저장 실패</span>
                             ) : (
                               <button
                                 onClick={() => saveVideoRecipe(urlIdx, recipeIdx, recipe)}
                                 disabled={sv === "saving"}
                                 style={{
-                                  background: "#16a34a", color: "#fff",
+                                  background: darkMode ? "#fff" : "#000", color: darkMode ? "#000" : "#fff",
                                   border: "none", borderRadius: 8,
                                   padding: "6px 16px", fontSize: 13, fontWeight: 600,
-                                  cursor: "pointer", opacity: sv === "saving" ? 0.6 : 1,
+                                  cursor: "pointer", opacity: sv === "saving" ? 0.5 : 1,
                                 }}
                               >
                                 {sv === "saving" ? "저장 중..." : "저장"}
@@ -976,16 +973,14 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
           {chError && (
             <div
               style={{
-                marginTop: 10,
-                color: darkMode ? "#f0a055" : "#b45309",
-                background: darkMode ? "rgba(180,83,9,0.08)" : "#fffbeb",
-                border: `1px solid ${darkMode ? "#5a3a00" : "#fcd34d"}`,
-                padding: 10,
-                borderRadius: 8,
+                marginTop: 8,
+                color: darkMode ? "#888" : "#666",
+                borderLeft: `2px solid ${darkMode ? "#444" : "#ddd"}`,
+                paddingLeft: 10,
                 fontSize: 13,
               }}
             >
-              😅 {chError}
+              {chError}
             </div>
           )}
 
@@ -1006,12 +1001,12 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                   onClick={startBatchAnalysis}
                   disabled={batchRunning}
                   style={{
-                    background: "#2563eb",
-                    color: "#fff",
+                    background: darkMode ? "#fff" : "#000",
+                    color: darkMode ? "#000" : "#fff",
                     borderRadius: 8,
                     padding: "6px 14px",
                     fontSize: 14,
-                    opacity: batchRunning ? 0.6 : 1,
+                    opacity: batchRunning ? 0.5 : 1,
                     border: "none",
                     cursor: batchRunning ? "not-allowed" : "pointer",
                   }}
@@ -1096,11 +1091,12 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                             <td style={{ padding: "8px 12px", fontSize: 12, textAlign: "center" }}>
                               {v.duration <= 60 ? (
                                 <span style={{
-                                  background: "#ef4444",
-                                  color: "#fff",
+                                  background: darkMode ? "#2a2a2a" : "#f0f0f0",
+                                  color: darkMode ? "#aaa" : "#666",
                                   borderRadius: 4,
                                   padding: "2px 6px",
-                                  fontWeight: 600,
+                                  fontSize: 11,
+                                  fontWeight: 500,
                                 }}>Shorts</span>
                               ) : (
                                 <span style={{
@@ -1127,9 +1123,9 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                 <button
                                   onClick={() => reanalyzeVideo(v)}
                                   style={{
-                                    background: "#eff6ff", color: "#2563eb",
-                                    border: "1px solid #93c5fd", borderRadius: 99,
-                                    padding: "3px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                    background: "none", color: darkMode ? "#aaa" : "#555",
+                                    border: `1px solid ${darkMode ? "#444" : "#ccc"}`, borderRadius: 99,
+                                    padding: "3px 10px", fontSize: 11, cursor: "pointer",
                                   }}
                                 >다시 분석</button>
                               ) : st === "done" && res && !res.error ? (
@@ -1141,15 +1137,16 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                 ) : sv === "saved" || sv === "overwritten" ? (
                                   <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
                                     <span style={{
-                                      background: "#dcfce7", color: "#15803d",
-                                      borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600,
+                                      background: darkMode ? "#2a2a2a" : "#f3f4f6",
+                                      color: darkMode ? "#aaa" : "#666",
+                                      borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 500,
                                     }}>{sv === "overwritten" ? "갱신됨" : "저장됨"}</span>
                                     <button
                                       onClick={() => deleteRecipe(v.video_id)}
                                       style={{
-                                        background: "#fef2f2", color: "#dc2626",
-                                        border: "1px solid #fca5a5", borderRadius: 99,
-                                        padding: "3px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                        background: "none", color: darkMode ? "#666" : "#999",
+                                        border: `1px solid ${darkMode ? "#444" : "#ddd"}`, borderRadius: 99,
+                                        padding: "3px 8px", fontSize: 11, cursor: "pointer",
                                       }}
                                     >삭제</button>
                                   </div>
@@ -1158,18 +1155,18 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                     <button
                                       onClick={() => saveRecipe(v.video_id, true)}
                                       style={{
-                                        background: "#fef3c7", color: "#b45309",
-                                        border: "1px solid #f59e0b", borderRadius: 99,
-                                        padding: "3px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                        background: "none", color: darkMode ? "#aaa" : "#555",
+                                        border: `1px solid ${darkMode ? "#444" : "#ccc"}`, borderRadius: 99,
+                                        padding: "3px 10px", fontSize: 11, cursor: "pointer",
                                       }}
                                       title="클릭하면 새 데이터로 덮어씁니다"
                                     >덮어쓰기</button>
                                     <button
                                       onClick={() => deleteRecipeByUrl(v.video_id, v.url)}
                                       style={{
-                                        background: "#fef2f2", color: "#dc2626",
-                                        border: "1px solid #fca5a5", borderRadius: 99,
-                                        padding: "3px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                        background: "none", color: darkMode ? "#666" : "#999",
+                                        border: `1px solid ${darkMode ? "#444" : "#ddd"}`, borderRadius: 99,
+                                        padding: "3px 8px", fontSize: 11, cursor: "pointer",
                                       }}
                                     >삭제</button>
                                   </div>
@@ -1180,17 +1177,18 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                   }}>실패</span>
                                 ) : sv === "saving" ? (
                                   <span style={{
-                                    background: darkMode ? "#1e293b" : "#eff6ff", color: "#2563eb",
-                                    borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600,
+                                    background: darkMode ? "#2a2a2a" : "#f3f4f6",
+                                    color: darkMode ? "#888" : "#999",
+                                    borderRadius: 99, padding: "3px 10px", fontSize: 11,
                                   }}>저장 중...</span>
                                 ) : (
                                   <button
                                     onClick={() => saveRecipe(v.video_id, existingUrls.has(v.url))}
                                     style={{
-                                      background: existingUrls.has(v.url) ? "#fef3c7" : "#dcfce7",
-                                      color: existingUrls.has(v.url) ? "#b45309" : "#15803d",
-                                      border: `1px solid ${existingUrls.has(v.url) ? "#f59e0b" : "#22c55e"}`,
-                                      borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 600,
+                                      background: existingUrls.has(v.url) ? "none" : darkMode ? "#fff" : "#000",
+                                      color: existingUrls.has(v.url) ? (darkMode ? "#aaa" : "#555") : darkMode ? "#000" : "#fff",
+                                      border: existingUrls.has(v.url) ? `1px solid ${darkMode ? "#444" : "#ccc"}` : "none",
+                                      borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 500,
                                       cursor: "pointer",
                                     }}
                                   >
@@ -1200,15 +1198,16 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                               ) : existingUrls.has(v.url) ? (
                                 <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
                                   <span style={{
-                                    background: "#fef3c7", color: "#b45309",
-                                    borderRadius: 99, padding: "3px 8px", fontSize: 11, fontWeight: 600,
+                                    background: darkMode ? "#2a2a2a" : "#f3f4f6",
+                                    color: darkMode ? "#aaa" : "#666",
+                                    borderRadius: 99, padding: "3px 8px", fontSize: 11, fontWeight: 500,
                                   }}>저장됨</span>
                                   <button
                                     onClick={() => deleteRecipeByUrl(v.video_id, v.url)}
                                     style={{
-                                      background: "#fef2f2", color: "#dc2626",
-                                      border: "1px solid #fca5a5", borderRadius: 99,
-                                      padding: "3px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                                      background: "none", color: darkMode ? "#666" : "#999",
+                                      border: `1px solid ${darkMode ? "#444" : "#ddd"}`, borderRadius: 99,
+                                      padding: "3px 8px", fontSize: 11, cursor: "pointer",
                                     }}
                                   >삭제</button>
                                 </div>
@@ -1242,7 +1241,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                 }}
                               >
                                 {res.error ? (
-                                  <div style={{ color: "#dc2626" }}>오류: {res.error}</div>
+                                  <div style={{ color: darkMode ? "#888" : "#777", borderLeft: `2px solid ${darkMode ? "#444" : "#ddd"}`, paddingLeft: 10 }}>{res.error}</div>
                                 ) : editingId === v.video_id ? (
                                   /* ===== 수정 모드 ===== */
                                   <div>
@@ -1317,9 +1316,9 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                           <button
                                             onClick={() => saveRecipe(v.video_id, true)}
                                             style={{
-                                              background: "#fef3c7", color: "#b45309",
-                                              border: "1px solid #f59e0b", borderRadius: 5,
-                                              padding: "2px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                                              background: "none", color: darkMode ? "#aaa" : "#555",
+                                              border: `1px solid ${darkMode ? "#444" : "#ccc"}`, borderRadius: 5,
+                                              padding: "2px 10px", fontSize: 12, cursor: "pointer",
                                             }}
                                           >새 데이터로 덮어쓰기</button>
                                         )}
@@ -1334,8 +1333,8 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                           <button
                                             onClick={() => deleteRecipe(v.video_id)}
                                             style={{
-                                              background: "#dc2626", color: "#fff",
-                                              border: "none", borderRadius: 5, padding: "2px 10px", fontSize: 12, cursor: "pointer",
+                                              background: "none", color: darkMode ? "#777" : "#999",
+                                              border: `1px solid ${darkMode ? "#444" : "#ddd"}`, borderRadius: 5, padding: "2px 10px", fontSize: 12, cursor: "pointer",
                                             }}
                                           >저장 취소</button>
                                         )}
