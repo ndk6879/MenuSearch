@@ -47,7 +47,7 @@ html {
 }
 
 body {
-  font-family: 'Noto Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Pretendard', 'Noto Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
   -webkit-font-smoothing: antialiased;
 }
@@ -285,7 +285,7 @@ body {
 }
 
 .hero-title {
-  font-size: 3.5rem;
+  font-size: 2.6rem;
   font-weight: 800;
   line-height: 1.12;
   letter-spacing: -0.04em;
@@ -306,6 +306,12 @@ body {
   margin: 0 0 2.5rem;
   font-weight: 400;
   line-height: 1.6;
+}
+
+.hero-subtitle--chef {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .app.light .hero-subtitle {
@@ -1004,6 +1010,28 @@ body {
   font-size: 0.9rem;
   line-height: 1.6;
   margin-bottom: 6px;
+  list-style-position: outside;
+}
+
+.recipe-dish-image {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  object-fit: cover;
+  aspect-ratio: 16/9;
+  max-height: 240px;
+}
+
+.recipe-step-image {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  border-radius: 10px;
+  margin-top: 8px;
+  margin-bottom: 10px;
+  object-fit: cover;
+  aspect-ratio: 16/9;
 }
 
 .app.light .recipe-modal-steps li,

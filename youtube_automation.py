@@ -371,11 +371,26 @@ def analyze_video_with_gemini(video_id: str):
 - 반드시 크리에이터가 직접 요리하는 과정을 보여주는 영상만 분석하세요. 레스토랑 방문/소개, 음식점에서 주문해 먹는 영상, 음식 리뷰, 먹방, 식당 투어는 요리 영상이 아닙니다.
 - 요리 영상이 아니면 "분석 불가 (레스토랑 소개/먹방/음식 리뷰 등 직접 요리하지 않는 영상)"라고만 답하세요.
 
+📸 단계별 이미지 규칙:
+- 요리 순서 각 단계에서 **시각적으로 중요한 단계**(손질 결과물, 불 조절 상태, 농도/색 변화, 완성 상태)만 골라 타임스탬프를 기록하세요.
+- 단순 행동("소금 넣기", "잘 섞기")은 제외하세요.
+- 전체 단계 중 최대 4개까지만 선택하세요.
+- 타임스탬프 선택 필수 조건:
+  1. 손/팔이 화면의 주인공이 되지 않는 장면 (손이 보여도 음식이 주인공이어야 함)
+  2. 칼질·볶기·섞기 동작 중간이 아닌 동작이 끝난 직후 결과물이 보이는 장면
+  3. 음식/재료가 화면 중앙에 선명하게 담긴 장면
+  4. 식욕을 돋우는 비주얼 (완성된 재료 상태, 익어가는 색감, 플레이팅 등)
+- step_index는 "순서" 배열의 0부터 시작하는 인덱스입니다.
+
 형식:
 {
   "메뉴": "메뉴 이름",
   "재료": ["주재료1", "주재료2", ..., "양념1", "양념2", ..., "기타1", ...],
-  "순서": ["단계1", "단계2", ...]
+  "순서": ["단계1", "단계2", ...],
+  "step_images": [
+    {"step_index": 0, "timestamp": "MM:SS"},
+    {"step_index": 2, "timestamp": "MM:SS"}
+  ]
 }"""
 
     try:
@@ -395,6 +410,232 @@ def analyze_video_with_gemini(video_id: str):
     except Exception as e:
         safe_print(f"❌ [영상 분석] Gemini 영상 분석 실패: {e}")
         return None
+
+
+# -----------------------------
+# 프레임 추출 + Supabase Storage 업로드
+# -----------------------------
+def get_best_thumbnail_url(video_id: str) -> str:
+    """YouTube 최고화질 썸네일 URL 반환 (완성 요리 사진용)"""
+    import requests as req
+    for quality in ["maxresdefault", "sddefault", "hqdefault"]:
+        url = f"https://img.youtube.com/vi/{video_id}/{quality}.jpg"
+        try:
+            r = req.head(url, timeout=5)
+            size = int(r.headers.get("content-length", 0))
+            if r.status_code == 200 and size > 10000:
+                return url
+        except Exception:
+            continue
+    return f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+
+
+def _timestamp_to_seconds(ts: str) -> float:
+    parts = ts.strip().split(":")
+    if len(parts) == 3:
+        return int(parts[0]) * 3600 + int(parts[1]) * 60 + float(parts[2])
+    elif len(parts) == 2:
+        return int(parts[0]) * 60 + float(parts[1])
+    return float(parts[0])
+
+
+def _sharpness(image_path: str) -> float:
+    from PIL import Image
+    import numpy as np
+    img = Image.open(image_path).convert("L").resize((320, 240))
+    arr = np.array(img, dtype=np.float32)
+    dx = np.diff(arr, axis=1)
+    dy = np.diff(arr, axis=0)
+    return float(np.var(dx) + np.var(dy))
+
+
+def _select_best_frame_with_gemini(candidate_paths: list) -> str:
+    """후보 프레임 이미지들을 Gemini가 직접 보고 최적 1장 선택"""
+    from PIL import Image as PILImage
+    if len(candidate_paths) == 1:
+        return candidate_paths[0]
+    try:
+        client = genai_new.Client(api_key=GEMINI_API_KEY)
+        images = []
+        valid_paths = []
+        for p in candidate_paths:
+            try:
+                img = PILImage.open(p)
+                images.append(img)
+                valid_paths.append(p)
+            except Exception:
+                continue
+        if not images:
+            return candidate_paths[0]
+
+        prompt = (
+            f"아래 {len(images)}장의 요리 영상 프레임 중 레시피 카드에 넣기 가장 적합한 1장을 골라주세요.\n\n"
+            "선택 기준 (중요도 순):\n"
+            "1. 손·팔이 화면 중앙을 차지하지 않고 음식/재료가 주인공인 프레임\n"
+            "2. 움직임이 없어 선명한 프레임\n"
+            "3. 음식이 먹음직스럽게 보이는 프레임\n"
+            "4. 자막 텍스트가 적게 겹치는 프레임\n\n"
+            "숫자 하나만 답하세요 (1부터 시작). 예: 3"
+        )
+        # 이미지를 base64로 변환해서 전달
+        import base64, io
+        parts = [prompt]
+        for img in images:
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG")
+            parts.append(genai_types.Part.from_bytes(data=buf.getvalue(), mime_type="image/jpeg"))
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=parts,
+        )
+        text = response.text.strip()
+        idx = int(''.join(c for c in text[:5] if c.isdigit()) or "1") - 1
+        idx = max(0, min(idx, len(valid_paths) - 1))
+        safe_print(f"   🤖 Gemini 선택: {idx + 1}번 프레임")
+        return valid_paths[idx]
+    except Exception as e:
+        safe_print(f"⚠️ [이미지] Gemini 프레임 선택 실패, 선명도 기준 사용: {e}")
+        return max(candidate_paths, key=_sharpness)
+
+
+def extract_step_frames(video_id: str, step_images: list, output_dir: str = None) -> dict:
+    """
+    step_images: [{"step_index": 0, "timestamp": "01:23"}, ...]
+    반환: {step_index: local_image_path}
+    """
+    import subprocess, tempfile, os
+    results = {}
+    if not step_images:
+        return results
+
+    video_url = f"https://www.youtube.com/watch?v={video_id}"
+    safe_print("🔗 [이미지] 스트림 URL 추출 중...")
+
+    try:
+        r = subprocess.run(
+            ["yt-dlp", "-g", "-f", "bestvideo[ext=mp4]/bestvideo/best", video_url],
+            capture_output=True, text=True, timeout=30
+        )
+        stream_url = r.stdout.strip().split("\n")[0]
+        if not stream_url:
+            safe_print("❌ [이미지] 스트림 URL 추출 실패")
+            return results
+    except Exception as e:
+        safe_print(f"❌ [이미지] yt-dlp 실패: {e}")
+        return results
+
+    work_dir = output_dir or tempfile.mkdtemp(prefix="findish_frames_")
+    os.makedirs(work_dir, exist_ok=True)
+
+    for item in step_images:
+        step_idx = item["step_index"]
+        ts = item["timestamp"]
+        base_sec = _timestamp_to_seconds(ts)
+
+        candidates = []
+        # ±3초 범위에서 7장 추출 → Gemini가 최적 선택
+        for offset in [-2, -1, 0, 1, 2, 3, 4]:
+            seek = max(2, base_sec + offset)
+            out_path = os.path.join(work_dir, f"step_{step_idx}_t{offset}.jpg")
+            try:
+                # pre-seek 2초 전 → 정밀 시킹 2초: 스피드/정확도 균형
+                subprocess.run([
+                    "ffmpeg", "-y",
+                    "-ss", str(seek - 2), "-i", stream_url,
+                    "-ss", "2",
+                    "-vframes", "1", "-q:v", "1",
+                    "-vf", "scale=iw:ih",  # 원본 해상도 유지
+                    out_path
+                ], capture_output=True, timeout=30)
+                if os.path.exists(out_path) and os.path.getsize(out_path) > 2000:
+                    candidates.append(out_path)
+            except Exception:
+                continue
+
+        if candidates:
+            # 선명도 기준 상위 절반만 Gemini에게 넘김
+            scored = sorted(candidates, key=_sharpness, reverse=True)
+            top_candidates = scored[:max(3, len(scored) // 2)]
+            best = _select_best_frame_with_gemini(top_candidates)
+            final_path = os.path.join(work_dir, f"step_{step_idx}.jpg")
+            import shutil
+            shutil.copy2(best, final_path)
+            for p in candidates:
+                if p != final_path and os.path.exists(p):
+                    os.remove(p)
+            results[step_idx] = final_path
+            safe_print(f"✅ [이미지] step {step_idx} 프레임 추출 완료 ({ts})")
+        else:
+            safe_print(f"⚠️ [이미지] step {step_idx} 프레임 추출 실패")
+
+    return results
+
+
+def upload_step_frames_to_supabase(video_id: str, frame_paths: dict) -> dict:
+    """
+    frame_paths: {step_index: local_image_path}
+    반환: {step_index: public_url}
+    """
+    import requests, os
+    supabase_url = os.getenv("SUPABASE_URL")
+    service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    if not supabase_url or not service_key:
+        safe_print("❌ [이미지] SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY 없음")
+        return {}
+
+    bucket = "recipe-images"
+    headers = {
+        "Authorization": f"Bearer {service_key}",
+        "apikey": service_key,
+    }
+    results = {}
+
+    for step_idx, path in frame_paths.items():
+        storage_path = f"{video_id}/step_{step_idx}.jpg"
+        upload_url = f"{supabase_url}/storage/v1/object/{bucket}/{storage_path}"
+        try:
+            with open(path, "rb") as f:
+                r = requests.post(
+                    upload_url,
+                    headers={**headers, "Content-Type": "image/jpeg", "x-upsert": "true"},
+                    data=f,
+                    timeout=30
+                )
+            if r.status_code in (200, 201):
+                public_url = f"{supabase_url}/storage/v1/object/public/{bucket}/{storage_path}"
+                results[step_idx] = public_url
+                safe_print(f"✅ [이미지] step {step_idx} Supabase 업로드 완료")
+            else:
+                safe_print(f"❌ [이미지] step {step_idx} 업로드 실패: {r.status_code} {r.text[:100]}")
+        except Exception as e:
+            safe_print(f"❌ [이미지] step {step_idx} 업로드 오류: {e}")
+
+    return results
+
+
+def process_step_images(video_id: str, step_images: list) -> dict:
+    """Gemini step_images → Supabase URL dict 반환. {step_index: url, 'dish': thumbnail_url}"""
+    result = {}
+    # 완성 요리 사진 = YouTube 썸네일 (고화질, 크리에이터 선택)
+    thumbnail_url = get_best_thumbnail_url(video_id)
+    if thumbnail_url:
+        result["dish"] = thumbnail_url
+        safe_print(f"✅ [이미지] 완성 요리 썸네일: {thumbnail_url}")
+
+    if not step_images:
+        return result
+    frames = extract_step_frames(video_id, step_images)
+    if not frames:
+        return result
+    urls = upload_step_frames_to_supabase(video_id, frames)
+    result.update(urls)
+    # 로컬 임시 파일 정리
+    import os
+    for p in frames.values():
+        if os.path.exists(p):
+            os.remove(p)
+    return urls
 
 
 def get_first_comment_and_author(api_key, video_id):

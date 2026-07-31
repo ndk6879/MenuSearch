@@ -892,16 +892,29 @@ function App() {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) applyData(JSON.parse(cached));
     } catch {}
+
+    // 모바일 네트워크에서 Supabase 요청이 무한 hanging하는 경우를 방지하는 타임아웃
+    const loadingTimeout = setTimeout(() => setRecipeLoading(false), 10000);
+
     supabase
       .from('recipes')
-      .select('name,url,uploader,upload_date,ingredients,steps,source,status,thumbnail_url,language')
+      .select('name,url,uploader,upload_date,ingredients,steps,source,status,thumbnail_url,language,step_images')
       .eq('language', 'kr')
       .then(({ data }) => {
+        clearTimeout(loadingTimeout);
         if (data) {
           applyData(data);
           try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
+        } else {
+          setRecipeLoading(false);
         }
+      })
+      .catch(() => {
+        clearTimeout(loadingTimeout);
+        setRecipeLoading(false);
       });
+
+    return () => clearTimeout(loadingTimeout);
   }, []);
 
   const showToast = (message) => {
@@ -947,10 +960,19 @@ function App() {
       body: JSON.stringify({ code, redirect_uri: window.location.origin }),
     })
       .then(r => r.json())
-      .then(data => {
-        if (data.session) return supabase.auth.setSession(data.session);
+      .then(async data => {
+        if (!data.session) {
+          console.error('[Kakao] exchange 실패:', data);
+          return;
+        }
+        const { data: authData, error } = await supabase.auth.setSession(data.session);
+        if (error) {
+          console.error('[Kakao] setSession 실패:', error);
+          return;
+        }
+        if (authData?.session) _applySession(authData.session);
       })
-      .catch(() => {});
+      .catch(err => console.error('[Kakao] OAuth 콜백 오류:', err));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1083,7 +1105,7 @@ function App() {
       setSearchResults(sortedData);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipeData, recipeEdits]);
+  }, [recipeData, recipeEdits, CHEF_FILTER]);
 
   const toggleDarkMode = () => setDarkMode(prev => {
     const next = !prev;
@@ -1821,6 +1843,10 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
             onClick={() => {
               if (slug) {
                 navigate('/');
+                setActiveTab('home');
+                setSelectedIngredients([]);
+                setSearchActive(false);
+                setSearchInputValue('');
               } else {
                 setActiveTab('home');
                 setSelectedIngredients([]);
@@ -2048,6 +2074,16 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                     />
                   ) : (
                     <>
+                      {/* 완성 요리 사진 */}
+                      {recipeModal.step_images?.dish && (
+                        <img
+                          src={recipeModal.step_images.dish}
+                          alt={recipeModal.name}
+                          className="recipe-dish-image"
+                          loading="lazy"
+                        />
+                      )}
+
                       {/* TIP 섹션 — 셰프 직접 입력, 맨 위 */}
                       <div className="recipe-tip-section">
                         <div className="recipe-tip-label-wrap">
@@ -2097,9 +2133,22 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                         <h3 className="recipe-modal-section-title">INSTRUCTION</h3>
                         {displaySteps.length > 0 ? (
                           <ol>
-                            {displaySteps.map((step, i) => (
-                              <li key={i}>{step.replace(/^\d+[.)]\s*/, '')}</li>
-                            ))}
+                            {displaySteps.map((step, i) => {
+                              const stepImg = recipeModal.step_images?.[i] ?? recipeModal.step_images?.[String(i)];
+                              return (
+                                <li key={i}>
+                                  <span>{step.replace(/^\d+[.)]\s*/, '')}</span>
+                                  {stepImg && (
+                                    <img
+                                      src={stepImg}
+                                      alt={`step ${i + 1}`}
+                                      className="recipe-step-image"
+                                      loading="lazy"
+                                    />
+                                  )}
+                                </li>
+                              );
+                            })}
                           </ol>
                         ) : (
                           <p className="recipe-modal-no-steps">{t.noSteps}</p>
