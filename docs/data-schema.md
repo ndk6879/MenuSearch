@@ -14,9 +14,25 @@ source         text          출처/셰프명
 status         text          'active' | 'hidden'
 thumbnail_url  text          S3/Storage URL (없으면 유튜브 썸네일 fallback)
 language       text          'kr' | 'en'
+step_images    jsonb         단계별 이미지 URL 맵 (2026-07-31 추가)
 ```
 > url이 사실상 PK. 중복 체크, upsert 모두 url 기준.  
 > ingredients는 파싱 안 하고 원본 저장 — 파싱은 프론트에서 `parseIngText()`로 런타임에 처리.
+
+**step_images 구조:**
+```json
+{
+  "dish": "https://img.youtube.com/vi/{video_id}/maxresdefault.jpg",
+  "0": "https://.../recipe-images/{video_id}/step_0.jpg",
+  "3": "https://.../recipe-images/{video_id}/step_3.jpg"
+}
+```
+- `"dish"`: 완성 요리 사진. YouTube `maxresdefault.jpg` 썸네일 직접 사용 (크리에이터가 선택한 고화질 컷)
+- `"0"`, `"3"` ...: 순서 배열 인덱스(0-based) → Supabase Storage 업로드 URL
+- 이미지가 없는 단계는 키 자체가 없음 (null 아님)
+
+**Supabase Storage 버킷:** `recipe-images` (public)  
+**경로 규칙:** `{video_id}/step_{n}.jpg`
 
 ### bookmarks
 ```

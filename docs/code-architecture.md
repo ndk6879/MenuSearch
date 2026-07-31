@@ -74,10 +74,77 @@ sortedResults → 렌더링
 ### 역할
 - 레시피 CRUD (Supabase Service Role Key 사용)
 - 카카오 OAuth code 교환
-- YouTube 분석 (transcript → AI 파싱 → 레시피 추출)
+- YouTube 분석 (텍스트 → Groq, 부족 시 Gemini 영상 분석)
 - 썸네일 업로드 (S3/Storage)
 - 북마크 CRUD (Supabase)
 - AI 채팅 (`/api/chat`)
+
+### YouTube 레시피 추출 파이프라인 (`youtube_automation.py`)
+
+```
+1순위: 고정댓글 + 더보기란 텍스트 → Groq (무료, 병렬)
+    ↓ 재료 4개 미만 OR 순서 3단계 미만이면
+2순위: Gemini 2.5 Flash 영상 직접 분석 (유료, ~35원/영상)
+    ↓ 영상 분석도 실패하면
+    → 에러 반환 (레스토랑/먹방 등 요리 영상 아님 안내)
+```
+
+**설계 결정:**
+- 자막(transcript)·Whisper 제거 — 정확도 대비 효용 낮음
+- Gemini가 2순위인 이유: 영상을 직접 보므로 Whisper(음성만)보다 정확
+- 텍스트 소스가 충분하면 Gemini 미실행 → 비용 절감
+- 재료/순서 중 하나만 부족해도 Gemini 트리거 → 부분 보완 가능
+
+**품질 판단 기준:**
+- 재료 ≥ 4개 AND 순서 ≥ 3단계 → 텍스트 소스 충분, Gemini 생략
+- 미달 시 → Gemini로 부족한 항목 보완 (재료·순서 다른 소스에서 각각 채택 가능)
+
+**레스토랑/먹방 감지:**
+- 3개 프롬프트(Groq, Gemini 텍스트, Gemini 영상) 모두에 명시적 거부 규칙 포함
+- 분석 불가 시 에러 메시지에 이유 설명
+
+**Gemini 모델 선택:**
+- `gemini-2.5-flash` 사용 — 영상 직접 분석 지원 모델 중 가장 안정적
+- 2.0 Flash 계열은 영상 입력 미지원(404), 2.5 Flash Lite는 수요 불안정(503)
+
+### 단계별 이미지 추출 파이프라인 (`youtube_automation.py`)
+
+Gemini 1차 분석 시 `step_images` 타임스탬프를 함께 추출하고, 별도 파이프라인으로 이미지를 Supabase Storage에 업로드.
+
+```
+Gemini 1차 호출 (레시피 분석)
+    └─ step_images: [{ step_index, timestamp }] (최대 4개)
+         ↓
+yt-dlp -g: bestvideo 스트림 URL 추출 (다운로드 없음)
+         ↓
+ffmpeg: 타임스탬프 ±4초 범위 7장 후보 프레임 추출
+        (pre-seek 2s + 정밀 시킹 2s, quality -q:v 1)
+         ↓
+Laplacian 분산 상위 50% 필터 (블러 제거)
+         ↓
+Gemini Vision 2차 호출: 후보 중 최적 1장 선택
+    선택 기준: 손/팔 없음, 동작 끝난 결과물, 음식이 주인공
+         ↓
+Supabase Storage: recipe-images/{video_id}/step_{n}.jpg 업로드
+         ↓
+recipes.step_images JSONB 저장
+    {
+      "dish": "https://img.youtube.com/vi/{id}/maxresdefault.jpg",
+      "0": "https://.../step_0.jpg",
+      "3": "https://.../step_3.jpg"
+    }
+```
+
+**완성 요리 사진 (`dish`):** YouTube `maxresdefault.jpg` 썸네일 직접 사용. 크리에이터가 선택한 고화질 컷으로 별도 추출 불필요.
+
+**핵심 함수:**
+| 함수 | 역할 |
+|------|------|
+| `get_best_thumbnail_url(video_id)` | maxresdefault → sddefault → hqdefault 순서로 10KB 이상인 최고화질 썸네일 URL 반환 |
+| `extract_step_frames(video_id, step_images, output_dir)` | yt-dlp 스트림 + ffmpeg 더블 시킹으로 단계별 최적 프레임 추출 |
+| `_select_best_frame_with_gemini(candidate_paths)` | Gemini Vision으로 후보 중 최적 프레임 인덱스 반환 |
+| `upload_step_frames_to_supabase(video_id, frame_paths)` | recipe-images 버킷에 업로드, `{step_index: url}` 반환 |
+| `process_step_images(video_id, step_images)` | 위 함수들을 조율하는 오케스트레이터, dish 키 추가 후 최종 dict 반환 |
 
 ### Supabase 접근 방식
 SDK 미사용. `requests`로 Supabase REST API 직접 호출.
