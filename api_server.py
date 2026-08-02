@@ -8,8 +8,11 @@ from urllib.parse import quote, urlencode
 from flask_cors import CORS
 import requests as _http
 import hashlib as _hashlib
+import threading
+
 from youtube_automation import (
     analyze_one_video,
+    process_step_images,
     initialize_js_file_if_needed,
     get_existing_urls,
 )
@@ -243,6 +246,34 @@ def analyze_and_save():
             headers={**_sb_headers(), 'Prefer': 'resolution=merge-duplicates'},
             json=recipe_row,
         )
+
+        # 이미지 추출/업로드는 백그라운드에서 비동기 처리
+        step_images_data = r.get("step_images", [])
+        if step_images_data:
+            sb_url = _supabase_url
+            sb_headers = _sb_headers()
+            video_url_for_img = r["video_url"]
+
+            def _bg_process_images():
+                try:
+                    import re as _re_img
+                    m = _re_img.search(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", video_url_for_img)
+                    if not m:
+                        return
+                    vid = m.group(1)
+                    img_dict = process_step_images(vid, step_images_data)
+                    if img_dict:
+                        _http.patch(
+                            f'{sb_url}/rest/v1/recipes',
+                            headers={**sb_headers, 'Prefer': 'return=minimal'},
+                            params={'url': f'eq.{video_url_for_img}'},
+                            json={'step_images': img_dict},
+                        )
+                        print(f"✅ [bg] step_images 저장 완료: {video_url_for_img}")
+                except Exception as _e:
+                    print(f"❌ [bg] step_images 처리 실패: {_e}")
+
+            threading.Thread(target=_bg_process_images, daemon=True).start()
 
         return jsonify({
             "ok": True,

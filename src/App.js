@@ -2136,8 +2136,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                             {displaySteps.map((step, i) => {
                               const stepImg = recipeModal.step_images?.[i] ?? recipeModal.step_images?.[String(i)];
                               return (
-                                <li key={i}>
-                                  <span>{step.replace(/^\d+[.)]\s*/, '')}</span>
+                                <li key={i} className={stepImg ? "step-with-image" : ""}>
                                   {stepImg && (
                                     <img
                                       src={stepImg}
@@ -2146,6 +2145,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                                       loading="lazy"
                                     />
                                   )}
+                                  <span className="step-text">{step.replace(/^\d+[.)]\s*/, '')}</span>
                                 </li>
                               );
                             })}
