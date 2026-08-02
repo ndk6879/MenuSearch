@@ -148,6 +148,32 @@ hidden = edit?.hidden !== undefined ? edit.hidden : status === 'hidden'
 
 ---
 
+## ADR-011: Gemini 영상 분석 항상 호출 (2026-08-02)
+
+**결정:** 텍스트 소스(댓글/더보기란) 품질과 무관하게 Gemini 영상 분석을 항상 호출.
+
+**이유:**
+- step_images 타임스탬프는 Gemini 영상 분석에서만 추출 가능
+- 텍스트가 충분해도 Gemini를 스킵하면 단계별 이미지가 없는 레시피카드가 됨
+- 재료/순서는 여전히 텍스트 소스가 충분하면 텍스트 우선 채택 (Gemini는 step_images 추가 목적)
+
+**비용 변화:** 영상당 ~35원 (Gemini 2.5 Flash)이 모든 영상에 적용됨. 텍스트 충분한 영상도 포함.
+
+**포기한 대안:** 텍스트 부족 시만 Gemini 호출 → step_images가 일부 영상에만 생성되는 불일치 문제.
+
+---
+
+## ADR-012: Shorts URL 지원 (2026-08-02)
+
+**결정:** video ID 추출 정규식에 `/shorts/` 패턴 추가.
+
+**이유:** YouTube Shorts URL(`youtube.com/shorts/VIDEO_ID`)은 기존 `v=` / `youtu.be/` 패턴으로 추출 불가.
+
+**변경:** `r"(?:v=|youtu\.be/)..."` → `r"(?:v=|youtu\.be/|shorts/)..."`  
+`youtube_automation.py` + `api_server.py` 두 곳 동일 적용.
+
+---
+
 ## ADR-008: Railway 수동 배포
 
 **결정:** Railway GitHub 자동 배포 비활성화, `railway up` 수동 실행.

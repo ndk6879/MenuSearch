@@ -257,7 +257,7 @@ def analyze_and_save():
             def _bg_process_images():
                 try:
                     import re as _re_img
-                    m = _re_img.search(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", video_url_for_img)
+                    m = _re_img.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", video_url_for_img)
                     if not m:
                         return
                     vid = m.group(1)
@@ -369,7 +369,7 @@ def _auto_update_channel_profile(uploader_name, video_url):
         return
 
     import re as _re_vid
-    vid_match = _re_vid.search(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", video_url)
+    vid_match = _re_vid.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", video_url)
     if not vid_match:
         return
     video_id = vid_match.group(1)
@@ -512,6 +512,34 @@ def save_recipe():
     )
     if upsert_res.status_code >= 300:
         return jsonify({"ok": False, "saved": False, "error": upsert_res.text}), 500
+
+    # 이미지 추출/업로드 백그라운드 처리
+    step_images_data = r.get("step_images", [])
+    if step_images_data:
+        sb_url = _supabase_url
+        sb_headers = _sb_headers()
+        video_url_for_img = video_url
+
+        def _bg_process_images_save():
+            try:
+                import re as _re_img
+                m = _re_img.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", video_url_for_img)
+                if not m:
+                    return
+                vid = m.group(1)
+                img_dict = process_step_images(vid, step_images_data)
+                if img_dict:
+                    _http.patch(
+                        f'{sb_url}/rest/v1/recipes',
+                        headers={**sb_headers, 'Prefer': 'return=minimal'},
+                        params={'url': f'eq.{video_url_for_img}'},
+                        json={'step_images': img_dict},
+                    )
+                    print(f"✅ [bg] step_images 저장 완료: {video_url_for_img}")
+            except Exception as _e:
+                print(f"❌ [bg] step_images 처리 실패: {_e}")
+
+        threading.Thread(target=_bg_process_images_save, daemon=True).start()
 
     _auto_update_channel_profile(r.get("uploader", ""), video_url)
     return jsonify({"ok": True, "saved": True, "overwritten": is_duplicate}), 200

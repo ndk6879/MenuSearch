@@ -941,7 +941,7 @@ def analyze_one_video(url: str) -> dict:
     반환 형식: {"ok": True, "results": [...]} 또는 {"ok": False, "error": "..."}
     """
     try:
-        m = re.search(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", url)
+        m = re.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", url)
         if not m:
             return {"ok": False, "error": "영상 URL에서 videoId 추출 실패"}
         video_id = m.group(1)
@@ -1034,16 +1034,16 @@ def analyze_one_video(url: str) -> dict:
         need_ingredients = len(cur_ingredients) < 4
         need_steps = len(cur_steps) < 3
 
-        # ---- 2순위: Gemini 영상 분석 — 텍스트에서 재료/순서 부족할 때
+        # ---- Gemini 영상 분석 — step_images 위해 항상 호출, 재료/순서 부족 시 보완도 겸함
         video_raw = None
         if need_ingredients or need_steps:
             missing = []
             if need_ingredients: missing.append("재료")
             if need_steps: missing.append("순서")
-            safe_print(f"🎬 텍스트 부족 ({'+'.join(missing)} 미달) → Gemini 영상 분석...")
-            video_raw = analyze_video_with_gemini(video_id)
+            safe_print(f"🎬 텍스트 부족 ({'+'.join(missing)} 미달) + step_images → Gemini 영상 분석...")
         else:
-            safe_print(f"✅ 텍스트 소스 충분 (재료 {len(cur_ingredients)}개, 순서 {len(cur_steps)}단계) → 영상 분석 생략")
+            safe_print(f"✅ 텍스트 소스 충분 (재료 {len(cur_ingredients)}개, 순서 {len(cur_steps)}단계) → step_images 위해 Gemini 영상 분석...")
+        video_raw = analyze_video_with_gemini(video_id)
 
         # ---- 영상 분석 결과 처리
         if video_raw:

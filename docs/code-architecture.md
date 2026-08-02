@@ -83,20 +83,22 @@ sortedResults → 렌더링
 
 ```
 1순위: 고정댓글 + 더보기란 텍스트 → Groq (무료, 병렬)
-    ↓ 재료 4개 미만 OR 순서 3단계 미만이면
-2순위: Gemini 2.5 Flash 영상 직접 분석 (유료, ~35원/영상)
+    ↓ 항상
+Gemini 2.5 Flash 영상 직접 분석 (유료, ~35원/영상)
+    ├─ step_images 타임스탬프 추출 (항상)
+    └─ 텍스트 재료 < 4개 OR 순서 < 3단계면 레시피 내용도 보완
     ↓ 영상 분석도 실패하면
     → 에러 반환 (레스토랑/먹방 등 요리 영상 아님 안내)
 ```
 
 **설계 결정:**
 - 자막(transcript)·Whisper 제거 — 정확도 대비 효용 낮음
-- Gemini가 2순위인 이유: 영상을 직접 보므로 Whisper(음성만)보다 정확
-- 텍스트 소스가 충분하면 Gemini 미실행 → 비용 절감
-- 재료/순서 중 하나만 부족해도 Gemini 트리거 → 부분 보완 가능
+- Gemini를 항상 호출하는 이유: step_images 타임스탬프가 영상 분석에서만 추출 가능
+- 재료/순서는 텍스트 소스가 충분하면 텍스트 우선 채택, Gemini는 step_images 역할 겸용
+- 재료/순서 중 하나만 부족해도 Gemini 결과로 보완 가능
 
 **품질 판단 기준:**
-- 재료 ≥ 4개 AND 순서 ≥ 3단계 → 텍스트 소스 충분, Gemini 생략
+- 재료 ≥ 4개 AND 순서 ≥ 3단계 → 텍스트 소스 채택, Gemini는 step_images만 활용
 - 미달 시 → Gemini로 부족한 항목 보완 (재료·순서 다른 소스에서 각각 채택 가능)
 
 **레스토랑/먹방 감지:**
@@ -113,7 +115,7 @@ Gemini 1차 분석 시 `step_images` 타임스탬프를 함께 추출하고, 별
 
 ```
 Gemini 1차 호출 (레시피 분석)
-    └─ step_images: [{ step_index, timestamp }] (최대 4개)
+    └─ step_images: [{ step_index, timestamp }] (개수 제한 없음, 시각적 도움이 되는 단계 전부)
          ↓
 yt-dlp -g: bestvideo 스트림 URL 추출 (다운로드 없음)
          ↓
