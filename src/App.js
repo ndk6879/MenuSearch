@@ -640,7 +640,7 @@ function extractYouTubeId(url) {
 const RecipeCard = React.memo(function RecipeCard({
   item, thumbnailSrc, isHidden, isSaved, isMyRecipe, isCreator, isDuplicate,
   selectedIngredientValues, selectedIngredients, language,
-  normalizeIng, style,
+  normalizeIng, style, onTagClick,
   onOpen, onToggleSave, onToggleHidden, onEdit, onDelete,
 }) {
   const allNormalized = [...new Set((item.ingredients || []).map(ing => normalizeIng(ing)))];
@@ -663,9 +663,22 @@ const RecipeCard = React.memo(function RecipeCard({
 
   return (
     <li className={`menu-card${isHidden ? ' card-hidden' : ''}`} style={style} onClick={onOpen}>
-      {thumbnailSrc && (
-        <img src={thumbnailSrc} alt={item.name} className="menu-thumbnail" loading="lazy" decoding="async" />
-      )}
+      <div className="menu-thumbnail-wrap">
+        {thumbnailSrc && (
+          <img src={thumbnailSrc} alt={item.name} className="menu-thumbnail" loading="lazy" decoding="async" />
+        )}
+        {(() => {
+          const tags = item.tags || [];
+          if (tags.length === 0) return null;
+          return (
+            <div className="menu-tag-overlay">
+              {tags.map((tag, i) => (
+                <span key={i} className="menu-tag-badge" onClick={e => { e.stopPropagation(); onTagClick && onTagClick(tag); }}>{tag}</span>
+              ))}
+            </div>
+          );
+        })()}
+      </div>
       {isDuplicate && (
         <span className="menu-duplicate-badge">중복</span>
       )}
@@ -1734,6 +1747,17 @@ function App() {
 
 const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
   const [selectedChef, setSelectedChef] = useState("all");
+  const [selectedServings, setSelectedServings] = useState("전체");
+  const [selectedFoodType, setSelectedFoodType] = useState("전체");
+  const [selectedCookStyle, setSelectedCookStyle] = useState("전체");
+  const [selectedSituation, setSelectedSituation] = useState("전체");
+
+  const TAG_GROUPS = {
+    servings:  { label: '분량',     tags: ['1인분','2인분','3~4인분','파티용'] },
+    foodType:  { label: '음식 종류', tags: ['파스타','면류','밥','고기','해산물','샐러드','국물요리'] },
+    cookStyle: { label: '조리 특성', tags: ['30분 이내','초보 가능','재료해치우기','밀프랩/도시락','에어프라이어','오븐'] },
+    situation: { label: '상황',     tags: ['다이어트','술안주','단백질','브런치','야식','아이반찬','손님상'] },
+  };
 
   const creatorRecipeCounts = useMemo(() => {
     const counts = {};
@@ -1769,12 +1793,17 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedInput, searchActive, sortedData]);
 
+
   const filteredResults = useMemo(() =>
     (liveFilteredData || searchResults.filter(isValidRecipe))
       .filter(r => !r.hidden || isCreator)
       .filter(r => selectedChef === "all" ? true : r.uploader === selectedChef)
+      .filter(r => selectedServings === "전체" ? true : (r.tags || []).includes(selectedServings))
+      .filter(r => selectedFoodType === "전체" ? true : (r.tags || []).includes(selectedFoodType))
+      .filter(r => selectedCookStyle === "전체" ? true : (r.tags || []).includes(selectedCookStyle))
+      .filter(r => selectedSituation === "전체" ? true : (r.tags || []).includes(selectedSituation))
       .filter(r => !deletedKeys.has(r.url)),
-    [liveFilteredData, searchResults, isCreator, selectedChef, deletedKeys]
+    [liveFilteredData, searchResults, isCreator, selectedChef, selectedServings, selectedFoodType, selectedCookStyle, selectedSituation, deletedKeys]
   );
 
   const sortedResults = useMemo(() =>
@@ -1849,6 +1878,12 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       onToggleHidden: (e) => toggleHidden(e, item.url),
       onEdit: (e) => { e.stopPropagation(); setRecipeModal(item); setModalVideoPlaying(false); openEditMode(item); },
       onDelete: (e) => handleDeleteRecipe(e, item.url, item.name),
+      onTagClick: (tag) => {
+        if (TAG_GROUPS.servings.tags.includes(tag)) setSelectedServings(tag);
+        else if (TAG_GROUPS.foodType.tags.includes(tag)) setSelectedFoodType(tag);
+        else if (TAG_GROUPS.cookStyle.tags.includes(tag)) setSelectedCookStyle(tag);
+        else if (TAG_GROUPS.situation.tags.includes(tag)) setSelectedSituation(tag);
+      },
     };
   };
 
@@ -2124,15 +2159,6 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                     />
                   ) : (
                     <>
-                      {/* 완성 요리 사진 */}
-                      {recipeModal.step_images?.dish && (
-                        <img
-                          src={recipeModal.step_images.dish}
-                          alt={recipeModal.name}
-                          className="recipe-dish-image"
-                          loading="lazy"
-                        />
-                      )}
 
                       {/* TIP 섹션 */}
                       {(() => {
@@ -2220,11 +2246,15 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                       <div className="recipe-modal-steps">
                         <h3 className="recipe-modal-section-title">INSTRUCTION</h3>
                         {displaySteps.length > 0 ? (
-                          <ol>
+                          <ol className="recipe-steps-list">
                             {displaySteps.map((step, i) => {
                               const stepImg = recipeModal.step_images?.[i] ?? recipeModal.step_images?.[String(i)];
                               return (
-                                <li key={i} className={stepImg ? "step-with-image" : ""}>
+                                <li key={i} className="recipe-step-item">
+                                  <div className="step-row">
+                                    <span className="step-number">{i + 1}</span>
+                                    <span className="step-text">{step.replace(/^\d+[.)]\s*/, '')}</span>
+                                  </div>
                                   {stepImg && (
                                     <img
                                       src={stepImg}
@@ -2233,7 +2263,6 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                                       loading="lazy"
                                     />
                                   )}
-                                  <span className="step-text">{step.replace(/^\d+[.)]\s*/, '')}</span>
                                 </li>
                               );
                             })}
@@ -2242,6 +2271,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                           <p className="recipe-modal-no-steps">{t.noSteps}</p>
                         )}
                       </div>
+
                     </>
                   )}
                 </>
@@ -2357,6 +2387,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               </div>
             )}
 
+
             {/* 검색 결과 수 */}
             {searchActive && (
               <div className="hero-result-msg">
@@ -2446,6 +2477,29 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                       <option key={chef} value={chef}>{chef}</option>
                     ))}
                   </select>}
+                  {[
+                    { key: 'servings',  val: selectedServings,  set: setSelectedServings },
+                    { key: 'foodType',  val: selectedFoodType,  set: setSelectedFoodType },
+                    { key: 'cookStyle', val: selectedCookStyle, set: setSelectedCookStyle },
+                    { key: 'situation', val: selectedSituation, set: setSelectedSituation },
+                  ].map(({ key, val, set }) => (
+                    <select
+                      key={key}
+                      value={val}
+                      onChange={e => set(e.target.value)}
+                      style={{
+                        padding: "6px 10px", borderRadius: 8,
+                        border: `1px solid ${darkMode ? "#444" : "#ddd"}`,
+                        background: darkMode ? "#222" : "#fff",
+                        color: val !== "전체" ? (darkMode ? "#fff" : "#111") : (darkMode ? "#eee" : "#222"),
+                        fontWeight: val !== "전체" ? 600 : 400,
+                        fontSize: 13, cursor: "pointer",
+                      }}
+                    >
+                      <option value="전체">{TAG_GROUPS[key].label}</option>
+                      {TAG_GROUPS[key].tags.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  ))}
                   <div className="sort-toggle">
                     <button
                       className={`sort-btn ${allMenuSort === "name" ? "active" : ""}`}
