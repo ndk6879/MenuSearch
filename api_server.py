@@ -232,7 +232,11 @@ def analyze_and_save():
         recipe_row = {
             "name": r["name"],
             "ingredients": _clean_ingredients(r["ingredients"]),
+            "ingredients_measured": r.get("ingredients_measured") or [],
             "steps": r.get("steps", []),
+            "tips": r.get("tips") or [],
+            "servings": r.get("servings") or "",
+            "tags": r.get("tags") or [],
             "source": r["source"],
             "url": r["video_url"],
             "uploader": r["uploader"],
@@ -495,7 +499,11 @@ def save_recipe():
     recipe = {
         "name": r.get("name", ""),
         "ingredients": _clean_ingredients(r.get("ingredients", [])),
+        "ingredients_measured": r.get("ingredients_measured") or [],
         "steps": r.get("steps", []),
+        "tips": r.get("tips") or [],
+        "servings": r.get("servings") or "",
+        "tags": r.get("tags") or [],
         "source": r.get("source", ""),
         "url": video_url,
         "uploader": r.get("uploader", ""),
@@ -505,11 +513,19 @@ def save_recipe():
         "language": "kr",
     }
 
-    upsert_res = _http.post(
-        f'{_supabase_url}/rest/v1/recipes',
-        headers={**_sb_headers(), 'Prefer': 'resolution=merge-duplicates'},
-        json=recipe,
-    )
+    if is_duplicate and overwrite:
+        upsert_res = _http.patch(
+            f'{_supabase_url}/rest/v1/recipes',
+            headers={**_sb_headers(), 'Prefer': 'return=minimal'},
+            params={'url': f'eq.{video_url}'},
+            json=recipe,
+        )
+    else:
+        upsert_res = _http.post(
+            f'{_supabase_url}/rest/v1/recipes',
+            headers={**_sb_headers(), 'Prefer': 'resolution=merge-duplicates'},
+            json=recipe,
+        )
     if upsert_res.status_code >= 300:
         return jsonify({"ok": False, "saved": False, "error": upsert_res.text}), 500
 

@@ -878,32 +878,46 @@ function App() {
   const [recipeData, setRecipeData] = useState([]);
   const [recipeLoading, setRecipeLoading] = useState(true);
 
+  const CACHE_KEY = 'findish_recipes_kr_v1';
+  const applyRecipeData = (data) => {
+    setRecipeData(data);
+    setRecipeLoading(false);
+    ALL_INGREDIENT_NAMES = [...new Set(
+      data.flatMap(item => (item.ingredients || []).map(raw => parseIngText(String(raw)).name).filter(Boolean))
+    )].sort((a, b) => a.localeCompare(b, 'ko'));
+  };
+
+  const refreshRecipes = () => {
+    supabase
+      .from('recipes')
+      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images')
+      .eq('language', 'kr')
+      .then(({ data }) => {
+        if (data) {
+          applyRecipeData(data);
+          try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
+        }
+      })
+      .catch(() => {});
+  };
+
   // Supabase에서 레시피 로드 (캐시 → 즉시 표시 후 백그라운드 갱신)
   useEffect(() => {
-    const CACHE_KEY = 'findish_recipes_kr_v1';
-    const applyData = (data) => {
-      setRecipeData(data);
-      setRecipeLoading(false);
-      ALL_INGREDIENT_NAMES = [...new Set(
-        data.flatMap(item => (item.ingredients || []).map(raw => parseIngText(String(raw)).name).filter(Boolean))
-      )].sort((a, b) => a.localeCompare(b, 'ko'));
-    };
     try {
       const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) applyData(JSON.parse(cached));
+      if (cached) applyRecipeData(JSON.parse(cached));
     } catch {}
 
-    // 모바일 네트워크에서 Supabase 요청이 무한 hanging하는 경우를 방지하는 타임아웃
     const loadingTimeout = setTimeout(() => setRecipeLoading(false), 10000);
 
     supabase
       .from('recipes')
-      .select('name,url,uploader,upload_date,ingredients,steps,source,status,thumbnail_url,language,step_images')
+      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images')
       .eq('language', 'kr')
       .then(({ data }) => {
         clearTimeout(loadingTimeout);
         if (data) {
-          applyData(data);
+          applyRecipeData(data);
           try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
         } else {
           setRecipeLoading(false);
@@ -915,7 +929,7 @@ function App() {
       });
 
     return () => clearTimeout(loadingTimeout);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showToast = (message) => {
     const key = Date.now();
@@ -1036,12 +1050,18 @@ function App() {
         if (edit && (edit.mainIngredients?.length > 0 || edit.seasonings?.length > 0)) {
           ingredients = [...(edit.mainIngredients || []), ...(edit.seasonings || [])];
         }
+        // ingredients 정렬 시 ingredients_measured도 함께 정렬 (인덱스 동기화)
+        const measuredRaw = item.ingredients_measured || [];
+        const ingMeasuredMap = {};
+        ingredients.forEach((ing, idx) => { if (measuredRaw[idx]) ingMeasuredMap[ing] = measuredRaw[idx]; });
+        const sortedIngredients = Array.isArray(ingredients) ? [...ingredients].sort() : [];
         return {
           ...item,
           name: edit?.name || item.name,
           hidden: edit?.hidden !== undefined ? edit.hidden : item.status === 'hidden',
           thumbnail: thumbnailOverrides[item.url] || item.thumbnail_url || item.thumbnail || null,
-          ingredients: Array.isArray(ingredients) ? [...ingredients].sort() : [],
+          ingredients: sortedIngredients,
+          ingredients_measured: sortedIngredients.map(ing => ingMeasuredMap[ing] || ''),
         };
       }),
     [currentRawData, recipeEdits, thumbnailOverrides]
@@ -1928,7 +1948,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
 
       {/* Analyze Modal */}
       <Modal open={analyzeOpen} onClose={() => setAnalyzeOpen(false)} darkMode={darkMode}>
-        <AnalyzePanel apiBase={API_BASE} darkMode={darkMode} />
+        <AnalyzePanel apiBase={API_BASE} darkMode={darkMode} onSaveSuccess={refreshRecipes} />
       </Modal>
 
       {/* Login Modal */}
@@ -2012,6 +2032,24 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                 )}
               </div>
             </div>
+            {/* 태그 — 업로더/날짜 바로 아래 */}
+            {(() => {
+              const aiServings = recipeModal.servings || '';
+              const aiTags = recipeModal.tags || [];
+              const displayServings = (recipeEdits[recipeModal.url] || {}).servings || aiServings;
+              const extraTags = aiTags.filter(t => t !== aiServings && t !== displayServings);
+              if (!displayServings && extraTags.length === 0) return null;
+              return (
+                <div className="recipe-tags-section" style={{ marginBottom: 12 }}>
+                  {displayServings && (
+                    <span className="recipe-tag recipe-tag-servings">{displayServings}</span>
+                  )}
+                  {extraTags.map((tag, i) => (
+                    <span key={i} className="recipe-tag">{tag}</span>
+                  ))}
+                </div>
+              );
+            })()}
             {extractYouTubeId(recipeModal.url) && (() => {
               const ytId = extractYouTubeId(recipeModal.url);
               return (
@@ -2056,6 +2094,18 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                 ...mainList.filter(ing => selectedIngredientValues.has(ing.toLowerCase())),
                 ...mainList.filter(ing => !selectedIngredientValues.has(ing.toLowerCase())),
               ];
+              // ingredients_measured: 이름→용량 맵 (ingredients가 정렬된 상태로 오므로 인덱스 일치)
+              const measuredAmountMap = {};
+              const measuredArr = recipeModal.ingredients_measured || [];
+              (recipeModal.ingredients || []).forEach((ing, idx) => {
+                const full = measuredArr[idx];
+                if (!full) return;
+                const ingName = ing.trim();
+                const amount = full.startsWith(ingName + ' ')
+                  ? full.slice(ingName.length + 1).trim()
+                  : full;
+                if (amount) measuredAmountMap[ingName] = amount;
+              });
 
               return (
                 <>
@@ -2084,37 +2134,75 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                         />
                       )}
 
-                      {/* TIP 섹션 — 셰프 직접 입력, 맨 위 */}
-                      <div className="recipe-tip-section">
-                        <div className="recipe-tip-label-wrap">
-                          <span className="recipe-tip-label">
-                            {recipeModal.uploader ? `${recipeModal.uploader}'s TIP` : t.tip}
-                          </span>
-                          {recipeModal.uploader && (
-                            <span
-                              className="recipe-tip-info"
-                              data-tooltip={language === 'kr' ? `${recipeModal.uploader}가 직접 작성한 팁이에요!` : `Written directly by ${recipeModal.uploader}!`}
-                            >?</span>
-                          )}
-                        </div>
-                        <p className="recipe-tip-text" style={!displayTip ? { opacity: 0.4 } : {}}>
-                          {displayTip
-                            ? displayTip.split('\n').map((line, i) => (
-                                <span key={i} className="recipe-tip-line">"{line}"</span>
-                              ))
-                            : (language === 'kr' ? '곧 올라올 예정이에요!' : 'Coming soon!')}
-                        </p>
-                      </div>
+                      {/* TIP 섹션 */}
+                      {(() => {
+                        const aiTips = recipeModal.tips || [];
+                        if (displayTip) {
+                          return (
+                            <div className="recipe-tip-section">
+                              <div className="recipe-tip-label-wrap">
+                                <span className="recipe-tip-label">
+                                  {recipeModal.uploader ? `${recipeModal.uploader}'s TIP` : t.tip}
+                                </span>
+                                {recipeModal.uploader && (
+                                  <span
+                                    className="recipe-tip-info"
+                                    data-tooltip={language === 'kr' ? `${recipeModal.uploader}가 직접 작성한 팁이에요!` : `Written directly by ${recipeModal.uploader}!`}
+                                  >?</span>
+                                )}
+                              </div>
+                              <p className="recipe-tip-text">
+                                {displayTip.split('\n').map((line, i) => (
+                                  <span key={i} className="recipe-tip-line">"{line}"</span>
+                                ))}
+                              </p>
+                            </div>
+                          );
+                        }
+                        if (aiTips.length > 0) {
+                          return (
+                            <div className="recipe-tip-section">
+                              <div className="recipe-tip-label-wrap">
+                                <span className="recipe-tip-label">
+                                  {recipeModal.uploader ? `${recipeModal.uploader}'s TIP` : t.tip}
+                                </span>
+                                <span
+                                  className="recipe-tip-info"
+                                  data-tooltip={language === 'kr' ? 'AI가 영상에서 추출한 크리에이터 팁이에요!' : 'Tips extracted from the video by AI!'}
+                                >?</span>
+                              </div>
+                              <div className="recipe-tip-text">
+                                {aiTips.map((tip, i) => (
+                                  <span key={i} className="recipe-tip-line">"{tip}"</span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="recipe-tip-section">
+                            <div className="recipe-tip-label-wrap">
+                              <span className="recipe-tip-label">
+                                {recipeModal.uploader ? `${recipeModal.uploader}'s TIP` : t.tip}
+                              </span>
+                            </div>
+                            <p className="recipe-tip-text" style={{ opacity: 0.4 }}>
+                              {language === 'kr' ? '곧 올라올 예정이에요!' : 'Coming soon!'}
+                            </p>
+                          </div>
+                        );
+                      })()}
 
                       {/* RECIPE 섹션 — 테이블 리스트 */}
                       {(sortedMain.length > 0 || seasoningList.length > 0) && (
                         <div className="recipe-modal-section">
                           <h3 className="recipe-modal-section-title">
-                            RECIPE{savedEdit.servings ? ` (${savedEdit.servings})` : ''}
+                            RECIPE{savedEdit.servings ? ` (${savedEdit.servings})` : (recipeModal.servings ? ` (${recipeModal.servings})` : '')}
                           </h3>
                           <div className={`recipe-ing-pills${darkMode ? ' dark' : ''}`}>
                             {[...sortedMain, ...seasoningList].map((ing, i) => {
-                              const { name, amount } = parseIngText(ing);
+                              const { name, amount: parsedAmount } = parseIngText(ing);
+                              const amount = measuredAmountMap[ing.trim()] || parsedAmount;
                               const isHighlighted = selectedIngredientValues.has(ing.toLowerCase()) || selectedIngredientValues.has(name.toLowerCase());
                               const isSeasoning = i >= sortedMain.length;
                               return (

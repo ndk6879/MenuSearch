@@ -9,7 +9,7 @@ import React, { useState, useEffect } from "react";
  * - ✅ 분석 결과에 요리 순서(steps) 표시 추가
  * - ✅ 채널 일괄 분석 탭 추가
  */
-export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMode = false }) {
+export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMode = false, onSaveSuccess }) {
   // === 공통 ===
   const [tab, setTab] = useState("video"); // "video" | "channel" | "recent"
 
@@ -189,6 +189,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
           ...prev,
           [key]: data.overwritten ? "overwritten" : "saved",
         }));
+        onSaveSuccess?.();
       } else if (data.reason === "duplicate") {
         setRecipeSaveStatus((prev) => ({ ...prev, [key]: "duplicate" }));
         if (data.existing) {
@@ -372,6 +373,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
       if (data.ok && data.saved) {
         setSaveStatus((prev) => ({ ...prev, [videoId]: data.overwritten ? "overwritten" : "saved" }));
         setExistingUrls((prev) => new Set([...prev, r.video_url]));
+        onSaveSuccess?.();
       } else if (data.reason === "duplicate") {
         setSaveStatus((prev) => ({ ...prev, [videoId]: "duplicate" }));
       } else {
@@ -845,9 +847,36 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                           );
                         })()}
 
+                        {/* 태그 뱃지 */}
+                        {(recipe.servings || (recipe.tags || []).length > 0) && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
+                            {recipe.servings && (
+                              <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: "#fff3e0", color: "#e07b00", border: "1px solid #fcd9a0", fontWeight: 500 }}>
+                                {recipe.servings}
+                              </span>
+                            )}
+                            {(recipe.tags || []).filter(t => t !== recipe.servings).map((tag, i) => (
+                              <span key={i} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: darkMode ? "#2a2a2a" : "#f0f0f0", color: darkMode ? "#bbb" : "#555", border: `1px solid ${darkMode ? "#3a3a3a" : "#e0e0e0"}` }}>
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* 재료 + 용량 */}
                         <div style={{ marginTop: 8, fontSize: 13 }}>
-                          <b>재료 ({(recipe.ingredients || []).length}):</b>{" "}
-                          {(recipe.ingredients || []).join(", ")}
+                          <b>재료 ({(recipe.ingredients || []).length}):</b>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                            {(recipe.ingredients || []).map((ing, i) => {
+                              const measured = (recipe.ingredients_measured || [])[i] || "";
+                              const amount = measured.startsWith(ing) ? measured.slice(ing.length).trim() : measured;
+                              return (
+                                <span key={i} style={{ fontSize: 12, padding: "2px 8px", borderRadius: 99, background: darkMode ? "#1e1e1e" : "#f5f5f5", border: `1px solid ${darkMode ? "#333" : "#e5e7eb"}`, color: darkMode ? "#ddd" : "#333" }}>
+                                  {ing}{amount && <span style={{ opacity: 0.6, marginLeft: 4 }}>{amount}</span>}
+                                </span>
+                              );
+                            })}
+                          </div>
                         </div>
 
                         {recipe.steps && recipe.steps.length > 0 && (
@@ -855,9 +884,21 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                             <b>요리 순서:</b>
                             <ol style={{ marginLeft: 18, marginTop: 4 }}>
                               {recipe.steps.map((s, i) => (
-                                <li key={i}>{s}</li>
+                                <li key={i} style={{ marginBottom: 2 }}>{s}</li>
                               ))}
                             </ol>
+                          </div>
+                        )}
+
+                        {/* TIP */}
+                        {(recipe.tips || []).length > 0 && (
+                          <div style={{ marginTop: 8, fontSize: 13 }}>
+                            <b>💡 TIP</b>
+                            <ul style={{ marginLeft: 16, marginTop: 4 }}>
+                              {recipe.tips.map((t, i) => (
+                                <li key={i} style={{ marginBottom: 2, color: darkMode ? "#bbb" : "#555" }}>{t}</li>
+                              ))}
+                            </ul>
                           </div>
                         )}
                       </div>
@@ -1395,26 +1436,59 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                     })() : (
                                       /* 일반 단일 보기 */
                                       <>
+                                        {/* 태그 뱃지 */}
+                                        {(res.servings || (res.tags || []).length > 0) && (
+                                          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 6 }}>
+                                            {res.servings && (
+                                              <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: "#fff3e0", color: "#e07b00", border: "1px solid #fcd9a0", fontWeight: 500 }}>
+                                                {res.servings}
+                                              </span>
+                                            )}
+                                            {(res.tags || []).filter(t => t !== res.servings).map((tag, i) => (
+                                              <span key={i} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: darkMode ? "#2a2a2a" : "#f0f0f0", color: darkMode ? "#bbb" : "#555", border: `1px solid ${darkMode ? "#3a3a3a" : "#e0e0e0"}` }}>
+                                                {tag}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
                                         <div style={{ marginTop: 0 }}>
                                           <b>재료 ({(res.ingredients || []).length}):</b>{" "}
                                           <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>
                                             (출처: {res.ingredients_source || res.source})
                                           </span>
-                                          <div style={{ marginTop: 2 }}>
-                                            {(res.ingredients || []).join(", ")}
+                                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                                            {(res.ingredients || []).map((ing, i) => {
+                                              const measured = (res.ingredients_measured || [])[i] || "";
+                                              const amount = measured.startsWith(ing) ? measured.slice(ing.length).trim() : measured;
+                                              return (
+                                                <span key={i} style={{ fontSize: 12, padding: "2px 8px", borderRadius: 99, background: darkMode ? "#1e1e1e" : "#f5f5f5", border: `1px solid ${darkMode ? "#333" : "#e5e7eb"}`, color: darkMode ? "#ddd" : "#333" }}>
+                                                  {ing}{amount && <span style={{ opacity: 0.6, marginLeft: 4 }}>{amount}</span>}
+                                                </span>
+                                              );
+                                            })}
                                           </div>
                                         </div>
                                         {res.steps && res.steps.length > 0 && (
-                                          <div style={{ marginTop: 4 }}>
+                                          <div style={{ marginTop: 8 }}>
                                             <b>요리 순서:</b>{" "}
                                             <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>
                                               (출처: {res.steps_source || res.source})
                                             </span>
                                             <ol style={{ marginLeft: 20, marginTop: 2 }}>
                                               {res.steps.map((s, j) => (
-                                                <li key={j}>{s}</li>
+                                                <li key={j} style={{ marginBottom: 2 }}>{s}</li>
                                               ))}
                                             </ol>
+                                          </div>
+                                        )}
+                                        {(res.tips || []).length > 0 && (
+                                          <div style={{ marginTop: 8, fontSize: 13 }}>
+                                            <b>💡 TIP</b>
+                                            <ul style={{ marginLeft: 16, marginTop: 4 }}>
+                                              {res.tips.map((t, i) => (
+                                                <li key={i} style={{ marginBottom: 2, color: darkMode ? "#bbb" : "#555" }}>{t}</li>
+                                              ))}
+                                            </ul>
                                           </div>
                                         )}
                                       </>
@@ -1450,7 +1524,10 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                 마지막 분석 세션 · 영상 {recentResults.items.length}개
               </div>
               {recentResults.items.map((item, itemIdx) => (
-                item.results.map((recipe, i) => (
+                item.results.map((recipe, i) => {
+                  const recentKey = `recent_${itemIdx}_${i}`;
+                  const sv = recipeSaveStatus[recentKey] || "";
+                  return (
                   <div key={`${itemIdx}-${i}`} style={{
                     padding: "14px 16px",
                     marginBottom: 10,
@@ -1459,7 +1536,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                     border: `1px solid ${darkMode ? "#252525" : "#e8e8e8"}`,
                     color: darkMode ? "#e0e0e0" : "#222",
                   }}>
-                    {/* 헤더: 제목 + 유튜브 링크 */}
+                    {/* 헤더: 제목 + 버튼들 */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 15 }}>{recipe.name}</div>
@@ -1467,29 +1544,134 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                           {recipe.uploader} · {recipe.upload_date}
                         </div>
                       </div>
-                      <a href={item.url} target="_blank" rel="noreferrer" style={{
-                        fontSize: 11, color: darkMode ? "#666" : "#aaa",
-                        textDecoration: "none", flexShrink: 0, marginLeft: 12,
-                        border: `1px solid ${darkMode ? "#333" : "#ddd"}`,
-                        borderRadius: 4, padding: "2px 7px",
-                      }}>↗ YouTube</a>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0, marginLeft: 12 }}>
+                        {sv === "saved" || sv === "overwritten" ? (
+                          <span style={{ fontSize: 12, color: darkMode ? "#aaa" : "#666" }}>
+                            {sv === "overwritten" ? "갱신됨 ✓" : "저장됨 ✓"}
+                          </span>
+                        ) : sv === "saving" ? (
+                          <span style={{ fontSize: 12, color: darkMode ? "#888" : "#999" }}>저장 중...</span>
+                        ) : sv === "error" ? (
+                          <span style={{ fontSize: 12, color: "#dc2626" }}>실패</span>
+                        ) : (
+                          <>
+                            <button
+                              onClick={async () => {
+                                setRecipeSaveStatus(prev => ({ ...prev, [recentKey]: "saving" }));
+                                try {
+                                  const resp = await fetchWithTimeout(`${base}/save-recipe`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ result: recipe, overwrite: false }),
+                                  }, 10000);
+                                  const data = await resp.json();
+                                  if (data.ok && data.saved) {
+                                    setRecipeSaveStatus(prev => ({ ...prev, [recentKey]: "saved" }));
+                                    onSaveSuccess?.();
+                                  } else if (data.reason === "duplicate") {
+                                    setRecipeSaveStatus(prev => ({ ...prev, [recentKey]: "duplicate" }));
+                                  } else {
+                                    setRecipeSaveStatus(prev => ({ ...prev, [recentKey]: "error" }));
+                                  }
+                                } catch {
+                                  setRecipeSaveStatus(prev => ({ ...prev, [recentKey]: "error" }));
+                                }
+                              }}
+                              style={{
+                                background: darkMode ? "#fff" : "#000", color: darkMode ? "#000" : "#fff",
+                                border: "none", borderRadius: 6, padding: "4px 12px",
+                                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                              }}
+                            >저장</button>
+                            <button
+                              onClick={async () => {
+                                setRecipeSaveStatus(prev => ({ ...prev, [recentKey]: "saving" }));
+                                try {
+                                  const resp = await fetchWithTimeout(`${base}/save-recipe`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ result: recipe, overwrite: true }),
+                                  }, 10000);
+                                  const data = await resp.json();
+                                  if (data.ok && data.saved) {
+                                    setRecipeSaveStatus(prev => ({ ...prev, [recentKey]: "overwritten" }));
+                                    onSaveSuccess?.();
+                                  } else {
+                                    setRecipeSaveStatus(prev => ({ ...prev, [recentKey]: "error" }));
+                                  }
+                                } catch {
+                                  setRecipeSaveStatus(prev => ({ ...prev, [recentKey]: "error" }));
+                                }
+                              }}
+                              style={{
+                                background: "none", color: darkMode ? "#aaa" : "#555",
+                                border: `1px solid ${darkMode ? "#444" : "#ccc"}`, borderRadius: 6,
+                                padding: "4px 12px", fontSize: 12, cursor: "pointer",
+                              }}
+                            >덮어쓰기</button>
+                          </>
+                        )}
+                        <a href={item.url} target="_blank" rel="noreferrer" style={{
+                          fontSize: 11, color: darkMode ? "#666" : "#aaa",
+                          textDecoration: "none",
+                          border: `1px solid ${darkMode ? "#333" : "#ddd"}`,
+                          borderRadius: 4, padding: "2px 7px",
+                        }}>↗ YouTube</a>
+                      </div>
                     </div>
-                    {/* 재료 */}
+                    {/* 태그 */}
+                    {(recipe.servings || (recipe.tags || []).length > 0) && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
+                        {recipe.servings && (
+                          <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: "#fff3e0", color: "#e07b00", border: "1px solid #fcd9a0", fontWeight: 500 }}>
+                            {recipe.servings}
+                          </span>
+                        )}
+                        {(recipe.tags || []).filter(t => t !== recipe.servings).map((tag, i) => (
+                          <span key={i} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: darkMode ? "#2a2a2a" : "#f0f0f0", color: darkMode ? "#bbb" : "#555", border: `1px solid ${darkMode ? "#3a3a3a" : "#e0e0e0"}` }}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {/* 재료 + 용량 */}
                     <div style={{ fontSize: 13, marginBottom: 6 }}>
-                      <b>재료 ({(recipe.ingredients || []).length}):</b>{" "}
-                      {(recipe.ingredients || []).join(", ")}
+                      <b>재료 ({(recipe.ingredients || []).length}):</b>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                        {(recipe.ingredients || []).map((ing, i) => {
+                          const measured = (recipe.ingredients_measured || [])[i] || "";
+                          const amount = measured.startsWith(ing) ? measured.slice(ing.length).trim() : measured;
+                          return (
+                            <span key={i} style={{ fontSize: 12, padding: "2px 8px", borderRadius: 99, background: darkMode ? "#1e1e1e" : "#f5f5f5", border: `1px solid ${darkMode ? "#333" : "#e5e7eb"}`, color: darkMode ? "#ddd" : "#333" }}>
+                              {ing}{amount && <span style={{ opacity: 0.6, marginLeft: 4 }}>{amount}</span>}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
                     {/* 순서 */}
                     {recipe.steps && recipe.steps.length > 0 && (
-                      <div style={{ fontSize: 13 }}>
+                      <div style={{ fontSize: 13, marginBottom: 6 }}>
                         <b>요리 순서:</b>
                         <ol style={{ marginLeft: 18, marginTop: 4 }}>
-                          {recipe.steps.map((s, j) => <li key={j}>{s}</li>)}
+                          {recipe.steps.map((s, j) => <li key={j} style={{ marginBottom: 2 }}>{s}</li>)}
                         </ol>
                       </div>
                     )}
+                    {/* TIP */}
+                    {(recipe.tips || []).length > 0 && (
+                      <div style={{ fontSize: 13 }}>
+                        <b>💡 TIP</b>
+                        <ul style={{ marginLeft: 16, marginTop: 4 }}>
+                          {recipe.tips.map((t, i) => (
+                            <li key={i} style={{ marginBottom: 2, color: darkMode ? "#bbb" : "#555" }}>{t}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                ))
+                  );
+                })
               ))}
             </div>
           )}

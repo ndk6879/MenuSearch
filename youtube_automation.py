@@ -339,12 +339,18 @@ def analyze_video_with_gemini(video_id: str):
 
 🍽️ 요리 개수 규칙:
 - 영상에 **2가지 이상의 독립된 요리**가 소개되면 각 요리를 별도 객체로 만들어 **JSON 배열**로 반환하세요.
-  예: [{"메뉴": "요리1", "재료": [...], "순서": [...]}, {"메뉴": "요리2", "재료": [...], "순서": [...]}]
-- 요리가 1가지라면 배열 없이 단일 객체로 반환하세요.
+- **같은 요리라도 재료나 방식이 달라 다른 결과물이 되는 버전(업그레이드, 변형, 응용)도 별도 객체로 분리하세요.**
+  예: 기본 카레와 코코넛밀크 추가 버전 → 두 객체로 분리
+- 버전이 여러 개일 때 메뉴명에 구분자를 붙이세요.
+  예: "봉골레 파스타 (기본)", "봉골레 파스타 (사프란 버전)"
+  예: "닭갈비 (기본)", "닭갈비 (치즈 추가)"
+- 요리가 1가지(변형 없이)라면 배열 없이 단일 객체로 반환하세요.
 
 ⚠️ 중요 규칙:
-- **실제 조리에 직접 투입된 재료만** 추출하세요. 협찬/광고 제품, 언급만 되고 사용하지 않은 재료, "대신 써도 된다"는 대안 재료, 배경/소품은 제외하세요.
-- 재료는 영상에서 사용하는 **모든** 재료를 빠짐없이 포함하세요: 주재료, 양념(소금, 후추, 설탕 등), 소스(간장, 굴소스 등), 오일, 물, 가루류 등 아무리 소량이라도 포함.
+- **화면에서 크리에이터가 직접 사용하거나 "넣는다/추가한다"고 명시적으로 말한 재료만** 포함하세요.
+- 화면에 보이지 않거나 불확실한 재료, "써도 된다/대신 쓸 수 있다"는 대안 재료, 협찬/광고 제품, 배경 소품은 절대 추가하지 마세요.
+- 이 요리에 대한 사전 지식이나 일반 레시피 정보를 사용하지 마세요. **누락이 오류보다 낫습니다.**
+- 소금·후추·오일 등 소량이라도 실제 사용이 확인된 것은 포함하세요.
 - 재료는 **이름만** 적으세요. 용량/수량은 제외 (예: "소금 1큰술" → "소금", "계란 3개" → "계란", "대파 1/2대" → "대파").
 - 재료명 표기 통일 (동의어만, 구체적 부위명은 그대로 유지):
   - 올리브오일/콩피오일 → "올리브 오일"
@@ -363,6 +369,7 @@ def analyze_video_with_gemini(video_id: str):
   - 주의: 삼겹살/목살/닭가슴살/닭다리 등 구체적 부위명은 그대로 유지하세요.
   - 주의: 크림치즈/페타치즈/부라타치즈 등 치즈 종류도 그대로 유지하세요.
 - 재료 정렬: 주재료(육류/해산물/채소) → 양념/소스 → 기타(오일/물/가루 등) 카테고리 순서로 나열하세요.
+
 - **요리에 필요한 모든 단계를 빠짐없이 추출하세요.** 단계 수는 요리의 복잡도에 따라 자연스럽게 결정됩니다. 더보기란이나 댓글에 없더라도 영상을 직접 보고 파악하세요.
 - 영상에 자막이 없어도 화면에 보이는 조리 동작(재료 손질 → 볶기/끓이기 → 플레이팅 등)을 기반으로 순서를 구성하세요.
 - 연결된 동작이나 같은 맥락에서 자연스럽게 이어지는 행동은 하나의 단계로 묶으세요. 불필요한 세분화로 단계 수를 늘리지 마세요.
@@ -383,11 +390,33 @@ def analyze_video_with_gemini(video_id: str):
   4. 식욕을 돋우는 비주얼 (완성된 재료 상태, 익어가는 색감, 플레이팅 등)
 - step_index는 "순서" 배열의 0부터 시작하는 인덱스입니다.
 
+💡 크리에이터 TIP 규칙:
+- 영상에서 크리에이터가 직접 강조하거나 말하는 요리 팁/노하우/주의사항을 먼저 추출하세요.
+- 크리에이터 팁이 3개 미만이면, 이 요리에 실제로 도움이 되는 일반 요리 팁으로 나머지를 채우세요. 단, 이미 추출한 팁과 내용이 겹치지 않아야 합니다.
+- 최종 3~5개, 각 팁은 1~2문장으로 작성하세요.
+
+🏷️ 태그 및 분량 규칙:
+- servings: 크리에이터가 영상에서 분량을 언급하면 그대로 사용하세요 (예: "2인분", "4인분"). 언급이 없으면 재료 양·냄비 크기·완성 접시 수 등 시각적 단서로 추론하세요.
+- tags: 해당하는 항목만 골라 배열로 반환하세요. 확실한 것만, 억지로 넣지 마세요.
+  - 분량: "1인분", "2인분", "3~4인분", "파티용"
+  - 음식 종류: "밥", "면류", "파스타", "고기", "해산물", "샐러드", "국물요리"
+  - 조리 특성: "30분 이내", "초보 가능", "재료해치우기", "밀프랩/도시락", "에어프라이어", "오븐"
+  - 상황: "다이어트", "술안주", "단백질", "브런치", "야식", "아이반찬", "손님상"
+  - 기준:
+    - "30분 이내": 전체 조리 시간이 30분 이하
+    - "초보 가능": 크리에이터가 쉽다고 하거나 조리 난이도가 낮음
+    - "재료해치우기": 냉장고 남은 재료 활용 스타일 (비빔밥, 볶음밥, 프리타타 등)
+    - "국물요리": 국·찌개·탕·전골 모두 포함
+  - 주의: 서로 상충하는 태그(예: "30분 이내"이면서 동시에 "손님상"처럼 어색한 조합)는 가장 맞는 것 하나만 선택하세요
+
 형식:
 {
   "메뉴": "메뉴 이름",
   "재료": ["주재료1", "주재료2", ..., "양념1", "양념2", ..., "기타1", ...],
   "순서": ["단계1", "단계2", ...],
+  "tips": ["팁1", "팁2", ...],
+  "servings": "2인분",
+  "tags": ["2인분", "간단요리"],
   "step_images": [
     {"step_index": 0, "timestamp": "MM:SS"},
     {"step_index": 2, "timestamp": "MM:SS"}
@@ -780,6 +809,58 @@ def ask_groq_from_text(raw_text, source_name="", target="both"):
 
 
 # -----------------------------
+# Groq 용량 추정 (확정된 재료 리스트 기반)
+# -----------------------------
+def estimate_quantities_with_groq(dish_name: str, ingredients: list) -> list:
+    """
+    Gemini가 확정한 재료 리스트를 받아 Groq으로 권장 용량만 추정.
+    재료 추출과 분리함으로써 레시피 지식 오염 없이 순수 용량 추정만 수행.
+    반환: ingredients와 같은 순서의 "재료명 용량" 문자열 리스트
+    """
+    if not _groq_client or not ingredients:
+        return []
+
+    ing_list = "\n".join(f"- {ing}" for ing in ingredients)
+    prompt = f"""요리 이름: {dish_name}
+아래는 이 요리에 실제 사용된 재료 목록입니다. 각 재료의 2인분 기준 권장 용량을 추정하세요.
+
+재료 목록:
+{ing_list}
+
+규칙:
+- 반드시 위 재료 목록에 있는 것만 처리하세요. 새 재료를 추가하지 마세요.
+- 허용 단위만 사용: 큰술 / 작은술 / 컵 / g / 개 / 쪽 / 줄기 / 꼬집 / 약간
+- 범위 표현 가능: "2~3큰술", "3~4쪽"
+- 소금/후추/오일처럼 취향에 따라 달라지는 재료는 "약간" 또는 "적당량" 사용
+- 출력 형식: 재료 목록과 동일한 순서로 JSON 배열만 반환
+
+출력 예시:
+["바지락 1kg", "양파 1개", "올리브 오일 3~4큰술", "소금 약간"]
+"""
+    try:
+        resp = _groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500,
+            temperature=0.1,
+        )
+        raw = sanitize(resp.choices[0].message.content or "")
+        raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
+        bracket_start = raw.find('[')
+        bracket_end = raw.rfind(']')
+        if bracket_start != -1 and bracket_end != -1:
+            parsed = json.loads(raw[bracket_start:bracket_end + 1])
+            if isinstance(parsed, list) and len(parsed) == len(ingredients):
+                safe_print(f"✅ [Groq 용량추정] {len(parsed)}개 재료 완료")
+                return parsed
+        safe_print(f"⚠️ [Groq 용량추정] 파싱 실패 또는 길이 불일치")
+        return []
+    except Exception as e:
+        safe_print(f"❌ [Groq 용량추정] 실패: {e}")
+        return []
+
+
+# -----------------------------
 # 오디오 다운로드 + Groq Whisper 전사
 # -----------------------------
 def download_audio(video_id: str) -> str | None:
@@ -1071,9 +1152,13 @@ def analyze_one_video(url: str) -> dict:
                     {
                         "name": p["메뉴"],
                         "ingredients": p["재료"] if is_valid(p["재료"]) else [],
+                        "ingredients_measured": estimate_quantities_with_groq(p["메뉴"], p["재료"]) if is_valid(p["재료"]) else [],
                         "ingredients_source": "영상 분석",
                         "steps": p["순서"] if is_valid(p["순서"]) else [],
                         "steps_source": "영상 분석",
+                        "tips": p.get("tips", []) if isinstance(p.get("tips"), list) else [],
+                        "servings": p.get("servings", "") if isinstance(p.get("servings"), str) else "",
+                        "tags": p.get("tags", []) if isinstance(p.get("tags"), list) else [],
                         "source": "영상 분석",
                         "uploader": uploader_name,
                         "upload_date": upload_date,
@@ -1084,6 +1169,7 @@ def analyze_one_video(url: str) -> dict:
             }
 
         if not all_results:
+
             return {"ok": False, "error": "레시피를 찾을 수 없습니다. 직접 요리하는 영상이 아닌 경우(레스토랑 소개, 먹방, 음식 리뷰 등)는 분석이 어렵습니다."}
 
         # ---- 단일 요리: 재료·순서 선택 로직
@@ -1158,11 +1244,18 @@ def analyze_one_video(url: str) -> dict:
             if best_ingredients_source and best_steps_source and best_steps_source != best_ingredients_source:
                 source_label = f"재료:{best_ingredients_source} / 순서:{best_steps_source}"
 
+            # ---- 확정된 재료로 Groq 용량 추정 (재료 추출과 분리)
+            final_ingredients = best_ingredients or []
+            ingredients_measured = []
+            if final_ingredients and best_name:
+                safe_print(f"📏 [용량추정] Groq으로 {len(final_ingredients)}개 재료 용량 추정 중...")
+                ingredients_measured = estimate_quantities_with_groq(best_name, final_ingredients)
+
             return {
                 "ok": True,
                 "results": [{
                     "name": best_name,
-                    "ingredients": best_ingredients or [],
+                    "ingredients": final_ingredients,
                     "ingredients_source": best_ingredients_source or "",
                     "steps": best_steps or [],
                     "steps_source": best_steps_source or "",
@@ -1171,6 +1264,10 @@ def analyze_one_video(url: str) -> dict:
                     "upload_date": upload_date,
                     "video_url": video_url,
                     "step_images": video_result.get("step_images", []) if video_result else [],
+                    "ingredients_measured": ingredients_measured,
+                    "tips": video_result.get("tips", []) if video_result and isinstance(video_result.get("tips"), list) else [],
+                    "servings": video_result.get("servings", "") if video_result and isinstance(video_result.get("servings"), str) else "",
+                    "tags": video_result.get("tags", []) if video_result and isinstance(video_result.get("tags"), list) else [],
                 }],
             }
 

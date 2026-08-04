@@ -4,20 +4,36 @@
 
 ### recipes
 ```
-name           text          레시피 이름
-url            text  UNIQUE  유튜브 URL (PK 역할)
-uploader       text          크리에이터 키 (chefConfig 키와 일치)
-upload_date    text          YYYY-MM-DD
-ingredients    text[]        원본 문자열 그대로 저장 ("다진마늘 2큰술")
-steps          text[]        조리 순서
-source         text          출처/셰프명
-status         text          'active' | 'hidden'
-thumbnail_url  text          S3/Storage URL (없으면 유튜브 썸네일 fallback)
-language       text          'kr' | 'en'
-step_images    jsonb         단계별 이미지 URL 맵 (2026-07-31 추가)
+name                 text          레시피 이름
+url                  text  UNIQUE  유튜브 URL (PK 역할)
+uploader             text          크리에이터 키 (chefConfig 키와 일치)
+upload_date          text          YYYY-MM-DD
+ingredients          text[]        원본 재료명 그대로 저장 ("다진마늘", "바지락")
+ingredients_measured text[]        재료별 용량 문자열 ("바지락 400g"). ingredients와 인덱스 동기화
+steps                text[]        조리 순서
+tips                 text[]        크리에이터 TIP — Gemini가 영상에서 추출, 최소 3개 (부족시 Gemini 지식으로 보충)
+servings             text          분량 ("2인분", "4인분" 등)
+tags                 text[]        분류 태그 (아래 태그 체계 참고)
+source               text          출처/셰프명
+status               text          'active' | 'hidden'
+thumbnail_url        text          S3/Storage URL (없으면 유튜브 썸네일 fallback)
+language             text          'kr' | 'en'
+step_images          jsonb         단계별 이미지 URL 맵 (2026-07-31 추가)
 ```
 > url이 사실상 PK. 중복 체크, upsert 모두 url 기준.  
-> ingredients는 파싱 안 하고 원본 저장 — 파싱은 프론트에서 `parseIngText()`로 런타임에 처리.
+> ingredients는 파싱 안 하고 원본 저장 — 파싱은 프론트에서 `parseIngText()`로 런타임에 처리.  
+> ingredients_measured는 Groq(llama-3.3-70b)가 Gemini 확정 재료 기반으로 용량 추정. ingredients와 인덱스 동기화 필수.
+
+**태그 체계:**
+| 카테고리 | 값 |
+|---------|-----|
+| 분량 | "1인분", "2인분", "3~4인분", "파티용" |
+| 음식 종류 | "밥", "면류", "파스타", "고기", "해산물", "샐러드", "국물요리" |
+| 조리 특성 | "30분 이내", "초보 가능", "재료해치우기", "밀프랩/도시락", "에어프라이어", "오븐" |
+| 상황 | "다이어트", "술안주", "단백질", "브런치", "야식", "아이반찬", "손님상" |
+
+> servings는 tags에서 분량 값과 동일하게 저장 (UI에서 별도 강조 표시용).  
+> 태그 중복 제거: 프론트에서 servings와 겹치는 태그는 extraTags 렌더링에서 필터링.
 
 **step_images 구조:**
 ```json
@@ -66,15 +82,19 @@ recipe_url text    recipes.url 참조
 `recipeData` (Supabase raw) + `recipeEdits` (localStorage) 머지 결과.
 ```js
 {
-  name: string,           // edit?.name || item.name
+  name: string,                    // edit?.name || item.name
   url: string,
   uploader: string,
   upload_date: string,
-  ingredients: string[],  // edit?.mainIngredients + edit?.seasonings || item.ingredients
+  ingredients: string[],           // edit?.mainIngredients + edit?.seasonings || item.ingredients
+  ingredients_measured: string[],  // item.ingredients_measured (Groq 추정 용량, 인덱스 동기화)
   steps: string[],
+  tips: string[],                  // item.tips (Gemini 추출, 최소 3개)
+  servings: string,                // edit?.servings || item.servings
+  tags: string[],                  // item.tags
   source: string,
-  hidden: boolean,        // edit?.hidden !== undefined ? edit.hidden : status === 'hidden'
-  thumbnail: string|null, // thumbnailOverrides[url] || item.thumbnail_url || null
+  hidden: boolean,                 // edit?.hidden !== undefined ? edit.hidden : status === 'hidden'
+  thumbnail: string|null,          // thumbnailOverrides[url] || item.thumbnail_url || null
   language: string,
 }
 ```

@@ -3022,6 +3022,40 @@ button.header-logo {
 }
 .recipe-edit-save-btn:hover { opacity: 0.85; }
 
+/* ===== Recipe Tags Section ===== */
+.recipe-tags-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.recipe-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #f0f0f0;
+  color: #555;
+  border: 1px solid #e0e0e0;
+}
+.app.dark .recipe-tag {
+  background: #2a2a2a;
+  color: #bbb;
+  border-color: #3a3a3a;
+}
+.recipe-tag-servings {
+  background: #fff3e0;
+  color: #e07b00;
+  border-color: #fcd9a0;
+}
+.app.dark .recipe-tag-servings {
+  background: #2e2200;
+  color: #ffa940;
+  border-color: #5a3d00;
+}
+
 /* ===== Recipe Tip Section ===== */
 .recipe-tip-section {
   margin-bottom: 18px;
