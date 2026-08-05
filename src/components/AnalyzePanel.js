@@ -54,6 +54,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
   const [saveStatus, setSaveStatus] = useState({}); // videoId → "saving"|"saved"|"duplicate"|"overwritten"|"error"|"deleted"
   const [channelDuplicateData, setChannelDuplicateData] = useState({}); // videoId → 기존 저장 레시피
   const [videoFilter, setVideoFilter] = useState("all"); // "all" | "video" | "shorts"
+  const [excludePaidPromotion, setExcludePaidPromotion] = useState(true);
   const [existingUrls, setExistingUrls] = useState(new Set());
   const [editingId, setEditingId] = useState(null); // 현재 수정 중인 videoId
   const [editData, setEditData] = useState({}); // 수정 중인 데이터
@@ -258,7 +259,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
       if (videoFilter === "video") return v.duration > 60;
       if (videoFilter === "shorts") return v.duration <= 60;
       return true;
-    });
+    }).filter((v) => !(excludePaidPromotion && v.paid_promotion));
 
   const startBatchAnalysis = async () => {
     const targets = getFilteredList();
@@ -1031,13 +1032,28 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
               if (videoFilter === "video") return v.duration > 60;
               if (videoFilter === "shorts") return v.duration <= 60;
               return true;
-            });
+            }).filter((v) => !(excludePaidPromotion && v.paid_promotion));
             return (
             <div style={{ marginTop: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontWeight: 600, fontSize: 15 }}>
-                  영상 목록 ({filteredList.length}개{videoFilter !== "all" ? ` / 전체 ${videoList.length}개` : ""})
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontWeight: 600, fontSize: 15 }}>
+                    영상 목록 ({filteredList.length}개{videoFilter !== "all" || excludePaidPromotion ? ` / 전체 ${videoList.length}개` : ""})
+                  </span>
+                  <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, cursor: "pointer", color: darkMode ? "#bbb" : "#555" }}>
+                    <input
+                      type="checkbox"
+                      checked={excludePaidPromotion}
+                      onChange={(e) => setExcludePaidPromotion(e.target.checked)}
+                    />
+                    광고 영상 제외
+                    {videoList.filter(v => v.paid_promotion).length > 0 && (
+                      <span style={{ color: "#f59e0b", fontSize: 12 }}>
+                        ({videoList.filter(v => v.paid_promotion).length}개)
+                      </span>
+                    )}
+                  </label>
+                </div>
                 <button
                   onClick={startBatchAnalysis}
                   disabled={batchRunning}
@@ -1110,23 +1126,36 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                     }}
                                   />
                                 </a>
-                                <a
-                                  href={v.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  title={v.title}
-                                  style={{
-                                    color: darkMode ? "#93b5ff" : "#1d4ed8",
-                                    textDecoration: "none",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    display: "block",
-                                    minWidth: 0,
-                                  }}
-                                >
-                                  {v.title}
-                                </a>
+                                <div style={{ minWidth: 0 }}>
+                                  {v.paid_promotion && (
+                                    <span style={{
+                                      display: "inline-block",
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                      color: "#fff",
+                                      background: "#f59e0b",
+                                      borderRadius: 4,
+                                      padding: "1px 5px",
+                                      marginBottom: 3,
+                                    }}>유료광고</span>
+                                  )}
+                                  <a
+                                    href={v.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={v.title}
+                                    style={{
+                                      color: darkMode ? "#93b5ff" : "#1d4ed8",
+                                      textDecoration: "none",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                      display: "block",
+                                    }}
+                                  >
+                                    {v.title}
+                                  </a>
+                                </div>
                               </div>
                             </td>
                             <td style={{ padding: "8px 12px", fontSize: 12, textAlign: "center" }}>

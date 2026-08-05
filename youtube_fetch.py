@@ -45,6 +45,17 @@ def resolve_channel_id(api_key, channel_url):
 def sanitize(text):
     return ''.join(c for c in text if not (0xD800 <= ord(c) <= 0xDFFF))
 
+
+PAID_PROMOTION_KEYWORDS = [
+    "유료 광고 포함", "유료광고포함", "유료광고", "광고포함",
+    "#광고", "#협찬", "#유료광고", "#ad", "#sponsored",
+    "광고 포함", "협찬 포함", "이 영상은 광고", "유료 프로모션",
+]
+
+def is_paid_promotion(title: str, description: str) -> bool:
+    text = (title + " " + description).lower()
+    return any(k.lower() in text for k in PAID_PROMOTION_KEYWORDS)
+
 # ✅ 유튜브 영상 목록 가져오기
 def get_video_list(api_key, channel_id, max_results=200):
     youtube = build("youtube", "v3", developerKey=api_key)
@@ -81,14 +92,17 @@ def get_video_list(api_key, channel_id, max_results=200):
 
             total_seconds = hours * 3600 + minutes * 60 + seconds
 
+            title = sanitize(snippet.get("title", ""))
+            description = sanitize(snippet.get("description", ""))
             videos.append({
                 "video_id": item["id"],
                 "url": f"https://youtu.be/{item['id']}",
-                "title": sanitize(snippet.get("title", "")),
-                "description": sanitize(snippet.get("description", "")),
+                "title": title,
+                "description": description,
                 "channel_title": snippet.get("channelTitle", ""),
                 "published_at": snippet.get("publishedAt", ""),
                 "duration": total_seconds,
+                "paid_promotion": is_paid_promotion(title, description),
                 "processed": False,
                 "reason": None
             })

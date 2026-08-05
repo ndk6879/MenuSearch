@@ -346,6 +346,7 @@ def channel_videos():
                     "title": v["title"],
                     "duration": v["duration"],
                     "published_at": v["published_at"],
+                    "paid_promotion": v.get("paid_promotion", False),
                 }
                 for v in videos
             ]
