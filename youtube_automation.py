@@ -810,25 +810,89 @@ def ask_groq_from_text(raw_text, source_name="", target="both"):
 
 
 # -----------------------------
-# Groq 용량 추정 (확정된 재료 리스트 기반)
+# 텍스트 소스에서 확인된 용량 추출
 # -----------------------------
-def estimate_quantities_with_groq(dish_name: str, ingredients: list) -> list:
+def extract_confirmed_quantities_from_text(raw_text: str, source_name: str, ingredients: list) -> dict:
     """
-    Gemini가 확정한 재료 리스트를 받아 Groq으로 권장 용량만 추정.
-    재료 추출과 분리함으로써 레시피 지식 오염 없이 순수 용량 추정만 수행.
-    반환: ingredients와 같은 순서의 "재료명 용량" 문자열 리스트
+    description/pinned comment 등 텍스트에서 알려진 재료들의 명시적 용량을 추출.
+    반환: {재료명: {"quantity": "2큰술", "source": source_name}}
     """
-    if not _groq_client or not ingredients:
-        return []
+    if not _groq_client or not ingredients or not raw_text:
+        return {}
 
     ing_list = "\n".join(f"- {ing}" for ing in ingredients)
-    prompt = f"""요리 이름: {dish_name}
-아래는 이 요리에 실제 사용된 재료 목록입니다. 각 재료의 2인분 기준 권장 용량을 추정하세요.
+    prompt = f"""다음 텍스트에서 아래 재료들의 **명시적으로 적힌** 용량을 찾아 JSON으로 반환하세요.
 
 재료 목록:
 {ing_list}
 
 규칙:
+- 텍스트에 명확히 적힌 용량만 추출하세요. 추측하지 마세요.
+- 용량이 없는 재료는 결과에 포함하지 마세요.
+- 재료명은 위 목록의 표기와 동일하게 사용하세요.
+- 출력: {{"재료명": "용량"}} 형식의 JSON 객체만 반환
+
+출력 예시:
+{{"파스타": "200g", "생크림": "2~3큰술"}}
+
+텍스트:
+{sanitize(raw_text[:4000])}
+"""
+    try:
+        resp = _groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
+            temperature=0.1,
+        )
+        raw = sanitize(resp.choices[0].message.content or "")
+        raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
+        brace_start = raw.find('{')
+        brace_end = raw.rfind('}')
+        if brace_start != -1 and brace_end != -1:
+            parsed = json.loads(raw[brace_start:brace_end + 1])
+            if isinstance(parsed, dict):
+                result = {k: {"quantity": v, "source": source_name} for k, v in parsed.items() if k in ingredients}
+                if result:
+                    safe_print(f"✅ [확인된 용량] {source_name}에서 {len(result)}개 확인: {result}")
+                return result
+        return {}
+    except Exception as e:
+        safe_print(f"⚠️ [확인된 용량 추출] {source_name} 실패: {e}")
+        return {}
+
+
+# -----------------------------
+# Groq 용량 추정 (확정된 재료 리스트 기반)
+# -----------------------------
+def estimate_quantities_with_groq(dish_name: str, ingredients: list, servings: str = "", confirmed: dict = None) -> list:
+    """
+    Gemini가 확정한 재료 리스트를 받아 Groq으로 권장 용량만 추정.
+    confirmed: {재료명: {"quantity": "2큰술", "source": "고정댓글"}} — 크리에이터가 명시한 용량 앵커
+    반환: [{"text": "파스타 100g", "source": "groq"}, ...] 형식의 리스트
+    """
+    if not _groq_client or not ingredients:
+        return []
+
+    confirmed = confirmed or {}
+    servings_hint = f"\n분량 기준: {servings}" if servings else ""
+
+    def ing_line(ing):
+        if ing in confirmed:
+            return f"- {ing} [확인된 양: {confirmed[ing]['quantity']}]"
+        return f"- {ing}"
+
+    ing_list = "\n".join(ing_line(ing) for ing in ingredients)
+    prompt = f"""요리 이름: {dish_name}{servings_hint}
+아래는 이 요리에 실제 사용된 재료 목록입니다. 각 재료의 권장 용량을 반환하세요.
+
+재료 목록:
+{ing_list}
+
+규칙:
+- "[확인된 양: X]"로 표시된 재료는 크리에이터가 직접 명시한 양입니다. 그 값을 그대로 사용하세요.
+- 나머지 재료는 "[확인된 양: X]" 재료와의 비율을 고려해 추정하세요. 임의로 늘리지 마세요.
+- 건파스타(스파게티/링귀니/펜네 등) 기준: 1인분 = 80~100g. 분량 표기에 맞게 조정하세요.
 - 반드시 위 재료 목록에 있는 것만 처리하세요. 새 재료를 추가하지 마세요.
 - 허용 단위만 사용: 큰술 / 작은술 / 컵 / g / 개 / 쪽 / 줄기 / 꼬집 / 약간
 - 범위 표현 가능: "2~3큰술", "3~4쪽"
@@ -853,7 +917,13 @@ def estimate_quantities_with_groq(dish_name: str, ingredients: list) -> list:
             parsed = json.loads(raw[bracket_start:bracket_end + 1])
             if isinstance(parsed, list) and len(parsed) == len(ingredients):
                 safe_print(f"✅ [Groq 용량추정] {len(parsed)}개 재료 완료")
-                return parsed
+                result = []
+                for ing, qty_text in zip(ingredients, parsed):
+                    if ing in confirmed:
+                        result.append({"text": qty_text, "source": confirmed[ing]["source"]})
+                    else:
+                        result.append({"text": qty_text, "source": "groq"})
+                return result
         safe_print(f"⚠️ [Groq 용량추정] 파싱 실패 또는 길이 불일치")
         return []
     except Exception as e:
@@ -1147,26 +1217,29 @@ def analyze_one_video(url: str) -> dict:
         # ---- 다중 요리: 각각 반환 (저장 전 사용자 확인)
         if multi_dish_results:
             safe_print(f"🍽️ 다중 요리 {len(multi_dish_results)}개 감지 → 각각 반환")
+            def _build_multi(p):
+                ings = p["재료"] if is_valid(p["재료"]) else []
+                svgs = p.get("servings", "") if isinstance(p.get("servings"), str) else ""
+                qty_result = estimate_quantities_with_groq(p["메뉴"], ings, servings=svgs) if ings else []
+                return {
+                    "name": p["메뉴"],
+                    "ingredients": ings,
+                    "ingredients_measured": [item["text"] for item in qty_result],
+                    "ingredients_sources": [item["source"] for item in qty_result],
+                    "ingredients_source": "영상 분석",
+                    "steps": p["순서"] if is_valid(p["순서"]) else [],
+                    "steps_source": "영상 분석",
+                    "tips": p.get("tips", []) if isinstance(p.get("tips"), list) else [],
+                    "servings": svgs,
+                    "tags": p.get("tags", []) if isinstance(p.get("tags"), list) else [],
+                    "source": "영상 분석",
+                    "uploader": uploader_name,
+                    "upload_date": upload_date,
+                    "video_url": video_url,
+                }
             return {
                 "ok": True,
-                "results": [
-                    {
-                        "name": p["메뉴"],
-                        "ingredients": p["재료"] if is_valid(p["재료"]) else [],
-                        "ingredients_measured": estimate_quantities_with_groq(p["메뉴"], p["재료"]) if is_valid(p["재료"]) else [],
-                        "ingredients_source": "영상 분석",
-                        "steps": p["순서"] if is_valid(p["순서"]) else [],
-                        "steps_source": "영상 분석",
-                        "tips": p.get("tips", []) if isinstance(p.get("tips"), list) else [],
-                        "servings": p.get("servings", "") if isinstance(p.get("servings"), str) else "",
-                        "tags": p.get("tags", []) if isinstance(p.get("tags"), list) else [],
-                        "source": "영상 분석",
-                        "uploader": uploader_name,
-                        "upload_date": upload_date,
-                        "video_url": video_url,
-                    }
-                    for p in multi_dish_results
-                ],
+                "results": [_build_multi(p) for p in multi_dish_results],
             }
 
         if not all_results:
@@ -1247,10 +1320,25 @@ def analyze_one_video(url: str) -> dict:
 
             # ---- 확정된 재료로 Groq 용량 추정 (재료 추출과 분리)
             final_ingredients = best_ingredients or []
+            servings_str = video_result.get("servings", "") if video_result else ""
             ingredients_measured = []
+            ingredients_sources = []
             if final_ingredients and best_name:
-                safe_print(f"📏 [용량추정] Groq으로 {len(final_ingredients)}개 재료 용량 추정 중...")
-                ingredients_measured = estimate_quantities_with_groq(best_name, final_ingredients)
+                # 텍스트 소스에서 크리에이터가 명시한 용량 먼저 추출
+                confirmed = {}
+                for src_name in ["고정댓글", "더보기란"]:
+                    if src_name in text_sources:
+                        extracted = extract_confirmed_quantities_from_text(
+                            text_sources[src_name], src_name, final_ingredients
+                        )
+                        for ing, info in extracted.items():
+                            if ing not in confirmed:
+                                confirmed[ing] = info
+
+                safe_print(f"📏 [용량추정] Groq으로 {len(final_ingredients)}개 재료 용량 추정 중... (확인된 양: {len(confirmed)}개)")
+                qty_result = estimate_quantities_with_groq(best_name, final_ingredients, servings=servings_str, confirmed=confirmed)
+                ingredients_measured = [item["text"] for item in qty_result]
+                ingredients_sources = [item["source"] for item in qty_result]
 
             return {
                 "ok": True,
@@ -1266,8 +1354,9 @@ def analyze_one_video(url: str) -> dict:
                     "video_url": video_url,
                     "step_images": video_result.get("step_images", []) if video_result else [],
                     "ingredients_measured": ingredients_measured,
+                    "ingredients_sources": ingredients_sources,
                     "tips": video_result.get("tips", []) if video_result and isinstance(video_result.get("tips"), list) else [],
-                    "servings": video_result.get("servings", "") if video_result and isinstance(video_result.get("servings"), str) else "",
+                    "servings": servings_str,
                     "tags": video_result.get("tags", []) if video_result and isinstance(video_result.get("tags"), list) else [],
                 }],
             }

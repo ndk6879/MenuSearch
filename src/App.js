@@ -903,7 +903,7 @@ function App() {
   const refreshRecipes = () => {
     supabase
       .from('recipes')
-      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images')
+      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images')
       .eq('language', 'kr')
       .then(({ data }) => {
         if (data) {
@@ -925,7 +925,7 @@ function App() {
 
     supabase
       .from('recipes')
-      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images')
+      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images')
       .eq('language', 'kr')
       .then(({ data }) => {
         clearTimeout(loadingTimeout);
@@ -1063,10 +1063,15 @@ function App() {
         if (edit && (edit.mainIngredients?.length > 0 || edit.seasonings?.length > 0)) {
           ingredients = [...(edit.mainIngredients || []), ...(edit.seasonings || [])];
         }
-        // ingredients 정렬 시 ingredients_measured도 함께 정렬 (인덱스 동기화)
+        // ingredients 정렬 시 ingredients_measured, ingredients_sources도 함께 정렬 (인덱스 동기화)
         const measuredRaw = item.ingredients_measured || [];
+        const sourcesRaw = item.ingredients_sources || [];
         const ingMeasuredMap = {};
-        ingredients.forEach((ing, idx) => { if (measuredRaw[idx]) ingMeasuredMap[ing] = measuredRaw[idx]; });
+        const ingSourcesMap = {};
+        ingredients.forEach((ing, idx) => {
+          if (measuredRaw[idx]) ingMeasuredMap[ing] = measuredRaw[idx];
+          if (sourcesRaw[idx]) ingSourcesMap[ing] = sourcesRaw[idx];
+        });
         const sortedIngredients = Array.isArray(ingredients) ? [...ingredients].sort() : [];
         return {
           ...item,
@@ -1075,6 +1080,7 @@ function App() {
           thumbnail: thumbnailOverrides[item.url] || item.thumbnail_url || item.thumbnail || null,
           ingredients: sortedIngredients,
           ingredients_measured: sortedIngredients.map(ing => ingMeasuredMap[ing] || ''),
+          ingredients_sources: sortedIngredients.map(ing => ingSourcesMap[ing] || ''),
         };
       }),
     [currentRawData, recipeEdits, thumbnailOverrides]
@@ -2131,15 +2137,21 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               ];
               // ingredients_measured: 이름→용량 맵 (ingredients가 정렬된 상태로 오므로 인덱스 일치)
               const measuredAmountMap = {};
+              const sourcesMap = {};
               const measuredArr = recipeModal.ingredients_measured || [];
+              const sourcesArr = recipeModal.ingredients_sources || [];
               (recipeModal.ingredients || []).forEach((ing, idx) => {
-                const full = measuredArr[idx];
-                if (!full) return;
                 const ingName = ing.trim();
-                const amount = full.startsWith(ingName + ' ')
-                  ? full.slice(ingName.length + 1).trim()
-                  : full;
-                if (amount) measuredAmountMap[ingName] = amount;
+                const full = measuredArr[idx];
+                if (full) {
+                  const amount = full.startsWith(ingName + ' ')
+                    ? full.slice(ingName.length + 1).trim()
+                    : full;
+                  if (amount) measuredAmountMap[ingName] = amount;
+                }
+                if (sourcesArr[idx] && sourcesArr[idx] !== 'groq') {
+                  sourcesMap[ingName] = sourcesArr[idx];
+                }
               });
 
               return (
@@ -2231,10 +2243,13 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                               const amount = measuredAmountMap[ing.trim()] || parsedAmount;
                               const isHighlighted = selectedIngredientValues.has(ing.toLowerCase()) || selectedIngredientValues.has(name.toLowerCase());
                               const isSeasoning = i >= sortedMain.length;
+                              const srcRaw = sourcesMap[ing.trim()];
+                              const srcLabel = srcRaw === '고정댓글' ? '댓글' : srcRaw === '더보기란' ? '설명' : srcRaw === 'video_visual' ? '영상' : srcRaw === 'video_audio' ? '음성' : srcRaw === 'subtitle' ? '자막' : null;
                               return (
                                 <span key={i} className={`recipe-ing-pill${isHighlighted ? ' highlighted' : ''}${isSeasoning ? ' seasoning' : ''}`}>
                                   {name}
                                   {amount && <span className="recipe-ing-pill-amount">{amount}</span>}
+                                  {srcLabel && <span className="recipe-ing-source-badge">{srcLabel}</span>}
                                 </span>
                               );
                             })}
