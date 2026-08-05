@@ -10,6 +10,7 @@ uploader             text          크리에이터 키 (chefConfig 키와 일치
 upload_date          text          YYYY-MM-DD
 ingredients          text[]        원본 재료명 그대로 저장 ("다진마늘", "바지락")
 ingredients_measured text[]        재료별 용량 문자열 ("바지락 400g"). ingredients와 인덱스 동기화
+ingredients_sources  text[]        재료별 용량 출처 ("groq"|"고정댓글"|"더보기란"|"video_audio" 등). ingredients와 인덱스 동기화
 steps                text[]        조리 순서
 tips                 text[]        크리에이터 TIP — Gemini가 영상에서 추출, 최소 3개 (부족시 Gemini 지식으로 보충)
 servings             text          분량 ("2인분", "4인분" 등)
@@ -22,7 +23,8 @@ step_images          jsonb         단계별 이미지 URL 맵 (2026-07-31 추�
 ```
 > url이 사실상 PK. 중복 체크, upsert 모두 url 기준.  
 > ingredients는 파싱 안 하고 원본 저장 — 파싱은 프론트에서 `parseIngText()`로 런타임에 처리.  
-> ingredients_measured는 Groq(llama-3.3-70b)가 Gemini 확정 재료 기반으로 용량 추정. ingredients와 인덱스 동기화 필수.
+> ingredients_measured는 Groq(llama-3.3-70b)가 Gemini 확정 재료 기반으로 용량 추정. ingredients와 인덱스 동기화 필수.  
+> ingredients_sources는 각 용량의 출처. "groq"(추정), "고정댓글"/"더보기란"(크리에이터 명시). 신규 분석 레시피부터 저장됨.
 
 **태그 체계:**
 | 카테고리 | 값 |
@@ -88,6 +90,7 @@ recipe_url text    recipes.url 참조
   upload_date: string,
   ingredients: string[],           // edit?.mainIngredients + edit?.seasonings || item.ingredients
   ingredients_measured: string[],  // item.ingredients_measured (Groq 추정 용량, 인덱스 동기화)
+  ingredients_sources: string[],   // item.ingredients_sources ("groq"|"고정댓글"|"더보기란" 등)
   steps: string[],
   tips: string[],                  // item.tips (Gemini 추출, 최소 3개)
   servings: string,                // edit?.servings || item.servings

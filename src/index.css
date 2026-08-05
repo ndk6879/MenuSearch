@@ -1221,8 +1221,8 @@ body {
 
 .gallery-lightbox-caption {
   padding: 12px 16px;
-  color: #ddd;
-  font-size: 0.9rem;
+  color: #ccc;
+  font-size: 0.88rem;
   line-height: 1.5;
   display: flex;
   align-items: flex-start;
@@ -1267,6 +1267,33 @@ body {
 
 .gallery-lightbox-prev { left: 10px; }
 .gallery-lightbox-next { right: 10px; }
+
+/* Recipe modal prev/next nav */
+.recipe-modal-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0,0,0,0.35);
+  border: none;
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  line-height: 1;
+  padding-bottom: 2px;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s;
+}
+
+.recipe-modal-nav:hover { background: rgba(0,0,0,0.55); }
+.recipe-modal-nav-prev { left: 12px; }
+.recipe-modal-nav-next { right: 12px; }
 
 .app.light .step-text { color: #444; }
 .app.dark .step-text { color: #bbb; }

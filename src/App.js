@@ -1787,6 +1787,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
     return () => clearTimeout(t);
   }, [searchInputValue]);
 
+
   // 태그 미선택 + 타이핑 중일 때 라이브 필터링
   const liveFilteredData = useMemo(() => {
     if (searchActive || !debouncedInput.trim()) return null;
@@ -1821,6 +1822,20 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
     ),
     [filteredResults, allMenuSort]
   );
+
+  // 레시피 모달 키보드 ← → 내비게이션 (gallery lightbox 열려있을 땐 비활성)
+  useEffect(() => {
+    if (!recipeModal || galleryLightbox) return;
+    const handler = (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const idx = sortedResults.findIndex(r => r.url === recipeModal.url);
+      if (idx === -1) return;
+      const next = e.key === 'ArrowLeft' ? sortedResults[idx - 1] : sortedResults[idx + 1];
+      if (next) { setRecipeModal(next); setModalVideoPlaying(false); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [recipeModal, galleryLightbox, sortedResults]);
 
   const selectedIngredientValues = useMemo(() =>
     new Set(selectedIngredients.map(s => normalizeIng(s.value).toLowerCase())),
@@ -2017,8 +2032,16 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
         }
         setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false);
       }} darkMode={darkMode} hideClose>
-        {recipeModal && (
+        {recipeModal && (() => {
+          const modalIdx = sortedResults.findIndex(r => r.url === recipeModal.url);
+          return (
           <div className="recipe-modal">
+            {modalIdx > 0 && (
+              <button className="recipe-modal-nav recipe-modal-nav-prev" onClick={() => { setRecipeModal(sortedResults[modalIdx - 1]); setModalVideoPlaying(false); }}>‹</button>
+            )}
+            {modalIdx < sortedResults.length - 1 && (
+              <button className="recipe-modal-nav recipe-modal-nav-next" onClick={() => { setRecipeModal(sortedResults[modalIdx + 1]); setModalVideoPlaying(false); }}>›</button>
+            )}
             <div className="recipe-modal-header">
               <h2 className="recipe-modal-title">{recipeModal.name}</h2>
               {creatorUser && !modalEditMode && (
@@ -2311,7 +2334,8 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               );
             })()}
           </div>
-        )}
+          );
+        })()}
       </Modal>
 
       {/* Gallery Lightbox */}
