@@ -545,7 +545,12 @@ def extract_step_frames(video_id: str, step_images: list, output_dir: str = None
 
     try:
         r = subprocess.run(
-            ["yt-dlp", "-g", "-f", "bestvideo[ext=mp4]/bestvideo/best", video_url],
+            [
+                "yt-dlp", "-g",
+                "-f", "bestvideo[height>=1080][ext=mp4]/bestvideo[height>=720][ext=mp4]/bestvideo[ext=mp4]/bestvideo/best",
+                "--cookies-from-browser", "chrome",
+                video_url,
+            ],
             capture_output=True, text=True, timeout=30
         )
         stream_url = r.stdout.strip().split("\n")[0]
@@ -576,7 +581,6 @@ def extract_step_frames(video_id: str, step_images: list, output_dir: str = None
                     "-ss", str(seek - 2), "-i", stream_url,
                     "-ss", "2",
                     "-vframes", "1", "-q:v", "1",
-                    "-vf", "scale=iw:ih",  # 원본 해상도 유지
                     out_path
                 ], capture_output=True, timeout=30)
                 if os.path.exists(out_path) and os.path.getsize(out_path) > 2000:

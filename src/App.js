@@ -863,6 +863,7 @@ function App() {
 
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
+  const [galleryLightbox, setGalleryLightbox] = useState(null); // {src, stepText, index}
   const [activeTab, setActiveTab] = useState("home"); // "home" | "chef" | "saved"
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [toast, setToast] = useState(null); // { message, key }
@@ -2257,35 +2258,52 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                         </div>
                       )}
 
-                      {/* Instruction 섹션 */}
+                      {/* Instruction 섹션 — 텍스트만 */}
                       <div className="recipe-modal-steps">
                         <h3 className="recipe-modal-section-title">INSTRUCTION</h3>
                         {displaySteps.length > 0 ? (
                           <ol className="recipe-steps-list">
-                            {displaySteps.map((step, i) => {
-                              const stepImg = recipeModal.step_images?.[i] ?? recipeModal.step_images?.[String(i)];
-                              return (
-                                <li key={i} className="recipe-step-item">
-                                  <div className="step-row">
-                                    <span className="step-number">{i + 1}</span>
-                                    <span className="step-text">{step.replace(/^\d+[.)]\s*/, '')}</span>
-                                  </div>
-                                  {stepImg && (
-                                    <img
-                                      src={stepImg}
-                                      alt={`step ${i + 1}`}
-                                      className="recipe-step-image"
-                                      loading="lazy"
-                                    />
-                                  )}
-                                </li>
-                              );
-                            })}
+                            {displaySteps.map((step, i) => (
+                              <li key={i} className="recipe-step-item">
+                                <div className="step-row">
+                                  <span className="step-number">{i + 1}</span>
+                                  <span className="step-text">{step.replace(/^\d+[.)]\s*/, '')}</span>
+                                </div>
+                              </li>
+                            ))}
                           </ol>
                         ) : (
                           <p className="recipe-modal-no-steps">{t.noSteps}</p>
                         )}
                       </div>
+
+                      {/* Gallery 섹션 — step_images가 있을 때만 표시 */}
+                      {(() => {
+                        const stepImgs = displaySteps
+                          .map((step, i) => {
+                            const src = recipeModal.step_images?.[i] ?? recipeModal.step_images?.[String(i)];
+                            return src ? { src, stepText: step.replace(/^\d+[.)]\s*/, ''), index: i } : null;
+                          })
+                          .filter(Boolean);
+                        if (stepImgs.length === 0) return null;
+                        return (
+                          <div className="recipe-modal-section">
+                            <h3 className="recipe-modal-section-title">GALLERY</h3>
+                            <div className="recipe-gallery-grid">
+                              {stepImgs.map(({ src, stepText, index }) => (
+                                <button
+                                  key={index}
+                                  className="recipe-gallery-item"
+                                  onClick={() => setGalleryLightbox({ items: stepImgs, current: stepImgs.findIndex(x => x.index === index) })}
+                                >
+                                  <img src={src} alt={`step ${index + 1}`} loading="lazy" />
+                                  <span className="recipe-gallery-step-num">{index + 1}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                     </>
                   )}
@@ -2295,6 +2313,40 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           </div>
         )}
       </Modal>
+
+      {/* Gallery Lightbox */}
+      {galleryLightbox && (() => {
+        const { items, current } = galleryLightbox;
+        const item = items[current];
+        const goPrev = () => current > 0 && setGalleryLightbox({ items, current: current - 1 });
+        const goNext = () => current < items.length - 1 && setGalleryLightbox({ items, current: current + 1 });
+        return (
+          <div
+            className="gallery-lightbox-overlay"
+            onClick={() => setGalleryLightbox(null)}
+            onKeyDown={e => { if (e.key === 'ArrowLeft') goPrev(); if (e.key === 'ArrowRight') goNext(); if (e.key === 'Escape') setGalleryLightbox(null); }}
+            tabIndex={0}
+            ref={el => el && el.focus()}
+          >
+            <div className="gallery-lightbox-box" onClick={e => e.stopPropagation()}>
+              <button className="gallery-lightbox-close" onClick={() => setGalleryLightbox(null)}>✕</button>
+              {current > 0 && (
+                <button className="gallery-lightbox-nav gallery-lightbox-prev" onClick={goPrev}>‹</button>
+              )}
+              {current < items.length - 1 && (
+                <button className="gallery-lightbox-nav gallery-lightbox-next" onClick={goNext}>›</button>
+              )}
+              <div className="gallery-lightbox-img-wrap">
+                <img src={item.src} alt={`step ${item.index + 1}`} className="gallery-lightbox-img" />
+              </div>
+              <div className="gallery-lightbox-caption">
+                <span className="gallery-lightbox-num">{item.index + 1}</span>
+                {item.stepText}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {activeTab === "chef" ? (
         <ChefAI darkMode={darkMode} />
