@@ -706,9 +706,15 @@ const RecipeCard = React.memo(function RecipeCard({
     <li className={`menu-card${isHidden ? ' card-hidden' : ''}`} style={style} onClick={onOpen}>
       <div className="menu-thumbnail-wrap">
         {thumbnailSrc && (
-          <img src={thumbnailSrc} alt={item.name} className="menu-thumbnail" loading="lazy" decoding="async" />
+          <img src={thumbnailSrc} alt={item.name} className={`menu-thumbnail${isHidden ? ' thumbnail-hidden' : ''}`} loading="lazy" decoding="async" />
         )}
-        {(() => {
+        {isHidden && (
+          <div className="hidden-overlay">
+            <span className="hidden-overlay-icon">🔒</span>
+            <span className="hidden-overlay-label">비공개</span>
+          </div>
+        )}
+        {!isHidden && (() => {
           const tags = item.tags || [];
           if (tags.length === 0) return null;
           return (

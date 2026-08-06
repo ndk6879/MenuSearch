@@ -1070,7 +1070,7 @@ body {
 }
 
 .recipe-step-item {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .step-row {
@@ -3500,18 +3500,39 @@ button.header-logo {
 }
 
 /* 비공개 카드 오버레이 */
-.menu-card.card-hidden { opacity: 0.45; }
-.menu-card.card-hidden::after {
-  content: '비공개';
+.menu-card.card-hidden { opacity: 0.75; }
+
+.thumbnail-hidden {
+  filter: grayscale(60%) brightness(0.45);
+}
+
+.hidden-overlay {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: 20px;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   z-index: 3;
+  pointer-events: none;
+}
+
+.hidden-overlay-icon {
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+
+.hidden-overlay-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.45);
+  padding: 3px 10px;
+  border-radius: 20px;
 }
 
 /* steps 편집 UI */
