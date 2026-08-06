@@ -572,7 +572,7 @@ function LoginModal({ open, onClose, onLoginSuccess, darkMode }) {
       <div className="login-modal">
         {!showCreatorForm ? (
           <>
-            <h3 className="login-modal-title">Findish에 오신 걸 환영해요</h3>
+            <h3 className="login-modal-title">로그인하고 레시피 저장하기!</h3>
             <div className="login-social-group">
               <button
                 onClick={handleKakaoLogin}
