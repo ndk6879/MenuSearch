@@ -9,6 +9,8 @@ from flask_cors import CORS
 import requests as _http
 import hashlib as _hashlib
 import threading
+import time
+from collections import defaultdict
 
 from youtube_automation import (
     analyze_one_video,
@@ -148,6 +150,21 @@ def _clean_ingredients(ingredients: list) -> list:
             seen.add(normalized)
             result.append(normalized)
     return result
+
+
+# IP당 로그인 시도 횟수 추적 (5분 안에 10회 초과 시 차단)
+_login_attempts = defaultdict(list)
+_LOGIN_LIMIT = 10
+_LOGIN_WINDOW = 300  # seconds
+
+def _check_rate_limit(ip: str) -> bool:
+    now = time.time()
+    attempts = _login_attempts[ip]
+    _login_attempts[ip] = [t for t in attempts if now - t < _LOGIN_WINDOW]
+    if len(_login_attempts[ip]) >= _LOGIN_LIMIT:
+        return False
+    _login_attempts[ip].append(now)
+    return True
 
 
 CORS(app, resources={
@@ -585,6 +602,10 @@ def delete_recipe():
 
 @app.route('/auth/creator', methods=['POST'])
 def creator_auth():
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+    if not _check_rate_limit(ip):
+        return jsonify({'error': '잠시 후 다시 시도해주세요.'}), 429
+
     data = request.get_json() or {}
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
@@ -626,91 +647,6 @@ def creator_auth():
 
 
 
-
-@app.route('/auth/kakao/exchange', methods=['POST'])
-def kakao_exchange():
-    data = request.get_json() or {}
-    code = data.get('code', '').strip()
-    redirect_uri = data.get('redirect_uri', '').strip()
-    if not code or not redirect_uri:
-        return jsonify({'ok': False, 'error': 'code 또는 redirect_uri 누락'}), 400
-
-    kakao_rest_key = os.getenv('KAKAO_REST_API_KEY', '')
-    kakao_secret = os.getenv('KAKAO_CLIENT_SECRET', '')
-
-    # 1. 카카오에서 access_token 발급
-    token_res = _http.post(
-        'https://kauth.kakao.com/oauth/token',
-        headers={'Content-Type': 'application/x-www-form-urlencoded'},
-        data={
-            'grant_type': 'authorization_code',
-            'client_id': kakao_rest_key,
-            'client_secret': kakao_secret,
-            'redirect_uri': redirect_uri,
-            'code': code,
-        },
-    )
-    token_data = token_res.json()
-    if 'access_token' not in token_data:
-        return jsonify({'ok': False, 'error': '카카오 토큰 교환 실패', 'detail': token_data}), 400
-
-    # 2. 카카오 유저 정보 조회
-    user_res = _http.get(
-        'https://kapi.kakao.com/v2/user/me',
-        headers={'Authorization': f'Bearer {token_data["access_token"]}'},
-    )
-    kakao_user = user_res.json()
-    kakao_id = str(kakao_user.get('id', ''))
-    profile = kakao_user.get('kakao_account', {}).get('profile', {})
-    nickname = profile.get('nickname') or f'kakao_{kakao_id}'
-    avatar = profile.get('profile_image_url', '')
-    email = f'kakao{kakao_id}@findish.app'
-    password = _hashlib.sha256(f'kakao_{kakao_id}_findish_secret'.encode()).hexdigest()
-
-    supabase_headers = {
-        'apikey': _supabase_service_key,
-        'Authorization': f'Bearer {_supabase_service_key}',
-        'Content-Type': 'application/json',
-    }
-
-    # 3. Supabase 로그인 시도, 실패 시 계정 생성 후 재시도
-    def _sign_in():
-        return _http.post(
-            f'{_supabase_url}/auth/v1/token?grant_type=password',
-            headers=supabase_headers,
-            json={'email': email, 'password': password},
-        )
-
-    sign_in = _sign_in()
-    if sign_in.status_code != 200:
-        _http.post(
-            f'{_supabase_url}/auth/v1/admin/users',
-            headers=supabase_headers,
-            json={
-                'email': email,
-                'password': password,
-                'email_confirm': True,
-                'user_metadata': {
-                    'full_name': nickname,
-                    'avatar_url': avatar,
-                    'provider': 'kakao',
-                    'kakao_id': kakao_id,
-                },
-            },
-        )
-        sign_in = _sign_in()
-
-    session_data = sign_in.json()
-    if 'access_token' not in session_data:
-        return jsonify({'ok': False, 'error': 'Supabase 세션 생성 실패', 'detail': session_data}), 500
-
-    return jsonify({
-        'ok': True,
-        'session': {
-            'access_token': session_data['access_token'],
-            'refresh_token': session_data['refresh_token'],
-        },
-    })
 
 
 @app.route('/parse-ingredient', methods=['POST'])

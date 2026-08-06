@@ -18,7 +18,6 @@ import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities';
 
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
-const KAKAO_REST_KEY = process.env.REACT_APP_KAKAO_REST_KEY || '';
 
 const ING_QUANTITY_RE = /^(.+?)\s+(\d[\d/.]*\s*(?:봉지|숟가락|작은술|큰술|티스푼|스푼|그램|밀리리터|밀리|미리|덩어리|움큼|꼬집|방울|가닥|줄기|묶음|뭉치|조각|토막|포기|줌|컵|봉|팩|병|캔|장|마리|알|통|쪽|인분|뿌리|대|근|모|판|ml|ML|kg|KG|mg|개|g|G|L|l|cc|T|t)|약간|조금|조금씩|적당량|적당히|한줌|두줌|한꼬집|두꼬집|반컵|반개|조금)$/;
 const parseIngText = (str) => {
@@ -518,20 +517,35 @@ function RecipeEditPanel({ initialDraft, darkMode, t, thumbnailUrl, recipeUrl, u
 }
 
 // ── 로그인 모달 ──
-function LoginModal({ open, onClose, onLoginSuccess, onKakaoLogin, darkMode }) {
+function LoginModal({ open, onClose, onLoginSuccess, darkMode }) {
+  const [showCreatorForm, setShowCreatorForm] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [kakaoLoading, setKakaoLoading] = useState(false);
 
   const handleClose = () => {
     onClose();
     setError('');
     setUsername('');
     setPassword('');
+    setShowCreatorForm(false);
+    setKakaoLoading(false);
   };
 
-  const handleLogin = async () => {
+  const handleKakaoLogin = async () => {
+    setKakaoLoading(true);
+    await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: {
+        redirectTo: window.location.origin,
+        scopes: 'profile_nickname profile_image',
+      },
+    });
+  };
+
+  const handleCreatorLogin = async () => {
     if (!username.trim() || !password) return;
     setError('');
     setLoading(true);
@@ -556,45 +570,72 @@ function LoginModal({ open, onClose, onLoginSuccess, onKakaoLogin, darkMode }) {
   return (
     <Modal open={open} onClose={handleClose} darkMode={darkMode}>
       <div className="login-modal">
-        <h3 className="login-modal-title">크리에이터 로그인</h3>
-
-        <div className="login-field">
-          <label className="login-label">아이디</label>
-          <input
-            type="text"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            placeholder="크리에이터 아이디"
-            className={`login-input${darkMode ? ' dark' : ''}`}
-            autoComplete="username"
-          />
-        </div>
-        <div className="login-field">
-          <label className="login-label">비밀번호</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            placeholder="비밀번호"
-            className={`login-input${darkMode ? ' dark' : ''}`}
-            autoComplete="current-password"
-          />
-        </div>
-        {error && <p className="login-error">{error}</p>}
-        <button onClick={handleLogin} className="login-submit-btn" disabled={loading}>
-          {loading ? '로그인 중...' : '로그인'}
-        </button>
-
-        <div className="login-divider">또는</div>
-
-        <div className="login-social-group">
-          <button onClick={onKakaoLogin} className="social-login-btn kakao-btn">
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.1 1.23 3.94 3.09 5.04L3.75 15l3.4-1.78A8.7 8.7 0 009 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
-            카카오로 로그인
-          </button>
-        </div>
+        {!showCreatorForm ? (
+          <>
+            <h3 className="login-modal-title">Findish에 오신 걸 환영해요</h3>
+            <div className="login-social-group">
+              <button
+                onClick={handleKakaoLogin}
+                className="social-login-btn kakao-btn"
+                disabled={kakaoLoading}
+                style={{ fontSize: '0.95rem', padding: '13px 12px' }}
+              >
+                {kakaoLoading ? (
+                  '카카오 페이지로 이동 중...'
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.1 1.23 3.94 3.09 5.04L3.75 15l3.4-1.78A8.7 8.7 0 009 13.5c4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z" fill="#191919"/></svg>
+                    카카오로 1초 만에 시작하기
+                  </>
+                )}
+              </button>
+            </div>
+            <button
+              className="creator-login-toggle"
+              onClick={() => setShowCreatorForm(true)}
+            >
+              크리에이터이신가요? 로그인 →
+            </button>
+          </>
+        ) : (
+          <>
+            <h3 className="login-modal-title">크리에이터 로그인</h3>
+            <div className="login-field">
+              <label className="login-label">아이디</label>
+              <input
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCreatorLogin()}
+                placeholder="크리에이터 아이디"
+                className={`login-input${darkMode ? ' dark' : ''}`}
+                autoComplete="username"
+              />
+            </div>
+            <div className="login-field">
+              <label className="login-label">비밀번호</label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCreatorLogin()}
+                placeholder="비밀번호"
+                className={`login-input${darkMode ? ' dark' : ''}`}
+                autoComplete="current-password"
+              />
+            </div>
+            {error && <p className="login-error">{error}</p>}
+            <button onClick={handleCreatorLogin} className="login-submit-btn" disabled={loading}>
+              {loading ? '로그인 중...' : '로그인'}
+            </button>
+            <button
+              className="creator-login-toggle"
+              onClick={() => { setShowCreatorForm(false); setError(''); }}
+            >
+              ← 돌아가기
+            </button>
+          </>
+        )}
       </div>
     </Modal>
   );
@@ -858,6 +899,13 @@ const parentMap = {
 function App() {
   const { slug } = useParams();
   const navigate = useNavigate();
+
+  // OAuth 콜백 토큰이 URL에 남아있으면 즉시 제거 (뒤로가기 등으로 재노출 방지)
+  useEffect(() => {
+    if (window.location.hash.includes('access_token')) {
+      window.history.replaceState({}, '', window.location.pathname + window.location.search);
+    }
+  }, []);
   const CHEF_FILTER = slugToKey[slug] || process.env.REACT_APP_CHEF || null;
   const chefProfile = CHEF_FILTER ? chefConfig[CHEF_FILTER] : null;
 
@@ -954,53 +1002,36 @@ function App() {
   // 현재 로그인한 유저의 Firestore uid (소셜/크리에이터 통합)
   const currentUid = socialUser?.uid || creatorUser?.uid || null;
 
-  // Supabase Auth 세션 감지
+  // Supabase Auth 세션 감지 (INITIAL_SESSION으로 자동로그인 + 토스트 처리)
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) _applySession(session);
-      setSocialLoading(false);
-    }).catch(() => setSocialLoading(false));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+      if (event === 'INITIAL_SESSION') {
+        if (session) {
+          _applySession(session);
+          const name = session.user?.user_metadata?.full_name || session.user?.user_metadata?.name || '';
+          const key = Date.now();
+          setToast({ message: name ? `다시 오셨군요, ${name}님!` : '다시 오셨군요!', key });
+          setTimeout(() => setToast(t => t?.key === key ? null : t), 2500);
+        }
+        setSocialLoading(false);
+      } else if (event === 'SIGNED_IN' && session) {
         _applySession(session);
         setSocialLoading(false);
+        // OAuth 콜백 토큰이 URL 해시에 남지 않도록 즉시 제거
+        if (window.location.hash.includes('access_token')) {
+          window.history.replaceState({}, '', window.location.pathname + window.location.search);
+        }
+        if (!session.user?.email?.endsWith('@findish.internal')) {
+          const name = session.user?.user_metadata?.full_name || session.user?.user_metadata?.name || '';
+          const key = Date.now();
+          setToast({ message: name ? `로그인됐어요, ${name}님!` : '로그인됐어요!', key });
+          setTimeout(() => setToast(t => t?.key === key ? null : t), 2500);
+        }
       } else if (event === 'SIGNED_OUT') {
-        setSocialUser(null);
-        setCreatorUser(null);
-        localStorage.removeItem('findish_social');
-        localStorage.removeItem('findish_creator');
-        setSocialLoading(false);
+        _clearSession();
       }
     });
     return () => subscription.unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 카카오 OAuth 콜백: URL의 ?code= 처리
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    if (!code) return;
-    window.history.replaceState({}, '', window.location.pathname);
-    fetch(`${API_BASE}/auth/kakao/exchange`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, redirect_uri: window.location.origin }),
-    })
-      .then(r => r.json())
-      .then(async data => {
-        if (!data.session) {
-          console.error('[Kakao] exchange 실패:', data);
-          return;
-        }
-        const { data: authData, error } = await supabase.auth.setSession(data.session);
-        if (error) {
-          console.error('[Kakao] setSession 실패:', error);
-          return;
-        }
-        if (authData?.session) _applySession(authData.session);
-      })
-      .catch(err => console.error('[Kakao] OAuth 콜백 오류:', err));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1189,16 +1220,6 @@ function App() {
     _clearSession();
   };
 
-  const handleKakaoLogin = () => {
-    const redirectUri = window.location.origin;
-    const kakaoUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${KAKAO_REST_KEY}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-    window.location.href = kakaoUrl;
-  };
-
-  const handleSocialLogout = async () => {
-    await supabase.auth.signOut();
-    _clearSession();
-  };
 
   const saveThumbnailOverride = (recipeUrl, thumbnailUrl) => {
     const updated = { ...thumbnailOverrides, [recipeUrl]: thumbnailUrl };
@@ -1988,7 +2009,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                 <img src={socialUser.photoURL} alt="" className="header-profile-img" referrerPolicy="no-referrer" />
               )}
               <span className="header-creator-name">{socialUser.name}</span>
-              <button onClick={handleSocialLogout} className="header-link">로그아웃</button>
+              <button onClick={handleLogout} className="header-link">로그아웃</button>
             </>
           ) : creatorUser ? (
             <>
@@ -2013,7 +2034,6 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
         open={loginModalOpen}
         onClose={() => setLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
-        onKakaoLogin={handleKakaoLogin}
         darkMode={darkMode}
       />
 

@@ -1,13 +1,12 @@
 # 인증 시스템 (Authentication)
 
-> **2026-07 기준 — Firebase 제거, Supabase 전환 완료**
+> **2026-08-06 기준 — Supabase Native Kakao OAuth 전환 완료**
 
 ## 개요
 
 | 방식 | 대상 | 상태 |
 |------|------|------|
 | 카카오 로그인 | 일반 사용자 | 운영 중 |
-| 구글 로그인 | 일반 사용자 | 운영 중 |
 | 크리에이터 ID/PW | 등록된 크리에이터 | 운영 중 |
 
 ---
@@ -18,115 +17,96 @@
 [브라우저]
    │
    ├─ 카카오 버튼 클릭
-   │     └─ window.location.href = 카카오 OAuth URL (redirect 방식)
-   │           └─ 카카오 동의 → redirect_uri(=현재 페이지)로 ?code=XXX 붙어서 복귀
-   │                 └─ App.js useEffect에서 code 감지
-   │                       └─ Railway POST /auth/kakao/exchange
-   │                             ├─ 카카오 token 교환
-   │                             ├─ 카카오 유저 정보 조회
-   │                             ├─ Supabase에 kakao{id}@findish.app 계정 생성/로그인
-   │                             └─ Supabase session(access_token, refresh_token) 반환
-   │                                   └─ supabase.auth.setSession(session)
-   │
-   ├─ 구글 버튼 클릭
-   │     └─ supabase.auth.signInWithOAuth({ provider: 'google' })
+   │     └─ supabase.auth.signInWithOAuth({ provider: 'kakao' })
+   │           └─ Supabase가 카카오 OAuth 전체 처리
+   │                 └─ 카카오 동의 → Supabase callback URL로 복귀
+   │                       └─ onAuthStateChange('SIGNED_IN') 발화
+   │                             └─ _applySession() → socialUser state 설정
    │
    └─ 크리에이터 로그인
-         └─ REACT_APP_CREATOR_CREDS 환경변수 대조 (Supabase 사용 안 함)
-
-[Railway Flask 백엔드]
-   └─ POST /auth/kakao/exchange
-         ├─ 카카오 code + redirect_uri → 카카오 access_token 교환
-         ├─ 카카오 /v2/user/me → 유저 ID, 닉네임, 프로필 이미지
-         ├─ email = kakao{id}@findish.app, password = SHA256(kakao_{id}_findish_secret)
-         ├─ Supabase Admin API: 계정 로그인 시도 → 없으면 계정 생성 후 재로그인
-         └─ Supabase session 반환 → 프론트엔드로 전달
+         └─ Flask POST /auth/creator → Supabase session 반환
+               └─ supabase.auth.setSession(session)
+                     └─ onAuthStateChange('SIGNED_IN') 발화
 ```
+
+백엔드 별도 카카오 처리 없음. Supabase가 토큰 교환, 유저 생성, 세션 관리 전담.
 
 ---
 
 ## 카카오 로그인 상세
 
-### 리다이렉트 방식 (팝업 X)
-페이지 자체를 카카오 로그인으로 이동시킨 뒤 code와 함께 복귀.
+### Supabase Native OAuth (redirect 방식)
+
+```js
+// LoginModal 내부
+await supabase.auth.signInWithOAuth({
+  provider: 'kakao',
+  options: {
+    redirectTo: window.location.origin,
+    scopes: 'profile_nickname profile_image',
+  },
+});
+```
 
 **흐름:**
-1. `handleKakaoLogin()` → `window.location.href = kakaoOAuthUrl`
-2. 카카오 동의 완료 → `redirect_uri` (현재 도메인)로 복귀, URL에 `?code=XXX` 포함
-3. App.js 마운트 시 useEffect: `new URLSearchParams(window.location.search).get('code')`
-4. code 있으면 `window.history.replaceState` 로 URL 정리 (code 제거)
-5. Railway `POST /auth/kakao/exchange` 호출
-6. 반환된 session으로 `supabase.auth.setSession(session)`
-7. Supabase `onAuthStateChanged` → `socialUser` state 설정 + localStorage 캐시
-
-### 카카오 계정 매핑 전략
-Supabase에 카카오 전용 Provider가 없으므로 이메일/패스워드 방식으로 우회:
-- email: `kakao{카카오ID}@findish.app`
-- password: `SHA256("kakao_{카카오ID}_findish_secret")`
-- 최초 로그인 시 계정 자동 생성 (`email_confirm: true`)
+1. `signInWithOAuth()` 호출 → Supabase가 카카오 OAuth URL로 리다이렉트
+2. 카카오 동의 완료 → `https://[project].supabase.co/auth/v1/callback` 으로 복귀
+3. Supabase가 code 교환, 유저 생성/매핑, 세션 발급 처리
+4. `redirectTo` URL(앱)로 복귀
+5. `onAuthStateChange('SIGNED_IN')` → `_applySession()` → `socialUser` state 설정
 
 ### Kakao Developers 설정
-- **앱 키:** `REACT_APP_KAKAO_REST_KEY` (REST API 키)
-- **등록된 Redirect URIs:**
-  - `https://menu-search.vercel.app`
-  - `https://menu-search.vercel.app/` (슬래시 포함 버전도 등록)
-- **동의항목:** 닉네임(선택), 프로필 사진(선택)
-- **Client Secret:** 활성화됨 → Railway 환경변수 `KAKAO_CLIENT_SECRET` 필요
+- **앱 ID:** 1495721 (Findish)
+- **비즈 앱:** 등록 완료 (개인 개발자 본인인증)
+- **Redirect URI:** `https://rqyfuzdwhusrnxrhlpps.supabase.co/auth/v1/callback`, `http://localhost:3000`
+- **동의항목:** 닉네임(선택), 프로필 사진(선택), 카카오계정 이메일(필수)
+- **Client Secret:** 활성화됨 → Supabase Dashboard에 등록
 
----
-
-## 구글 로그인 상세
-
-Supabase의 내장 Google OAuth Provider 사용:
-```js
-supabase.auth.signInWithOAuth({ provider: 'google' })
-```
-Supabase Dashboard → Authentication → Providers → Google 활성화 필요.  
-별도 백엔드 불필요.
+### Supabase Dashboard 설정
+- **Provider:** Kakao 활성화
+- **REST API Key:** `109581f0c55d3ed9b7b9854f768ebd9e`
+- **Client Secret Code:** Kakao 콘솔에서 발급한 값
+- **Allow users without an email:** ON
 
 ---
 
 ## 크리에이터 로그인
 
-환경변수 `REACT_APP_CREATOR_CREDS`에 `alias:password:uploaderName` 형식 저장.  
-여러 크리에이터는 `|`로 구분.  
-예: `chef1:pass123:홍길동|chef2:pass456:김철수`
+Flask 백엔드(`/auth/creator`)에서 hardcoded credentials 대조 후 Supabase session 반환.  
+크리에이터 계정은 `@findish.internal` 이메일로 Supabase에 등록되어 있음.
 
-Supabase를 사용하지 않으며, `creatorUser` state로 별도 관리.
-
-> **보안 주의:** credentials가 빌드 번들에 포함되어 브라우저 개발자 도구로 열람 가능.  
-> 크리에이터 수 증가 시 Railway 백엔드 인증으로 이전 필요.
+`_applySession()`에서 이메일 도메인으로 분기:
+- `@findish.internal` → `creatorUser` state
+- 그 외 → `socialUser` state
 
 ---
 
 ## 세션 관리
 
-### socialUser (카카오/구글)
-```js
-// App.js — Supabase onAuthStateChanged
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' && session) _applySession(session);
-  if (event === 'SIGNED_OUT') _clearSession();
-});
+### 초기화 (앱 마운트 시)
+`onAuthStateChange`의 `INITIAL_SESSION` 이벤트로 기존 세션 복원.  
+`getSession()` 별도 호출 없음 — 이중 호출 방지.
 
-// 앱 시작 시 세션 복원
-supabase.auth.getSession().then(({ data: { session } }) => {
-  if (session) _applySession(session);
-  setSocialLoading(false);
-}).catch(() => setSocialLoading(false));
+```js
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'INITIAL_SESSION') {
+    if (session) _applySession(session); // 자동 로그인
+    setSocialLoading(false);
+  } else if (event === 'SIGNED_IN') {
+    _applySession(session); // 신규 로그인
+  } else if (event === 'SIGNED_OUT') {
+    _clearSession();
+  }
+});
 ```
+
+### 토스트 메시지
+- `INITIAL_SESSION` + session → "다시 오셨군요, [닉네임]님!"
+- `SIGNED_IN` (소셜 유저) → "로그인됐어요, [닉네임]님!"
 
 ### localStorage 캐시
-- `findish_social`: `{ uid, displayName, photoURL, email, provider }` — UI 즉시 복원용
+- `findish_social`: `{ uid, name, photoURL, email, provider }` — UI 즉시 복원용
 - `findish_creator`: 크리에이터 로그인 정보
-
-### 로그아웃
-```js
-const handleLogout = async () => {
-  await supabase.auth.signOut();
-  _clearSession(); // socialUser=null, creatorUser=null, localStorage 정리
-};
-```
 
 ---
 
@@ -134,6 +114,18 @@ const handleLogout = async () => {
 
 | 파일 | 역할 |
 |------|------|
-| `src/App.js` | `socialUser` state, 카카오 code 처리 useEffect, 로그인/로그아웃 핸들러 |
+| `src/App.js` | `LoginModal`, `_applySession`, `onAuthStateChange` 핸들러 |
 | `src/supabase.js` | Supabase 클라이언트 초기화 |
-| `api_server.py` | `/auth/kakao/exchange` 엔드포인트 (Railway 배포) |
+| `api_server.py` | `/auth/creator` 엔드포인트만 존재 (`/auth/kakao/exchange` 삭제됨) |
+
+---
+
+## 이전 방식 대비 변경점 (2026-08-06)
+
+| 항목 | 이전 | 현재 |
+|------|------|------|
+| 카카오 OAuth 처리 | 커스텀 Flask 엔드포인트 | Supabase Native |
+| 카카오 유저 저장 | 가짜 이메일(`kakao{id}@findish.app`) + SHA256 비밀번호 | Supabase가 정식 OAuth 계정 생성 |
+| 백엔드 HTTP 호출 | 신규 유저 시 4번 순차 호출 | 0번 (Supabase 내부 처리) |
+| 세션 초기화 | `getSession()` + `onAuthStateChange` 이중 호출 | `onAuthStateChange` 단독 |
+| 로그인 모달 | "크리에이터 로그인" 타이틀, ID/PW 폼 + 카카오 버튼 | 카카오 버튼 메인, 크리에이터는 하단 링크로 분리 |
