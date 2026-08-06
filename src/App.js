@@ -550,18 +550,16 @@ function LoginModal({ open, onClose, onLoginSuccess, darkMode }) {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/creator`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password }),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: `${username.trim()}@findish.internal`,
+        password,
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || '로그인 실패'); return; }
+      if (error) { setError('아이디 또는 비밀번호가 틀렸습니다.'); return; }
       await onLoginSuccess(data.session);
       setUsername('');
       setPassword('');
     } catch {
-      setError('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      setError('로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
