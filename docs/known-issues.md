@@ -57,11 +57,12 @@
 
 ### 크리에이터 비밀번호 강도
 - 현재 `111111` — 추후 강화 필요
-- `.env`의 `CREATOR_CREDS` + Railway 환경변수 동시 변경 필요
+- Supabase Dashboard → Authentication → Users에서 변경
 
 ### Railway 수동 배포
 - Railway가 GitHub push 자동 배포 안 함
 - 백엔드 코드 변경 시 반드시: `railway up --service cooperative-success --detach`
+- **북마크/인증은 이제 Railway 불필요** — 레시피 편집(PATCH)만 Railway 사용
 
 ### Kakao Redirect URI
 - 새 도메인 추가 시 두 곳에 등록 필요:
