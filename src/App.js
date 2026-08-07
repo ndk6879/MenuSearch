@@ -525,6 +525,10 @@ function LoginModal({ open, onClose, onLoginSuccess, darkMode }) {
   const [loading, setLoading] = useState(false);
   const [kakaoLoading, setKakaoLoading] = useState(false);
 
+  useEffect(() => {
+    if (!open) setShowCreatorForm(false);
+  }, [open]);
+
   const handleClose = () => {
     onClose();
     setError('');
@@ -998,8 +1002,9 @@ function App() {
     setTimeout(() => setToast(t => t?.key === key ? null : t), 2500);
   };
 
-  // 현재 로그인한 유저의 Firestore uid (소셜/크리에이터 통합)
   const currentUid = socialUser?.uid || creatorUser?.uid || null;
+  const bookmarkUid = socialUser?.uid || creatorUser?.supabaseId || null;
+  const [bookmarkNotes, setBookmarkNotes] = useState({});
 
   // Supabase Auth 세션 감지 (INITIAL_SESSION으로 자동로그인 + 토스트 처리)
   useEffect(() => {
@@ -1040,6 +1045,7 @@ function App() {
       const alias = user.email.split('@')[0];
       const userData = {
         uid: `creator:${alias}`,
+        supabaseId: user.id,
         username: alias,
         uploaderName: user.user_metadata?.name || alias,
         provider: 'creator',
@@ -1061,10 +1067,17 @@ function App() {
 
   // 북마크 Supabase 동기화
   useEffect(() => {
-    if (!currentUid) { setSavedRecipes([]); return; }
-    supabase.from('bookmarks').select('recipe_url').eq('user_id', currentUid)
-      .then(({ data }) => { if (data) setSavedRecipes(data.map(r => r.recipe_url)); });
-  }, [currentUid]);
+    if (!bookmarkUid) { setSavedRecipes([]); setBookmarkNotes({}); return; }
+    supabase.from('bookmarks').select('recipe_url,note').eq('user_id', bookmarkUid)
+      .then(({ data }) => {
+        if (data) {
+          setSavedRecipes(data.map(r => r.recipe_url));
+          const notes = {};
+          data.forEach(r => { if (r.note) notes[r.recipe_url] = r.note; });
+          setBookmarkNotes(notes);
+        }
+      });
+  }, [bookmarkUid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [modalEditMode, setModalEditMode] = useState(false);
   const [editDraftInit, setEditDraftInit] = useState({ mainIngredients: '', seasonings: '', steps: '', tip: '', servings: '' });
@@ -1182,21 +1195,28 @@ function App() {
   });
 
   const toggleSave = async (url) => {
-    if (!currentUid) { setLoginModalOpen(true); return; }
+    if (!bookmarkUid) { setLoginModalOpen(true); return; }
     const isSaved = savedRecipes.includes(url);
     const next = isSaved ? savedRecipes.filter(u => u !== url) : [...savedRecipes, url];
-    setSavedRecipes(next); // optimistic update
+    setSavedRecipes(next);
     try {
       if (isSaved) {
-        await supabase.from('bookmarks').delete().eq('user_id', currentUid).eq('recipe_url', url);
+        await supabase.from('bookmarks').delete().eq('user_id', bookmarkUid).eq('recipe_url', url);
+        setBookmarkNotes(prev => { const n = { ...prev }; delete n[url]; return n; });
       } else {
-        await supabase.from('bookmarks').insert({ user_id: currentUid, recipe_url: url });
+        await supabase.from('bookmarks').insert({ user_id: bookmarkUid, recipe_url: url });
       }
       showToast(isSaved ? '저장 해제되었습니다.' : '저장되었습니다.');
     } catch {
-      setSavedRecipes(savedRecipes); // rollback
+      setSavedRecipes(savedRecipes);
       showToast('저장에 실패했습니다. 다시 시도해주세요.');
     }
+  };
+
+  const saveBookmarkNote = async (url, note) => {
+    if (!bookmarkUid) return;
+    setBookmarkNotes(prev => ({ ...prev, [url]: note }));
+    await supabase.from('bookmarks').update({ note: note || null }).eq('user_id', bookmarkUid).eq('recipe_url', url);
   };
 
   const handleLoginSuccess = async (session) => {
@@ -1267,7 +1287,7 @@ function App() {
     setModalEditMode(true);
   };
 
-  const saveEditDraft = (recipeUrl, draft) => {
+  const saveEditDraft = (recipeUrl, draft, measuredAmountMap = {}) => {
     const existing = recipeEdits[recipeUrl] || {};
     const updates = {
       ...(existing.hidden !== undefined ? { hidden: existing.hidden } : {}),
@@ -1282,13 +1302,19 @@ function App() {
     setRecipeEdits(updated);
     localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
     setModalEditMode(false);
+    const newIngredients = [...(updates.mainIngredients || []), ...(updates.seasonings || [])];
+    const newMeasured = newIngredients.map(ing => {
+      const amount = measuredAmountMap[ing];
+      return amount ? `${ing} ${amount}` : '';
+    });
     fetch(`${API_BASE}/api/recipes`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'X-Creator-Uid': creatorUser?.uid || '' },
       body: JSON.stringify({
         url: recipeUrl,
         name: updates.name,
-        ingredients: [...(updates.mainIngredients || []), ...(updates.seasonings || [])],
+        ingredients: newIngredients,
+        ingredients_measured: newMeasured,
         steps: updates.steps,
       }),
     }).catch(() => {});
@@ -2078,7 +2104,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                   )}
                 </>
               )}
-              {!modalEditMode && currentUid && (
+              {!modalEditMode && bookmarkUid && (
                 <button
                   className={`recipe-modal-bookmark-btn${savedSet.has(recipeModal.url) ? ' saved' : ''}`}
                   onClick={() => toggleSave(recipeModal.url)}
@@ -2098,6 +2124,18 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                 &times;
               </button>
             </div>
+            {!modalEditMode && bookmarkUid && savedSet.has(recipeModal.url) && (
+              <div className="bookmark-note-section">
+                <textarea
+                  className={`bookmark-note-input${darkMode ? ' dark' : ''}`}
+                  placeholder="📝 메모 추가하기... (200자)"
+                  value={bookmarkNotes[recipeModal.url] || ''}
+                  maxLength={200}
+                  onChange={e => setBookmarkNotes(prev => ({ ...prev, [recipeModal.url]: e.target.value }))}
+                  onBlur={e => saveBookmarkNote(recipeModal.url, e.target.value)}
+                />
+              </div>
+            )}
             <div className="recipe-modal-meta">
               <img
                 src={channelProfiles[recipeModal.uploader] || ""}
@@ -2205,7 +2243,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                       t={t}
                       thumbnailUrl={thumbnailOverrides[recipeModal.url] || recipeModal.thumbnail_url || ''}
                       uploaderName={recipeModal.uploader}
-                      onSave={draft => saveEditDraft(recipeModal.url, draft)}
+                      onSave={draft => saveEditDraft(recipeModal.url, draft, measuredAmountMap)}
                       onCancel={() => setModalEditMode(false)}
                       onSaveThumbnail={url => saveThumbnailOverride(recipeModal.url, url)}
                       onClearThumbnail={() => clearThumbnailOverride(recipeModal.url)}
@@ -2417,7 +2455,14 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               {validRecipes
                 .filter(item => savedRecipes.includes(item.url) && !deletedKeys.has(item.url))
                 .map((item) => (
-                  <RecipeCard key={item.url} {...makeCardProps(item)} />
+                  <div key={item.url} className="bookmark-card-wrap">
+                    <RecipeCard {...makeCardProps(item)} />
+                    {bookmarkNotes[item.url] && (
+                      <div className={`bookmark-note-preview${darkMode ? ' dark' : ''}`}>
+                        📝 {bookmarkNotes[item.url]}
+                      </div>
+                    )}
+                  </div>
                 ))}
             </ul>
           )}

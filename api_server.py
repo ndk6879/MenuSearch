@@ -772,7 +772,7 @@ def patch_recipe():
     if not url:
         return jsonify({'ok': False, 'error': 'url 누락'}), 400
 
-    allowed = {'name', 'ingredients', 'steps', 'status', 'thumbnail_url'}
+    allowed = {'name', 'ingredients', 'ingredients_measured', 'steps', 'status', 'thumbnail_url'}
     valid_statuses = {'published', 'hidden'}
     updates = {k: v for k, v in data.items() if k in allowed}
     if 'status' in updates and updates['status'] not in valid_statuses:
