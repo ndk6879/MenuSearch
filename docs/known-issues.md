@@ -5,7 +5,32 @@
 ### 11. 카카오 로그인 후 URL에 access_token 노출
 - **증상:** 로그인 후 또는 뒤로가기 시 `/#access_token=eyJ...` 가 URL에 노출됨
 - **원인:** Supabase OAuth 콜백이 토큰을 URL 해시로 전달하는 방식, 히스토리에 잔류
-- **해결:** `SIGNED_IN` 이벤트 및 앱 마운트 시 `window.history.replaceState`로 즉시 제거
+- **해결:** `SIGNED_IN` 이벤트에서 `window.history.replaceState`로 제거 (앱 마운트 시 제거는 #14 버그 참고)
+
+### 14. 카카오 로그인 후 UI 안 바뀜 (로그인 버튼 그대로)
+- **증상:** 카카오 인증 완료 후 메인으로 리다이렉트 되는데 이름/프로필 미표시, 로그인 버튼 그대로
+- **원인:** 앱 마운트 시 `#access_token=...`을 지우는 useEffect가 Supabase의 token 읽기보다 먼저 실행 → Supabase가 세션 수립 못 함 → `SIGNED_IN` 이벤트 미발화
+- **해결:** 앱 마운트 hash 정리 useEffect 삭제. `SIGNED_IN` 핸들러의 hash 정리만 유지 (Supabase가 token 읽은 후 실행)
+
+### 15. 크리에이터 로그인 prod에서 안 됨
+- **증상:** prod에서 minyokki/111111 로그인 실패
+- **원인:** Railway에 `CREATOR_CREDS` 미등록 + Flask `/auth/creator` 구조 자체의 이중 관리 문제
+- **해결:** 크리에이터 인증을 `supabase.auth.signInWithPassword({ email: 'alias@findish.internal' })`로 전환. Railway 불필요.
+
+### 16. 북마크 다른 기기/시크릿에서 안 보임
+- **증상:** 북마크 후 같은 세션에서는 보이나 다른 기기/시크릿에서 미표시
+- **원인:** Supabase RLS INSERT 정책 없어서 실제 저장 실패, optimistic update로만 화면에 표시
+- **해결:** `users_own_bookmarks` RLS 정책 추가 + bookmarkUid를 실제 Supabase UUID로 변경
+
+### 17. 로그아웃 후 로그인 모달이 크리에이터 폼으로 뜸
+- **증상:** 크리에이터 로그인 후 로그아웃 → 로그인 버튼 누르면 카카오 화면 대신 크리에이터 ID/PW 폼이 바로 뜸
+- **원인:** `LoginModal`이 항상 마운트 상태라 `showCreatorForm` state가 로그아웃 시 리셋 안 됨
+- **해결:** `useEffect(() => { if (!open) setShowCreatorForm(false); }, [open])` 추가
+
+### 18. 재료 편집 후 재료명-용량 인덱스 어긋남
+- **증상:** 크리에이터가 재료 편집 저장 후 "생크림" 칩에 "파스타 150~200g" 표시 등 재료-용량 불일치
+- **원인:** `saveEditDraft`가 `ingredients`만 PATCH, `ingredients_measured`는 갱신 안 함
+- **해결:** `measuredAmountMap`을 saveEditDraft로 전달, PATCH body에 `ingredients_measured` 포함
 
 ### 12. 크리에이터 로그인 실패 (로컬)
 - **증상:** `minyokki/111111` 로그인 안 됨

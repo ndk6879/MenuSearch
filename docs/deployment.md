@@ -36,7 +36,7 @@
 
 | 변수명 | 용도 |
 |--------|------|
-| `CREATOR_CREDS` | 크리에이터 로그인 정보 (`alias:pass:name\|alias2:pass2:name2`) |
+| `CREATOR_CREDS` | ~~크리에이터 로그인~~ 더 이상 사용 안 함 (08-07에 Supabase 계정으로 전환) |
 | `SUPABASE_URL` | Supabase 프로젝트 URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role 키 (Admin 권한 — 절대 프론트 노출 금지) |
 | `SUPABASE_ANON_KEY` | Supabase anon 키 |
