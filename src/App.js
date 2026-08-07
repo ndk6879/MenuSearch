@@ -904,12 +904,7 @@ function App() {
   const { slug } = useParams();
   const navigate = useNavigate();
 
-  // OAuth 콜백 토큰이 URL에 남아있으면 즉시 제거 (뒤로가기 등으로 재노출 방지)
-  useEffect(() => {
-    if (window.location.hash.includes('access_token')) {
-      window.history.replaceState({}, '', window.location.pathname + window.location.search);
-    }
-  }, []);
+
   const CHEF_FILTER = slugToKey[slug] || process.env.REACT_APP_CHEF || null;
   const chefProfile = CHEF_FILTER ? chefConfig[CHEF_FILTER] : null;
 
@@ -1067,10 +1062,8 @@ function App() {
   // 북마크 Supabase 동기화
   useEffect(() => {
     if (!currentUid) { setSavedRecipes([]); return; }
-    fetch(`${API_BASE}/api/bookmarks?uid=${encodeURIComponent(currentUid)}`)
-      .then(r => r.json())
-      .then(data => { if (data.ok) setSavedRecipes(data.bookmarks || []); })
-      .catch(() => {});
+    supabase.from('bookmarks').select('recipe_url').eq('user_id', currentUid)
+      .then(({ data }) => { if (data) setSavedRecipes(data.map(r => r.recipe_url)); });
   }, [currentUid]);
 
   const [modalEditMode, setModalEditMode] = useState(false);
@@ -1194,11 +1187,11 @@ function App() {
     const next = isSaved ? savedRecipes.filter(u => u !== url) : [...savedRecipes, url];
     setSavedRecipes(next); // optimistic update
     try {
-      await fetch(`${API_BASE}/api/bookmarks`, {
-        method: isSaved ? 'DELETE' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: currentUid, url }),
-      });
+      if (isSaved) {
+        await supabase.from('bookmarks').delete().eq('user_id', currentUid).eq('recipe_url', url);
+      } else {
+        await supabase.from('bookmarks').insert({ user_id: currentUid, recipe_url: url });
+      }
       showToast(isSaved ? '저장 해제되었습니다.' : '저장되었습니다.');
     } catch {
       setSavedRecipes(savedRecipes); // rollback
