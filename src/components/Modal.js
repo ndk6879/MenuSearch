@@ -1,12 +1,12 @@
 import React from "react";
 
-export default function Modal({ open, onClose, darkMode, hideClose, children }) {
+export default function Modal({ open, onClose, darkMode, hideClose, children, preventClose }) {
   if (!open) return null;
 
   return (
     <div
       className="modal-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => { if (e.target !== e.currentTarget) return; if (preventClose?.()) return; onClose(); }}
     >
       <div className={`modal-content ${darkMode ? "modal-dark" : "modal-light"}`}>
         <div className="modal-drag-handle-area" onClick={onClose}>

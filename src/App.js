@@ -1068,7 +1068,7 @@ function App() {
   // 북마크 Supabase 동기화
   useEffect(() => {
     if (!bookmarkUid) { setSavedRecipes([]); setBookmarkNotes({}); return; }
-    supabase.from('bookmarks').select('recipe_url,note').eq('user_id', bookmarkUid)
+    supabase.from('bookmarks').select('recipe_url,note').eq('user_id', bookmarkUid).eq('bookmarked', true)
       .then(({ data }) => {
         if (data) {
           setSavedRecipes(data.map(r => r.recipe_url));
@@ -1080,6 +1080,8 @@ function App() {
   }, [bookmarkUid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [modalEditMode, setModalEditMode] = useState(false);
+  const [noteEditingUrl, setNoteEditingUrl] = useState(null);
+  const noteEditingRef = useRef(false);
   const [editDraftInit, setEditDraftInit] = useState({ mainIngredients: '', seasonings: '', steps: '', tip: '', servings: '' });
   const [deletedKeys, setDeletedKeys] = useState(() => {
     try {
@@ -1105,14 +1107,18 @@ function App() {
         if (edit && (edit.mainIngredients?.length > 0 || edit.seasonings?.length > 0)) {
           ingredients = [...(edit.mainIngredients || []), ...(edit.seasonings || [])];
         }
-        // ingredients 정렬 시 ingredients_measured, ingredients_sources도 함께 정렬 (인덱스 동기화)
-        const measuredRaw = item.ingredients_measured || [];
         const sourcesRaw = item.ingredients_sources || [];
         const ingMeasuredMap = {};
         const ingSourcesMap = {};
-        ingredients.forEach((ing, idx) => {
-          if (measuredRaw[idx]) ingMeasuredMap[ing] = measuredRaw[idx];
-          if (sourcesRaw[idx]) ingSourcesMap[ing] = sourcesRaw[idx];
+        // ingredients_measured는 "재료명 용량" 형식이므로 이름 prefix로 매칭 (인덱스 어긋남 방지)
+        (item.ingredients_measured || []).forEach(full => {
+          if (!full) return;
+          const matched = (item.ingredients || []).find(ing => full.startsWith(ing.trim() + ' '));
+          if (matched) ingMeasuredMap[matched.trim()] = full;
+        });
+        // sources는 prefix 없으므로 원본 ingredients 인덱스 기준
+        (item.ingredients || []).forEach((ing, idx) => {
+          if (sourcesRaw[idx]) ingSourcesMap[ing.trim()] = sourcesRaw[idx];
         });
         const sortedIngredients = Array.isArray(ingredients) ? [...ingredients].sort() : [];
         return {
@@ -1201,10 +1207,10 @@ function App() {
     setSavedRecipes(next);
     try {
       if (isSaved) {
-        await supabase.from('bookmarks').delete().eq('user_id', bookmarkUid).eq('recipe_url', url);
-        setBookmarkNotes(prev => { const n = { ...prev }; delete n[url]; return n; });
+        await supabase.from('bookmarks').update({ bookmarked: false }).eq('user_id', bookmarkUid).eq('recipe_url', url);
       } else {
-        await supabase.from('bookmarks').insert({ user_id: bookmarkUid, recipe_url: url });
+        await supabase.from('bookmarks')
+          .upsert({ user_id: bookmarkUid, recipe_url: url, bookmarked: true }, { onConflict: 'user_id,recipe_url' });
       }
       showToast(isSaved ? '저장 해제되었습니다.' : '저장되었습니다.');
     } catch {
@@ -1870,16 +1876,20 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
   // 레시피 모달 키보드 ← → 내비게이션 (gallery lightbox 열려있을 땐 비활성)
   useEffect(() => {
     if (!recipeModal || galleryLightbox) return;
+    const navList = activeTab === 'saved'
+      ? validRecipes.filter(item => savedRecipes.includes(item.url) && !deletedKeys.has(item.url))
+      : sortedResults;
     const handler = (e) => {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      const idx = sortedResults.findIndex(r => r.url === recipeModal.url);
+      if (document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.tagName === 'INPUT') return;
+      const idx = navList.findIndex(r => r.url === recipeModal.url);
       if (idx === -1) return;
-      const next = e.key === 'ArrowLeft' ? sortedResults[idx - 1] : sortedResults[idx + 1];
+      const next = e.key === 'ArrowLeft' ? navList[idx - 1] : navList[idx + 1];
       if (next) { setRecipeModal(next); setModalVideoPlaying(false); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [recipeModal, galleryLightbox, sortedResults]);
+  }, [recipeModal, galleryLightbox, sortedResults, activeTab, validRecipes, savedRecipes, deletedKeys]);
 
   const selectedIngredientValues = useMemo(() =>
     new Set(selectedIngredients.map(s => normalizeIng(s.value).toLowerCase())),
@@ -2073,17 +2083,20 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           if (!window.confirm('편집 중인 내용이 있습니다. 나가시겠습니까?')) return;
           if (recipeModal?.url) localStorage.removeItem(`findish_draft_${recipeModal.url}`);
         }
-        setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false);
-      }} darkMode={darkMode} hideClose>
+        setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); setNoteEditingUrl(null);
+      }} darkMode={darkMode} hideClose preventClose={() => noteEditingRef.current}>
         {recipeModal && (() => {
-          const modalIdx = sortedResults.findIndex(r => r.url === recipeModal.url);
+          const modalNavList = activeTab === 'saved'
+            ? validRecipes.filter(item => savedRecipes.includes(item.url) && !deletedKeys.has(item.url))
+            : sortedResults;
+          const modalIdx = modalNavList.findIndex(r => r.url === recipeModal.url);
           return (
           <div className="recipe-modal">
             {modalIdx > 0 && (
-              <button className="recipe-modal-nav recipe-modal-nav-prev" onClick={() => { setRecipeModal(sortedResults[modalIdx - 1]); setModalVideoPlaying(false); }}>‹</button>
+              <button className="recipe-modal-nav recipe-modal-nav-prev" onClick={() => { setRecipeModal(modalNavList[modalIdx - 1]); setModalVideoPlaying(false); }}>‹</button>
             )}
-            {modalIdx < sortedResults.length - 1 && (
-              <button className="recipe-modal-nav recipe-modal-nav-next" onClick={() => { setRecipeModal(sortedResults[modalIdx + 1]); setModalVideoPlaying(false); }}>›</button>
+            {modalIdx < modalNavList.length - 1 && (
+              <button className="recipe-modal-nav recipe-modal-nav-next" onClick={() => { setRecipeModal(modalNavList[modalIdx + 1]); setModalVideoPlaying(false); }}>›</button>
             )}
             <div className="recipe-modal-header">
               <h2 className="recipe-modal-title">{recipeModal.name}</h2>
@@ -2119,23 +2132,11 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                   if (!window.confirm('편집 중인 내용이 있습니다. 나가시겠습니까?')) return;
                   if (recipeModal?.url) localStorage.removeItem(`findish_draft_${recipeModal.url}`);
                 }
-                setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false);
+                setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); setNoteEditingUrl(null);
               }}>
                 &times;
               </button>
             </div>
-            {!modalEditMode && bookmarkUid && savedSet.has(recipeModal.url) && (
-              <div className="bookmark-note-section">
-                <textarea
-                  className={`bookmark-note-input${darkMode ? ' dark' : ''}`}
-                  placeholder="📝 메모 추가하기... (200자)"
-                  value={bookmarkNotes[recipeModal.url] || ''}
-                  maxLength={200}
-                  onChange={e => setBookmarkNotes(prev => ({ ...prev, [recipeModal.url]: e.target.value }))}
-                  onBlur={e => saveBookmarkNote(recipeModal.url, e.target.value)}
-                />
-              </div>
-            )}
             <div className="recipe-modal-meta">
               <img
                 src={channelProfiles[recipeModal.uploader] || ""}
@@ -2214,20 +2215,17 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                 ...mainList.filter(ing => selectedIngredientValues.has(ing.toLowerCase())),
                 ...mainList.filter(ing => !selectedIngredientValues.has(ing.toLowerCase())),
               ];
-              // ingredients_measured: 이름→용량 맵 (ingredients가 정렬된 상태로 오므로 인덱스 일치)
               const measuredAmountMap = {};
               const sourcesMap = {};
-              const measuredArr = recipeModal.ingredients_measured || [];
               const sourcesArr = recipeModal.ingredients_sources || [];
+              // ingredients_measured는 "재료명 용량" 형식이므로 이름 prefix로 매칭
+              (recipeModal.ingredients_measured || []).forEach(full => {
+                if (!full) return;
+                const matched = (recipeModal.ingredients || []).find(ing => full.startsWith(ing.trim() + ' '));
+                if (matched) measuredAmountMap[matched.trim()] = full.slice(matched.trim().length + 1).trim();
+              });
               (recipeModal.ingredients || []).forEach((ing, idx) => {
                 const ingName = ing.trim();
-                const full = measuredArr[idx];
-                if (full) {
-                  const amount = full.startsWith(ingName + ' ')
-                    ? full.slice(ingName.length + 1).trim()
-                    : full;
-                  if (amount) measuredAmountMap[ingName] = amount;
-                }
                 if (sourcesArr[idx] && sourcesArr[idx] !== 'groq') {
                   sourcesMap[ingName] = sourcesArr[idx];
                 }
@@ -2385,6 +2383,63 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
 
                     </>
                   )}
+
+                  {!modalEditMode && bookmarkUid && savedSet.has(recipeModal.url) && (
+                    <div className={`bookmark-note-section-wrap${darkMode ? ' dark' : ''}`}>
+                      <h3 className="recipe-modal-section-title">MY NOTE</h3>
+                      <div
+                        className={`bookmark-note-inline${darkMode ? ' dark' : ''}`}
+                        onClick={() => setNoteEditingUrl(recipeModal.url)}
+                      >
+                        {noteEditingUrl === recipeModal.url ? (
+                          <textarea
+                            className={`bookmark-note-inline-input${darkMode ? ' dark' : ''}`}
+                            autoFocus
+                            value={bookmarkNotes[recipeModal.url] || ''}
+                            maxLength={200}
+                            placeholder="메모 추가..."
+                            onChange={e => setBookmarkNotes(prev => ({ ...prev, [recipeModal.url]: e.target.value }))}
+                            onFocus={() => { noteEditingRef.current = true; }}
+                            onKeyDown={e => {
+                              if (e.key === 'Escape') {
+                                e.preventDefault();
+                                saveBookmarkNote(recipeModal.url, e.target.value);
+                                setNoteEditingUrl(null);
+                                setTimeout(() => { noteEditingRef.current = false; }, 150);
+                              }
+                            }}
+                            onBlur={e => {
+                              saveBookmarkNote(recipeModal.url, e.target.value);
+                              setNoteEditingUrl(null);
+                              setTimeout(() => { noteEditingRef.current = false; }, 150);
+                            }}
+                          />
+                        ) : (
+                          <span className={`bookmark-note-inline-text${!bookmarkNotes[recipeModal.url] ? ' empty' : ''}${darkMode ? ' dark' : ''}`}>
+                            {bookmarkNotes[recipeModal.url] || '메모 추가...'}
+                          </span>
+                        )}
+                      </div>
+                      {noteEditingUrl === recipeModal.url && (
+                        <div className="bookmark-note-footer">
+                          <span className="bookmark-note-charcount">
+                            {(bookmarkNotes[recipeModal.url] || '').length}/200
+                          </span>
+                          <button
+                            className={`bookmark-note-done-btn${darkMode ? ' dark' : ''}`}
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              saveBookmarkNote(recipeModal.url, bookmarkNotes[recipeModal.url] || '');
+                              setNoteEditingUrl(null);
+                              noteEditingRef.current = false;
+                            }}
+                          >
+                            ✓
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               );
             })()}
@@ -2458,9 +2513,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                   <div key={item.url} className="bookmark-card-wrap">
                     <RecipeCard {...makeCardProps(item)} />
                     {bookmarkNotes[item.url] && (
-                      <div className={`bookmark-note-preview${darkMode ? ' dark' : ''}`}>
-                        📝 {bookmarkNotes[item.url]}
-                      </div>
+                      <div className={`bookmark-note-badge${darkMode ? ' dark' : ''}`}>📝</div>
                     )}
                   </div>
                 ))}

@@ -2905,42 +2905,91 @@ button.header-logo {
 }
 .recipe-modal-bookmark-btn:hover { opacity: 0.75; }
 
-/* 북마크 노트 */
-.bookmark-note-section {
-  padding: 0 20px 12px;
+/* 북마크 노트 섹션 */
+.bookmark-note-section-wrap {
+  padding: 0 0 24px;
 }
-.bookmark-note-input {
-  width: 100%;
-  min-height: 64px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1.5px solid #e2e8f0;
-  font-size: 0.88rem;
-  line-height: 1.5;
-  resize: vertical;
-  outline: none;
+
+.bookmark-note-inline {
+  cursor: text;
+  padding: 10px 14px;
+  border-radius: 8px;
   background: #f8fafc;
-  color: #333;
-  box-sizing: border-box;
-  transition: border-color 0.15s;
+  min-height: 60px;
 }
-.bookmark-note-input:focus { border-color: #a0aec0; }
-.bookmark-note-input.dark { background: #2d3748; border-color: #4a5568; color: #e2e8f0; }
-.bookmark-note-input.dark::placeholder { color: #718096; }
+.bookmark-note-inline.dark { background: #1e2533; }
+
+.bookmark-note-inline-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: #4a5568;
+  padding: 0;
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+  min-height: 56px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.bookmark-note-inline-input.dark { color: #e2e8f0; }
+.bookmark-note-inline-input::placeholder { color: #c0cdd9; }
+.bookmark-note-inline-input.dark::placeholder { color: #4a5568; }
+
+.bookmark-note-inline-text {
+  font-size: 0.875rem;
+  color: #4a5568;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  display: block;
+}
+.bookmark-note-inline-text.empty { color: #c0cdd9; }
+.bookmark-note-inline-text.dark { color: #a0aec0; }
+.bookmark-note-inline-text.empty.dark { color: #4a5568; }
+
+.bookmark-note-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.bookmark-note-charcount {
+  font-size: 0.72rem;
+  color: #c0cdd9;
+}
+
+.bookmark-note-done-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  background: #111;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.bookmark-note-done-btn:hover { opacity: 0.75; }
+.bookmark-note-done-btn.dark { background: #e2e8f0; color: #1a202c; }
 
 .bookmark-card-wrap { position: relative; }
-.bookmark-note-preview {
-  margin: -6px 8px 10px;
-  padding: 7px 12px;
-  border-radius: 0 0 10px 10px;
+.bookmark-note-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
   font-size: 0.8rem;
-  color: #555;
-  background: #f0f4ff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  opacity: 0.55;
+  pointer-events: none;
+  line-height: 1;
 }
-.bookmark-note-preview.dark { background: #2d3748; color: #a0aec0; }
 
 .recipe-edit-toggle-btn--delete {
   color: #e53e3e !important;
