@@ -1313,17 +1313,16 @@ function App() {
       const amount = measuredAmountMap[ing];
       return amount ? `${ing} ${amount}` : '';
     });
-    fetch(`${API_BASE}/api/recipes`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'X-Creator-Uid': creatorUser?.uid || '' },
-      body: JSON.stringify({
-        url: recipeUrl,
-        name: updates.name,
-        ingredients: newIngredients,
-        ingredients_measured: newMeasured,
-        steps: updates.steps,
-      }),
-    }).catch(() => {});
+    supabase.from('recipes').update({
+      name: updates.name,
+      ingredients: newIngredients,
+      ingredients_measured: newMeasured,
+      steps: updates.steps,
+      tips: updates.tip ? [updates.tip] : [],
+      servings: updates.servings || '',
+    }).eq('url', recipeUrl).then(({ error }) => {
+      if (error) console.error('레시피 편집 저장 실패:', error.message);
+    });
   };
 
   const toggleHidden = (e, recipeUrl) => {
@@ -1334,11 +1333,11 @@ function App() {
     const updated = { ...recipeEdits, [recipeUrl]: updates };
     setRecipeEdits(updated);
     localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
-    fetch(`${API_BASE}/api/recipes`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'X-Creator-Uid': creatorUser?.uid || '' },
-      body: JSON.stringify({ url: recipeUrl, status: newHidden ? 'hidden' : 'published' }),
-    }).catch(() => {});
+    supabase.from('recipes').update({
+      status: newHidden ? 'hidden' : 'published',
+    }).eq('url', recipeUrl).then(({ error }) => {
+      if (error) console.error('공개/비공개 저장 실패:', error.message);
+    });
   };
 
   // ── 동의어 맵: 같은 재료의 다른 표기 → 검색/표시 통일 ──
