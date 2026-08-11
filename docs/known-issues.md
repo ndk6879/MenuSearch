@@ -27,10 +27,21 @@
 - **원인:** `LoginModal`이 항상 마운트 상태라 `showCreatorForm` state가 로그아웃 시 리셋 안 됨
 - **해결:** `useEffect(() => { if (!open) setShowCreatorForm(false); }, [open])` 추가
 
-### 18. 재료 편집 후 재료명-용량 인덱스 어긋남
+### 18. 재료 편집 후 재료명-용량 인덱스 어긋남 (1차 수정 — 불완전)
 - **증상:** 크리에이터가 재료 편집 저장 후 "생크림" 칩에 "파스타 150~200g" 표시 등 재료-용량 불일치
 - **원인:** `saveEditDraft`가 `ingredients`만 PATCH, `ingredients_measured`는 갱신 안 함
 - **해결:** `measuredAmountMap`을 saveEditDraft로 전달, PATCH body에 `ingredients_measured` 포함
+- **주의:** 아래 #19에서 근본 원인 추가 수정됨
+
+### 19. ingredients_measured 인덱스 어긋남 근본 수정 (2026-08-08)
+- **증상:** 재료 순서 변경 후 저장하면 재료명-용량이 한 칸씩 밀림 (#18 수정 후에도 잔존)
+- **원인:** `sortedData`에서 recipeEdits가 있으면 `ingredients`를 재배열 버전으로 교체하지만 `measuredRaw`는 DB 원본 인덱스 기준 → `ingMeasuredMap` 오염. display `measuredAmountMap`도 동일 문제.
+- **해결:** index 기반 → **이름 prefix 기반** 파싱으로 전환. `ingredients_measured` 각 항목이 `"재료명 용량"` 형식임을 이용해 `startsWith(ing.trim() + ' ')`로 매칭. 기존 DB 오염 데이터도 자동 복구됨.
+
+### 20. 북마크 해제 시 MY NOTE 유실 (2026-08-08)
+- **증상:** 북마크 해제 후 재등록하면 작성했던 메모가 사라짐
+- **원인:** 북마크 해제 시 `bookmarks` row를 DELETE → `note` 컬럼도 삭제
+- **해결:** soft-delete 전환. `bookmarked boolean` 컬럼 추가, 해제 시 `UPDATE SET bookmarked=false`, 재등록 시 `upsert + bookmarked=true`. note 영구 보존.
 
 ### 12. 크리에이터 로그인 실패 (로컬)
 - **증상:** `minyokki/111111` 로그인 안 됨
