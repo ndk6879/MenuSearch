@@ -23,6 +23,7 @@ root.render(
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<App />} />
+          <Route path="/:slug/:recipeSlug" element={<App />} />
           <Route path="/:slug" element={<App />} />
         </Routes>
       </BrowserRouter>

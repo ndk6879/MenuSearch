@@ -384,10 +384,11 @@ def analyze_video_with_gemini(video_id: str):
 - 단순 행동("소금 넣기", "잘 섞기")은 제외하세요.
 - 요리 과정을 직관적으로 이해하는 데 시각적 단서가 도움이 되는 단계마다 타임스탬프를 기록하세요. 초보자가 보고 따라할 수 있도록 필요한 단계는 빠짐없이 선택하세요. 반대로 굳이 이미지가 없어도 되는 단계(단순히 "소금 넣기", "잘 섞기" 등)는 제외하세요.
 - 타임스탬프 선택 필수 조건:
-  1. 손/팔이 화면의 주인공이 되지 않는 장면 (손이 보여도 음식이 주인공이어야 함)
-  2. 칼질·볶기·섞기 동작 중간이 아닌 동작이 끝난 직후 결과물이 보이는 장면
-  3. 음식/재료가 화면 중앙에 선명하게 담긴 장면
-  4. 식욕을 돋우는 비주얼 (완성된 재료 상태, 익어가는 색감, 플레이팅 등)
+  1. 얼굴·상반신·전신이 화면의 주 피사체인 장면은 절대 선택 금지 (크리에이터가 카메라 보고 말하는 장면 포함)
+  2. 손·팔이 일부 보여도 음식·재료·팬이 화면의 주 피사체면 허용
+  3. 칼질·볶기·섞기 동작 중간이 아닌 동작이 끝난 직후 결과물이 보이는 장면
+  4. 음식/재료가 화면 중앙에 선명하게 담긴 장면
+  5. 식욕을 돋우는 비주얼 (완성된 재료 상태, 익어가는 색감, 플레이팅 등)
 - step_index는 "순서" 배열의 0부터 시작하는 인덱스입니다.
 
 💡 크리에이터 TIP 규칙:
@@ -480,8 +481,8 @@ def _sharpness(image_path: str) -> float:
     return float(np.var(dx) + np.var(dy))
 
 
-def _select_best_frame_with_gemini(candidate_paths: list) -> str:
-    """후보 프레임 이미지들을 Gemini가 직접 보고 최적 1장 선택"""
+def _select_best_frame_with_gemini(candidate_paths: list, step_text: str = None):
+    """후보 프레임 이미지들을 Gemini가 직접 보고 최적 1장 선택. 적합한 이미지 없으면 None 반환."""
     from PIL import Image as PILImage
     if len(candidate_paths) == 1:
         return candidate_paths[0]
@@ -497,19 +498,23 @@ def _select_best_frame_with_gemini(candidate_paths: list) -> str:
             except Exception:
                 continue
         if not images:
-            return candidate_paths[0]
+            return None
 
+        step_ctx = f"\n조리 단계: 「{step_text}」" if step_text else ""
         prompt = (
-            f"아래 {len(images)}장의 요리 영상 프레임 중 레시피 카드에 넣기 가장 적합한 1장을 골라주세요.\n\n"
-            "선택 기준 (중요도 순):\n"
-            "1. 손·팔이 화면 중앙을 차지하지 않고 음식/재료가 주인공인 프레임\n"
-            "2. 움직임이 없어 선명한 프레임\n"
-            "3. 음식이 먹음직스럽게 보이는 프레임\n"
-            "4. 자막 텍스트가 적게 겹치는 프레임\n\n"
-            "숫자 하나만 답하세요 (1부터 시작). 예: 3"
+            f"아래 {len(images)}장의 요리 영상 프레임 중 레시피 카드에 적합한 1장을 고르세요.{step_ctx}\n\n"
+            "【탈락 기준 — 해당하면 즉시 제외】\n"
+            "❌ 얼굴·상반신·전신이 화면의 주 피사체인 프레임 (크리에이터가 카메라 보고 말하는 장면 포함)\n"
+            "❌ 자막·텍스트가 화면 많은 부분을 차지하는 프레임\n"
+            "✅ 손·팔이 일부 보여도 음식·재료·팬이 화면의 주 피사체면 통과\n\n"
+            "【선택 기준 — 탈락하지 않은 프레임 중에서】\n"
+            "1. 조리 단계와 가장 어울리는 음식/재료/조리과정\n"
+            "2. 선명하고 흔들림 없음\n"
+            "3. 식욕을 돋우는 비주얼\n\n"
+            "탈락 기준에 해당하지 않는 프레임이 없으면 반드시 NONE을 반환하세요.\n"
+            "적합한 프레임이 있으면 숫자만, 없으면 NONE만 답하세요. 예: 3 또는 NONE"
         )
-        # 이미지를 base64로 변환해서 전달
-        import base64, io
+        import io
         parts = [prompt]
         for img in images:
             buf = io.BytesIO()
@@ -520,22 +525,28 @@ def _select_best_frame_with_gemini(candidate_paths: list) -> str:
             model="gemini-2.5-flash",
             contents=parts,
         )
-        text = response.text.strip()
-        idx = int(''.join(c for c in text[:5] if c.isdigit()) or "1") - 1
-        idx = max(0, min(idx, len(valid_paths) - 1))
+        text = response.text.strip().upper()
+        if "NONE" in text:
+            safe_print(f"   🤖 Gemini: 적합한 프레임 없음 (NONE)")
+            return None
+        digits = ''.join(c for c in text[:5] if c.isdigit())
+        if not digits:
+            return None
+        idx = max(0, min(int(digits) - 1, len(valid_paths) - 1))
         safe_print(f"   🤖 Gemini 선택: {idx + 1}번 프레임")
         return valid_paths[idx]
     except Exception as e:
-        safe_print(f"⚠️ [이미지] Gemini 프레임 선택 실패, 선명도 기준 사용: {e}")
-        return max(candidate_paths, key=_sharpness)
+        safe_print(f"⚠️ [이미지] Gemini 프레임 선택 실패: {e}")
+        return None
 
 
-def extract_step_frames(video_id: str, step_images: list, output_dir: str = None) -> dict:
+def extract_step_frames(video_id: str, step_images: list, output_dir: str = None, steps: list = None) -> dict:
     """
     step_images: [{"step_index": 0, "timestamp": "01:23"}, ...]
+    steps: 조리 단계 텍스트 배열 (프레임 선택 시 내용 일치 판단에 사용)
     반환: {step_index: local_image_path}
     """
-    import subprocess, tempfile, os
+    import subprocess, tempfile, os, shutil
     results = {}
     if not step_images:
         return results
@@ -563,46 +574,137 @@ def extract_step_frames(video_id: str, step_images: list, output_dir: str = None
 
     work_dir = output_dir or tempfile.mkdtemp(prefix="findish_frames_")
     os.makedirs(work_dir, exist_ok=True)
+    step_items_map = {item["step_index"]: item for item in step_images}
 
-    for item in step_images:
+    def _extract_one_step(item):
         step_idx = item["step_index"]
         ts = item["timestamp"]
         base_sec = _timestamp_to_seconds(ts)
+        step_text = steps[step_idx] if steps and step_idx < len(steps) else None
+
+        # 단일 ffmpeg 호출: 10초 구간 2fps = 20프레임
+        seek_start = max(2, base_sec - 5)
+        frame_pattern = os.path.join(work_dir, f"step_{step_idx}_%03d.jpg")
+        try:
+            subprocess.run([
+                "ffmpeg", "-y",
+                "-ss", str(seek_start), "-i", stream_url,
+                "-t", "10", "-vf", "fps=2",
+                "-q:v", "1",
+                frame_pattern
+            ], capture_output=True, timeout=60)
+        except Exception as e:
+            safe_print(f"⚠️ [이미지] step {step_idx} ffmpeg 실패: {e}")
+            return step_idx, None, ts
 
         candidates = []
-        # ±3초 범위에서 7장 추출 → Gemini가 최적 선택
-        for offset in [-2, -1, 0, 1, 2, 3, 4]:
-            seek = max(2, base_sec + offset)
-            out_path = os.path.join(work_dir, f"step_{step_idx}_t{offset}.jpg")
+        for fname in sorted(os.listdir(work_dir)):
+            if fname.startswith(f"step_{step_idx}_") and fname.endswith(".jpg") and "retry" not in fname:
+                p = os.path.join(work_dir, fname)
+                if os.path.getsize(p) > 2000:
+                    candidates.append(p)
+
+        if not candidates:
+            safe_print(f"⚠️ [이미지] step {step_idx} 프레임 없음")
+            return step_idx, None, ts
+
+        best = _select_best_frame_with_gemini(candidates, step_text=step_text)
+
+        # NONE이면 ±15초로 구간 넓혀서 재탐색
+        if best is None:
+            safe_print(f"   🔄 step {step_idx} 구간 확장 재탐색 중...")
+            for p in candidates:
+                if os.path.exists(p): os.remove(p)
+            wider_pattern = os.path.join(work_dir, f"step_{step_idx}_wide_%03d.jpg")
+            wider_start = max(2, base_sec - 15)
             try:
-                # pre-seek 2초 전 → 정밀 시킹 2초: 스피드/정확도 균형
                 subprocess.run([
                     "ffmpeg", "-y",
-                    "-ss", str(seek - 2), "-i", stream_url,
-                    "-ss", "2",
-                    "-vframes", "1", "-q:v", "1",
-                    out_path
-                ], capture_output=True, timeout=30)
-                if os.path.exists(out_path) and os.path.getsize(out_path) > 2000:
-                    candidates.append(out_path)
+                    "-ss", str(wider_start), "-i", stream_url,
+                    "-t", "30", "-vf", "fps=2", "-q:v", "1",
+                    wider_pattern
+                ], capture_output=True, timeout=90)
             except Exception:
-                continue
+                pass
+            wider_candidates = [
+                os.path.join(work_dir, f)
+                for f in sorted(os.listdir(work_dir))
+                if f.startswith(f"step_{step_idx}_wide") and f.endswith(".jpg")
+                and os.path.getsize(os.path.join(work_dir, f)) > 2000
+            ]
+            if wider_candidates:
+                best = _select_best_frame_with_gemini(wider_candidates, step_text=step_text)
+                for p in wider_candidates:
+                    if p != best and os.path.exists(p): os.remove(p)
 
-        if candidates:
-            # 선명도 기준 상위 절반만 Gemini에게 넘김
-            scored = sorted(candidates, key=_sharpness, reverse=True)
-            top_candidates = scored[:max(3, len(scored) // 2)]
-            best = _select_best_frame_with_gemini(top_candidates)
-            final_path = os.path.join(work_dir, f"step_{step_idx}.jpg")
-            import shutil
-            shutil.copy2(best, final_path)
-            for p in candidates:
-                if p != final_path and os.path.exists(p):
-                    os.remove(p)
-            results[step_idx] = final_path
-            safe_print(f"✅ [이미지] step {step_idx} 프레임 추출 완료 ({ts})")
-        else:
-            safe_print(f"⚠️ [이미지] step {step_idx} 프레임 추출 실패")
+        if best is None:
+            safe_print(f"⚠️ [이미지] step {step_idx} 적합한 프레임 없음 — 건너뜀")
+            return step_idx, None, ts
+
+        final_path = os.path.join(work_dir, f"step_{step_idx}_best.jpg")
+        shutil.copy2(best, final_path)
+        for p in candidates:
+            if p != final_path and os.path.exists(p):
+                os.remove(p)
+        return step_idx, final_path, ts
+
+    # 모든 스텝을 병렬로 처리 (ffmpeg + Gemini 동시)
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        futures = {ex.submit(_extract_one_step, item): item for item in step_images}
+        for fut in futures:
+            step_idx, final_path, ts = fut.result()
+            if final_path:
+                dest = os.path.join(work_dir, f"step_{step_idx}.jpg")
+                shutil.move(final_path, dest)
+                results[step_idx] = dest
+                safe_print(f"✅ [이미지] step {step_idx} 프레임 추출 완료 ({ts})")
+
+    # 중복 프레임 제거 (imagehash)
+    try:
+        import imagehash
+        from PIL import Image as _PILImg2
+        hashes = {}
+        for step_idx, path in list(results.items()):
+            h = imagehash.phash(_PILImg2.open(path))
+            duplicate_of = None
+            for prev_idx, prev_hash in hashes.items():
+                if abs(h - prev_hash) <= 8:
+                    duplicate_of = prev_idx
+                    break
+            if duplicate_of is not None:
+                safe_print(f"⚠️ [이미지] step {step_idx} ≈ step {duplicate_of} 중복 감지, 재추출 시도")
+                orig_item = step_items_map.get(step_idx)
+                if orig_item:
+                    base_sec = _timestamp_to_seconds(orig_item["timestamp"])
+                    retry_pattern = os.path.join(work_dir, f"step_{step_idx}_retry_%03d.jpg")
+                    retry_start = max(2, base_sec + 15)
+                    try:
+                        subprocess.run([
+                            "ffmpeg", "-y",
+                            "-ss", str(retry_start), "-i", stream_url,
+                            "-t", "10", "-vf", "fps=2", "-q:v", "1",
+                            retry_pattern
+                        ], capture_output=True, timeout=60)
+                    except Exception:
+                        pass
+                    retry_candidates = [
+                        os.path.join(work_dir, f)
+                        for f in sorted(os.listdir(work_dir))
+                        if f.startswith(f"step_{step_idx}_retry") and f.endswith(".jpg")
+                        and os.path.getsize(os.path.join(work_dir, f)) > 2000
+                    ]
+                    if retry_candidates:
+                        retry_step_text = steps[step_idx] if steps and step_idx < len(steps) else None
+                        best_r = _select_best_frame_with_gemini(retry_candidates, step_text=retry_step_text)
+                        shutil.copy2(best_r, path)
+                        for p in retry_candidates:
+                            if os.path.exists(p):
+                                os.remove(p)
+                        h = imagehash.phash(_PILImg2.open(path))
+                        safe_print(f"✅ [이미지] step {step_idx} 중복 재추출 완료")
+            hashes[step_idx] = h
+    except ImportError:
+        safe_print("⚠️ [이미지] imagehash 미설치, 중복 제거 건너뜀 (pip install imagehash)")
 
     return results
 
@@ -649,10 +751,9 @@ def upload_step_frames_to_supabase(video_id: str, frame_paths: dict) -> dict:
     return results
 
 
-def process_step_images(video_id: str, step_images: list) -> dict:
+def process_step_images(video_id: str, step_images: list, steps: list = None) -> dict:
     """Gemini step_images → Supabase URL dict 반환. {step_index: url, 'dish': thumbnail_url}"""
     result = {}
-    # 완성 요리 사진 = YouTube 썸네일 (고화질, 크리에이터 선택)
     thumbnail_url = get_best_thumbnail_url(video_id)
     if thumbnail_url:
         result["dish"] = thumbnail_url
@@ -660,17 +761,89 @@ def process_step_images(video_id: str, step_images: list) -> dict:
 
     if not step_images:
         return result
-    frames = extract_step_frames(video_id, step_images)
+    frames = extract_step_frames(video_id, step_images, steps=steps)
     if not frames:
         return result
     urls = upload_step_frames_to_supabase(video_id, frames)
     result.update(urls)
-    # 로컬 임시 파일 정리
     import os
     for p in frames.values():
         if os.path.exists(p):
             os.remove(p)
     return result
+
+
+def generate_step_timestamps(video_id: str, steps: list) -> list:
+    """조리 단계 텍스트를 기반으로 Gemini가 영상에서 각 단계 타임스탬프 추출"""
+    import json
+    if not GEMINI_API_KEY or not steps:
+        return []
+    video_url = f"https://www.youtube.com/watch?v={video_id}"
+    steps_text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps))
+    prompt = f"""이 요리 영상을 보고, 아래 각 조리 단계에 해당하는 타임스탬프를 찾아주세요.
+
+조리 단계:
+{steps_text}
+
+【필수 규칙】
+1. 사람·얼굴·몸이 화면에 보이는 구간은 절대 선택 금지. 음식·재료·냄비·팬만 있는 구간에서만 선택.
+2. 각 단계의 조리 결과물이 화면에 선명하게 보이는 시점을 선택하세요.
+3. 자막/텍스트가 없는 장면을 우선하세요.
+4. 타임스탬프는 반드시 오름차순이어야 합니다 (step 0 < step 1 < step 2 ...).
+5. 단순 행동("소금 넣기", "잘 섞기")처럼 시각적으로 의미 없는 단계는 건너뛰어도 됩니다.
+6. step_index는 0부터 시작합니다.
+
+JSON 배열만 반환하세요:
+[{{"step_index": 0, "timestamp": "MM:SS"}}, ...]"""
+
+    try:
+        client = genai_new.Client(api_key=GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                genai_types.Part(file_data=genai_types.FileData(file_uri=video_url)),
+                prompt,
+            ],
+        )
+        text = response.text.strip()
+        import re as _re_ts
+        m = _re_ts.search(r'\[.*?\]', text, _re_ts.DOTALL)
+        if not m:
+            return []
+        raw = json.loads(m.group(0))
+
+        # 코드 레벨 검증: step_index 중복 제거, 오름차순 정렬, 유효 범위 체크
+        seen_idx = set()
+        validated = []
+        for item in raw:
+            si = item.get("step_index")
+            ts = item.get("timestamp", "")
+            if si is None or si in seen_idx or si < 0 or si >= len(steps):
+                continue
+            if not _re_ts.match(r'^\d+:\d{2}$', ts):
+                continue
+            seen_idx.add(si)
+            validated.append(item)
+
+        # step_index 기준 오름차순 정렬
+        validated.sort(key=lambda x: x["step_index"])
+
+        # timestamp도 오름차순인지 확인 — 역전된 항목 제거
+        filtered = []
+        prev_sec = -1
+        for item in validated:
+            sec = _timestamp_to_seconds(item["timestamp"])
+            if sec > prev_sec:
+                filtered.append(item)
+                prev_sec = sec
+            else:
+                safe_print(f"⚠️ [갤러리] step {item['step_index']} timestamp 역전 → 제거")
+
+        safe_print(f"✅ [갤러리] 타임스탬프 {len(filtered)}개 확정")
+        return filtered
+    except Exception as e:
+        safe_print(f"❌ [갤러리] 타임스탬프 추출 실패: {e}")
+    return []
 
 
 def get_first_comment_and_author(api_key, video_id):

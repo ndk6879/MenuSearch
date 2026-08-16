@@ -15,6 +15,7 @@ from collections import defaultdict
 from youtube_automation import (
     analyze_one_video,
     process_step_images,
+    generate_step_timestamps,
     initialize_js_file_if_needed,
     get_existing_urls,
 )
@@ -246,6 +247,8 @@ def analyze_and_save():
     try:
         import re as _re3
         upload_date = _re3.sub(r'^(\d{4})(\d{2})(\d{2})$', r'\1-\2-\3', str(r.get("upload_date", "")))
+        import re as _re_vid
+        _vid = (_re_vid.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", r["video_url"] or "") or type('', (), {'group': lambda *a: None})()).group(1)
         recipe_row = {
             "name": r["name"],
             "ingredients": _clean_ingredients(r["ingredients"]),
@@ -262,6 +265,7 @@ def analyze_and_save():
             "creator_id": r["uploader"] or None,
             "status": "published",
             "language": "kr",
+            "slug": _generate_slug(r["name"], r["uploader"], _vid or ""),
         }
         _http.post(
             f'{_supabase_url}/rest/v1/recipes',
@@ -275,6 +279,7 @@ def analyze_and_save():
             sb_url = _supabase_url
             sb_headers = _sb_headers()
             video_url_for_img = r["video_url"]
+            steps_for_img = r.get("steps", [])
 
             def _bg_process_images():
                 try:
@@ -283,7 +288,7 @@ def analyze_and_save():
                     if not m:
                         return
                     vid = m.group(1)
-                    img_dict = process_step_images(vid, step_images_data)
+                    img_dict = process_step_images(vid, step_images_data, steps=steps_for_img)
                     if img_dict:
                         _http.patch(
                             f'{sb_url}/rest/v1/recipes',
@@ -515,6 +520,10 @@ def save_recipe():
         import re as _re2
         upload_date = _re2.sub(r'^(\d{4})(\d{2})(\d{2})$', r'\1-\2-\3', str(upload_date))
 
+    import re as _re_vid2
+    _vid2_m = _re_vid2.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", video_url or "")
+    _vid2 = _vid2_m.group(1) if _vid2_m else ""
+    _uploader2 = r.get("uploader", "")
     recipe = {
         "name": r.get("name", ""),
         "ingredients": _clean_ingredients(r.get("ingredients", [])),
@@ -526,11 +535,12 @@ def save_recipe():
         "tags": r.get("tags") or [],
         "source": r.get("source", ""),
         "url": video_url,
-        "uploader": r.get("uploader", ""),
+        "uploader": _uploader2,
         "upload_date": upload_date or None,
-        "creator_id": r.get("uploader") or None,
+        "creator_id": _uploader2 or None,
         "status": "published",
         "language": "kr",
+        "slug": _generate_slug(r.get("name", ""), _uploader2, _vid2),
     }
 
     if is_duplicate and overwrite:
@@ -555,6 +565,7 @@ def save_recipe():
         sb_url = _supabase_url
         sb_headers = _sb_headers()
         video_url_for_img = video_url
+        steps_for_img = r.get("steps", [])
 
         def _bg_process_images_save():
             try:
@@ -563,7 +574,7 @@ def save_recipe():
                 if not m:
                     return
                 vid = m.group(1)
-                img_dict = process_step_images(vid, step_images_data)
+                img_dict = process_step_images(vid, step_images_data, steps=steps_for_img)
                 if img_dict:
                     _http.patch(
                         f'{sb_url}/rest/v1/recipes',
@@ -579,6 +590,55 @@ def save_recipe():
 
     _auto_update_channel_profile(r.get("uploader", ""), video_url)
     return jsonify({"ok": True, "saved": True, "overwritten": is_duplicate}), 200
+
+
+# ✅ 갤러리 없는 레시피에 갤러리 생성
+@app.post("/generate-gallery")
+def generate_gallery():
+    data = request.get_json() or {}
+    url = data.get("url", "").strip()
+    if not url:
+        return jsonify({"ok": False, "error": "url 누락"}), 400
+
+    res = _http.get(
+        f'{_supabase_url}/rest/v1/recipes',
+        headers=_sb_headers(),
+        params={'url': f'eq.{url}', 'select': 'url,steps'},
+    )
+    rows = res.json() if isinstance(res.json(), list) else []
+    if not rows:
+        return jsonify({"ok": False, "error": "레시피를 찾을 수 없습니다"}), 404
+
+    steps = rows[0].get("steps", [])
+    import re as _re_gal
+    m = _re_gal.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", url)
+    if not m:
+        return jsonify({"ok": False, "error": "유효하지 않은 YouTube URL"}), 400
+    vid = m.group(1)
+
+    sb_url = _supabase_url
+    sb_headers = _sb_headers()
+
+    def _bg_generate():
+        try:
+            timestamps = generate_step_timestamps(vid, steps)
+            if not timestamps:
+                print(f"❌ [갤러리] 타임스탬프 추출 실패: {url}")
+                return
+            img_dict = process_step_images(vid, timestamps, steps=steps)
+            if img_dict:
+                _http.patch(
+                    f'{sb_url}/rest/v1/recipes',
+                    headers={**sb_headers, 'Prefer': 'return=minimal'},
+                    params={'url': f'eq.{url}'},
+                    json={'step_images': img_dict},
+                )
+                print(f"✅ [갤러리] 생성 완료: {url}")
+        except Exception as e:
+            print(f"❌ [갤러리] 생성 실패: {e}")
+
+    threading.Thread(target=_bg_generate, daemon=True).start()
+    return jsonify({"ok": True, "message": "갤러리 생성 시작됨"}), 200
 
 
 # ✅ 저장된 레시피 삭제 (Supabase)
@@ -695,6 +755,52 @@ def _sb_headers():
         'Authorization': f'Bearer {_supabase_service_key}',
         'Content-Type': 'application/json',
     }
+
+
+def _generate_slug(name: str, uploader: str, video_id: str) -> str:
+    """레시피 이름을 Gemini로 영어 슬러그 번역. 실패 시 video_id[:8] fallback."""
+    import re as _re_slug
+    try:
+        from google import genai as _genai
+        client = _genai.Client(api_key=os.getenv('GEMINI_API_KEY', ''))
+        resp = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=f'Translate this Korean dish name to a short English slug (2-4 words, lowercase, hyphens only, no special chars). Return ONLY the slug, nothing else.\n\n{name}',
+        )
+        raw = resp.text.strip().lower()
+        raw = _re_slug.sub(r'[^a-z0-9\s-]', '', raw)
+        raw = _re_slug.sub(r'\s+', '-', raw).strip('-')
+        slug = _re_slug.sub(r'-+', '-', raw)
+        if slug:
+            return _ensure_unique_slug(slug, uploader, video_id)
+    except Exception:
+        pass
+    return (video_id[:8] if video_id else 'recipe')
+
+
+def _ensure_unique_slug(base: str, uploader: str, video_id: str) -> str:
+    """같은 uploader 내 slug 중복 시 suffix 추가."""
+    import re as _re_slug
+    res = _http.get(
+        f'{_supabase_url}/rest/v1/recipes',
+        headers=_sb_headers(),
+        params={'uploader': f'eq.{uploader}', 'slug': f'eq.{base}', 'select': 'slug'},
+    )
+    if not (isinstance(res.json(), list) and res.json()):
+        return base
+    suffix = (video_id or '')[:4]
+    candidate = f'{base}-{suffix}' if suffix else f'{base}-2'
+    i = 2
+    while True:
+        r2 = _http.get(
+            f'{_supabase_url}/rest/v1/recipes',
+            headers=_sb_headers(),
+            params={'uploader': f'eq.{uploader}', 'slug': f'eq.{candidate}', 'select': 'slug'},
+        )
+        if not (isinstance(r2.json(), list) and r2.json()):
+            return candidate
+        candidate = f'{base}-{i}'; i += 1
+
 
 @app.get('/api/bookmarks')
 def get_bookmarks():

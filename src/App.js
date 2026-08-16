@@ -905,9 +905,8 @@ const parentMap = {
 };
 
 function App() {
-  const { slug } = useParams();
+  const { slug, recipeSlug } = useParams();
   const navigate = useNavigate();
-
 
   const CHEF_FILTER = slugToKey[slug] || process.env.REACT_APP_CHEF || null;
   const chefProfile = CHEF_FILTER ? chefConfig[CHEF_FILTER] : null;
@@ -915,6 +914,7 @@ function App() {
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [recipeModal, setRecipeModal] = useState(null);
   const [galleryLightbox, setGalleryLightbox] = useState(null); // {src, stepText, index}
+  const [galleryGenerating, setGalleryGenerating] = useState({}); // { [url]: bool }
   const [activeTab, setActiveTab] = useState("home"); // "home" | "chef" | "saved"
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [toast, setToast] = useState(null); // { message, key }
@@ -952,10 +952,51 @@ function App() {
     )].sort((a, b) => a.localeCompare(b, 'ko'));
   };
 
+  const startGalleryGeneration = async (recipeUrl) => {
+    const POLL_KEY = 'findish_gallery_pending';
+    const startedAt = Date.now();
+    setGalleryGenerating(prev => ({ ...prev, [recipeUrl]: true }));
+    // 현재 step_images 스냅샷 저장 (재생성 시 "이전 것과 달라졌나" 비교용)
+    const prevImgKeys = JSON.stringify(
+      Object.keys(recipeModal?.step_images || {}).filter(k => k !== 'dish').sort()
+    );
+    try {
+      const pending = JSON.parse(localStorage.getItem(POLL_KEY) || '{}');
+      localStorage.setItem(POLL_KEY, JSON.stringify({ ...pending, [recipeUrl]: startedAt }));
+    } catch {}
+    try {
+      await fetch(`${API_BASE}/generate-gallery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: recipeUrl }),
+      });
+    } catch {}
+    // 폴링: 첫 30초는 기다렸다가(처리 시간) 이후 15초마다 체크
+    await new Promise(r => setTimeout(r, 30000));
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data } = await supabase.from('recipes').select('step_images').eq('url', recipeUrl).single();
+        const imgs = data?.step_images || {};
+        const newKeys = JSON.stringify(Object.keys(imgs).filter(k => k !== 'dish').sort());
+        const hasNew = Object.keys(imgs).filter(k => k !== 'dish').length > 0 && newKeys !== prevImgKeys;
+        // 신규 생성이거나 재생성으로 키가 바뀐 경우
+        if (hasNew || (Object.keys(imgs).filter(k => k !== 'dish').length > 0 && prevImgKeys === '[]')) {
+          clearInterval(pollInterval);
+          setRecipeModal(prev => prev ? { ...prev, step_images: imgs } : prev);
+          setGalleryGenerating(prev => { const n = { ...prev }; delete n[recipeUrl]; return n; });
+          try {
+            const p2 = JSON.parse(localStorage.getItem(POLL_KEY) || '{}');
+            delete p2[recipeUrl]; localStorage.setItem(POLL_KEY, JSON.stringify(p2));
+          } catch {}
+        }
+      } catch {}
+    }, 15000);
+  };
+
   const refreshRecipes = () => {
     supabase
       .from('recipes')
-      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images')
+      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images,slug')
       .eq('language', 'kr')
       .then(({ data }) => {
         if (data) {
@@ -977,7 +1018,7 @@ function App() {
 
     supabase
       .from('recipes')
-      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images')
+      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images,slug')
       .eq('language', 'kr')
       .then(({ data }) => {
         clearTimeout(loadingTimeout);
@@ -1873,6 +1914,14 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
   );
 
   // 레시피 모달 키보드 ← → 내비게이션 (gallery lightbox 열려있을 땐 비활성)
+  // /:slug/:recipeSlug 직접 접근 시 해당 레시피 모달 자동 오픈
+  useEffect(() => {
+    if (!recipeSlug || recipeLoading || !sortedData.length) return;
+    const recipe = sortedData.find(r => r.slug === recipeSlug);
+    if (recipe && !recipeModal) setRecipeModal(recipe);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipeSlug, recipeLoading, sortedData.length]);
+
   useEffect(() => {
     if (!recipeModal || galleryLightbox) return;
     const navList = activeTab === 'saved'
@@ -1947,7 +1996,32 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       selectedIngredients,
       language,
       normalizeIng,
-      onOpen: () => { setRecipeModal(item); setModalVideoPlaying(false); setModalEditMode(false); },
+      onOpen: () => {
+        setRecipeModal(item); setModalVideoPlaying(false); setModalEditMode(false);
+        if (item.slug && slug) navigate(`/${slug}/${item.slug}`);
+        // 모달 열 때 localStorage pending 갤러리 확인 → 폴링 재개
+        const POLL_KEY = 'findish_gallery_pending';
+        try {
+          const pending = JSON.parse(localStorage.getItem(POLL_KEY) || '{}');
+          if (pending[item.url]) {
+            setGalleryGenerating(prev => ({ ...prev, [item.url]: true }));
+            const pollUrl = item.url;
+            const pollInterval = setInterval(async () => {
+              try {
+                const { data } = await supabase.from('recipes').select('step_images').eq('url', pollUrl).single();
+                const imgs = data?.step_images || {};
+                if (Object.keys(imgs).filter(k => k !== 'dish').length > 0) {
+                  clearInterval(pollInterval);
+                  setRecipeModal(prev => prev ? { ...prev, step_images: imgs } : prev);
+                  setGalleryGenerating(prev => { const n = { ...prev }; delete n[pollUrl]; return n; });
+                  const p2 = JSON.parse(localStorage.getItem(POLL_KEY) || '{}');
+                  delete p2[pollUrl]; localStorage.setItem(POLL_KEY, JSON.stringify(p2));
+                }
+              } catch {}
+            }, 15000);
+          }
+        } catch {}
+      },
       onToggleSave: (e) => { e.stopPropagation(); toggleSave(item.url); },
       isDuplicate: duplicateUrls.has((item.url || "").trim()),
       onToggleHidden: (e) => toggleHidden(e, item.url),
@@ -2083,6 +2157,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           if (recipeModal?.url) localStorage.removeItem(`findish_draft_${recipeModal.url}`);
         }
         setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); setNoteEditingUrl(null);
+        if (recipeSlug && slug) navigate(`/${slug}`);
       }} darkMode={darkMode} hideClose preventClose={() => noteEditingRef.current}>
         {recipeModal && (() => {
           const modalNavList = activeTab === 'saved'
@@ -2126,12 +2201,25 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                   {savedSet.has(recipeModal.url) ? '저장됨' : '저장하기'}
                 </button>
               )}
+              {!modalEditMode && recipeModal.slug && slug && (
+                <button
+                  className="recipe-modal-share-btn"
+                  title="링크 복사"
+                  onClick={() => {
+                    const url = `${window.location.origin}/${slug}/${recipeModal.slug}`;
+                    navigator.clipboard.writeText(url).then(() => showToast('링크가 복사됐어요!'));
+                  }}
+                >
+                  🔗
+                </button>
+              )}
               <button className="recipe-modal-close-btn" onClick={() => {
                 if (modalEditMode) {
                   if (!window.confirm('편집 중인 내용이 있습니다. 나가시겠습니까?')) return;
                   if (recipeModal?.url) localStorage.removeItem(`findish_draft_${recipeModal.url}`);
                 }
                 setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); setNoteEditingUrl(null);
+                if (recipeSlug && slug) navigate(`/${slug}`);
               }}>
                 &times;
               </button>
@@ -2319,13 +2407,10 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                               const amount = measuredAmountMap[ing.trim()] || parsedAmount;
                               const isHighlighted = selectedIngredientValues.has(ing.toLowerCase()) || selectedIngredientValues.has(name.toLowerCase());
                               const isSeasoning = i >= sortedMain.length;
-                              const srcRaw = sourcesMap[ing.trim()];
-                              const srcLabel = srcRaw === '고정댓글' ? '댓글' : srcRaw === '더보기란' ? '설명' : srcRaw === 'video_visual' ? '영상' : srcRaw === 'video_audio' ? '음성' : srcRaw === 'subtitle' ? '자막' : null;
                               return (
                                 <span key={i} className={`recipe-ing-pill${isHighlighted ? ' highlighted' : ''}${isSeasoning ? ' seasoning' : ''}`}>
                                   {name}
                                   {amount && <span className="recipe-ing-pill-amount">{amount}</span>}
-                                  {srcLabel && <span className="recipe-ing-source-badge">{srcLabel}</span>}
                                 </span>
                               );
                             })}
@@ -2354,24 +2439,64 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
 
                       {/* Gallery 섹션 — step_images가 있을 때만 표시 */}
                       {(() => {
-                        const stepImgs = displaySteps
-                          .map((step, i) => {
-                            const src = recipeModal.step_images?.[i] ?? recipeModal.step_images?.[String(i)];
-                            return src ? { src, stepText: step.replace(/^\d+[.)]\s*/, ''), index: i } : null;
-                          })
-                          .filter(Boolean);
-                        if (stepImgs.length === 0) return null;
+                        const stepImgs = Object.entries(recipeModal.step_images || {})
+                          .filter(([k]) => k !== 'dish')
+                          .sort(([a], [b]) => Number(a) - Number(b))
+                          .map(([, src], i) => ({ src, index: i }));
+                        if (stepImgs.length === 0) {
+                          const recipeUrl = recipeModal.url;
+                          const isGenerating = galleryGenerating[recipeUrl];
+                          return (
+                            <div className="recipe-modal-section">
+                              <h3 className="recipe-modal-section-title">GALLERY</h3>
+                              <div style={{ padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <button
+                                  disabled={isGenerating}
+                                  onClick={() => startGalleryGeneration(recipeUrl)}
+                                  style={{
+                                    padding: '8px 18px', borderRadius: 8, border: '1px solid #ccc',
+                                    background: isGenerating ? '#eee' : '#f5f5f5',
+                                    cursor: isGenerating ? 'not-allowed' : 'pointer', fontSize: 13,
+                                    color: isGenerating ? '#999' : '#333',
+                                  }}
+                                >
+                                  {isGenerating ? '갤러리 생성 중...' : '갤러리 생성'}
+                                </button>
+                                {isGenerating && (
+                                  <span style={{ fontSize: 12, color: '#999' }}>1~2분 소요됩니다. 모달을 닫아도 계속 진행돼요.</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+                        const recipeUrl2 = recipeModal.url;
+                        const isRegenning = galleryGenerating[recipeUrl2];
                         return (
                           <div className="recipe-modal-section">
-                            <h3 className="recipe-modal-section-title">GALLERY</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                              <h3 className="recipe-modal-section-title" style={{ margin: 0 }}>GALLERY</h3>
+                              {!isRegenning ? (
+                                <button
+                                  onClick={() => startGalleryGeneration(recipeUrl2)}
+                                  title="갤러리 재생성"
+                                  style={{
+                                    padding: '3px 8px', borderRadius: 6, border: '1px solid #ddd',
+                                    background: 'transparent', cursor: 'pointer', fontSize: 13,
+                                    color: '#aaa', lineHeight: 1,
+                                  }}
+                                >↺</button>
+                              ) : (
+                                <span style={{ fontSize: 12, color: '#999' }}>재생성 중... (1~2분)</span>
+                              )}
+                            </div>
                             <div className="recipe-gallery-grid">
-                              {stepImgs.map(({ src, stepText, index }) => (
+                              {stepImgs.map(({ src, index }) => (
                                 <button
                                   key={index}
                                   className="recipe-gallery-item"
-                                  onClick={() => setGalleryLightbox({ items: stepImgs, current: stepImgs.findIndex(x => x.index === index) })}
+                                  onClick={() => setGalleryLightbox({ items: stepImgs, current: index })}
                                 >
-                                  <img src={src} alt={`step ${index + 1}`} loading="lazy" />
+                                  <img src={src} alt={`gallery ${index + 1}`} loading="lazy" />
                                   <span className="recipe-gallery-step-num">{index + 1}</span>
                                 </button>
                               ))}
@@ -2470,11 +2595,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                 <button className="gallery-lightbox-nav gallery-lightbox-next" onClick={goNext}>›</button>
               )}
               <div className="gallery-lightbox-img-wrap">
-                <img src={item.src} alt={`step ${item.index + 1}`} className="gallery-lightbox-img" />
-              </div>
-              <div className="gallery-lightbox-caption">
-                <span className="gallery-lightbox-num">{item.index + 1}</span>
-                {item.stepText}
+                <img src={item.src} alt={`gallery ${item.index + 1}`} className="gallery-lightbox-img" />
               </div>
             </div>
           </div>
