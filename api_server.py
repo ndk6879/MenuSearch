@@ -15,7 +15,7 @@ from collections import defaultdict
 from youtube_automation import (
     analyze_one_video,
     process_step_images,
-    generate_step_timestamps,
+    get_step_timestamps,
     initialize_js_file_if_needed,
     get_existing_urls,
 )
@@ -273,13 +273,12 @@ def analyze_and_save():
             json=recipe_row,
         )
 
-        # 이미지 추출/업로드는 백그라운드에서 비동기 처리
-        step_images_data = r.get("step_images", [])
-        if step_images_data:
+        # 이미지 추출/업로드는 백그라운드에서 비동기 처리 (자막 기반 공통 파이프라인)
+        steps_for_img = r.get("steps", [])
+        if steps_for_img:
             sb_url = _supabase_url
             sb_headers = _sb_headers()
             video_url_for_img = r["video_url"]
-            steps_for_img = r.get("steps", [])
 
             def _bg_process_images():
                 try:
@@ -288,7 +287,8 @@ def analyze_and_save():
                     if not m:
                         return
                     vid = m.group(1)
-                    img_dict = process_step_images(vid, step_images_data, steps=steps_for_img)
+                    timestamps = get_step_timestamps(vid, steps_for_img)
+                    img_dict = process_step_images(vid, timestamps, steps=steps_for_img)
                     if img_dict:
                         _http.patch(
                             f'{sb_url}/rest/v1/recipes',
@@ -621,7 +621,7 @@ def generate_gallery():
 
     def _bg_generate():
         try:
-            timestamps = generate_step_timestamps(vid, steps)
+            timestamps = get_step_timestamps(vid, steps)
             if not timestamps:
                 print(f"❌ [갤러리] 타임스탬프 추출 실패: {url}")
                 return
