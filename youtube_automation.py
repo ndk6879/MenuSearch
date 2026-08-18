@@ -687,6 +687,40 @@ def _sharpness(image_path: str) -> float:
     return float(np.var(dx) + np.var(dy))
 
 
+def _check_frame_matches_step(image_path: str, step_text: str) -> bool:
+    """단일 프레임이 조리 단계에 해당하는지 YES/NO로 판단."""
+    from PIL import Image as PILImage
+    import io
+    try:
+        client = genai_new.Client(api_key=GEMINI_API_KEY)
+        img = PILImage.open(image_path)
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG")
+        prompt = (
+            f"조리 단계: 「{step_text}」\n\n"
+            "이 프레임이 위 조리 단계에 해당하는 장면입니까?\n"
+            "음식·재료·조리 과정이 화면에 보이면 YES. "
+            "사람 얼굴이 주 피사체이거나 조리 단계와 전혀 무관하면 NO.\n"
+            "YES 또는 NO만 답하세요."
+        )
+        parts = [prompt, genai_types.Part.from_bytes(data=buf.getvalue(), mime_type="image/jpeg")]
+        import concurrent.futures as _cf
+        with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
+            _fut = _ex.submit(client.models.generate_content, model="gemini-2.5-flash", contents=parts)
+            try:
+                response = _fut.result(timeout=30)
+            except _cf.TimeoutError:
+                safe_print("   ⚠️ YES/NO 판단 타임아웃")
+                return False
+        answer = response.text.strip().upper()
+        result = "YES" in answer
+        safe_print(f"   🤖 YES/NO 판단: {'YES ✅' if result else 'NO ❌'}")
+        return result
+    except Exception as e:
+        safe_print(f"⚠️ YES/NO 판단 실패: {e}")
+        return False
+
+
 def _select_best_frame_with_gemini(candidate_paths: list, step_text: str = None):
     """후보 프레임 이미지들을 Gemini가 직접 보고 최적 1장 선택. 적합한 이미지 없으면 None 반환."""
     from PIL import Image as PILImage
@@ -792,7 +826,26 @@ def extract_step_frames(video_id: str, step_images: list, output_dir: str = None
         ts_label = timestamps[0]
         step_text = steps[step_idx] if steps and step_idx < len(steps) else None
 
-        # ── ffmpeg 프레임 추출 ───────────────────────────────
+        # ── Step 1: 타임스탬프 정확히 1장 추출 → YES/NO 판단 ──
+        if step_text:
+            base_sec = _timestamp_to_seconds(ts_label)
+            single_path = os.path.join(work_dir, f"step_{step_idx}_single.jpg")
+            try:
+                subprocess.run([
+                    "ffmpeg", "-y",
+                    "-ss", str(max(0, base_sec)), "-i", stream_url,
+                    "-t", "1", "-vf", "fps=1", "-q:v", "1",
+                    single_path
+                ], capture_output=True, timeout=30)
+            except Exception as e:
+                safe_print(f"⚠️ [이미지] step {step_idx} 단일 프레임 추출 실패: {e}")
+            if os.path.exists(single_path) and os.path.getsize(single_path) > 2000:
+                safe_print(f"   🔍 step {step_idx} YES/NO 판단 중... ({ts_label})")
+                if _check_frame_matches_step(single_path, step_text):
+                    safe_print(f"✅ [이미지] step {step_idx} 타임스탬프 프레임 직접 사용 ({ts_label})")
+                    return step_idx, single_path, ts_label
+
+        # ── Step 2: NO이면 기존 ±5초 다중 프레임 방식 ─────────
         t_ffmpeg = _t.time()
         for t_idx, ts in enumerate(timestamps):
             base_sec = _timestamp_to_seconds(ts)
