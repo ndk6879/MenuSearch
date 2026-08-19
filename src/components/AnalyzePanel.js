@@ -772,7 +772,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                           <div>
                             <div style={{ fontWeight: 700, fontSize: 15 }}>{recipe.name}</div>
                             <div style={{ fontSize: 12, color: darkMode ? "#888" : "#999", marginTop: 2 }}>
-                              {recipe.uploader} · {recipe.upload_date}{process.env.NODE_ENV === 'development' && ` · 출처: ${recipe.source}`}
+                              {recipe.uploader} · {recipe.upload_date} · 출처: {recipe.source}
                             </div>
                           </div>
                           {/* 저장 버튼 */}
@@ -1522,11 +1522,9 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                         )}
                                         <div style={{ marginTop: 0 }}>
                                           <b>재료 ({(res.ingredients || []).length}):</b>{" "}
-                                          {process.env.NODE_ENV === 'development' && (
-                                            <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>
-                                              (출처: {res.ingredients_source || res.source})
-                                            </span>
-                                          )}
+                                          <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>
+                                            (출처: {res.ingredients_source || res.source})
+                                          </span>
                                           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
                                             {(res.ingredients || []).map((ing, i) => {
                                               const measured = (res.ingredients_measured || [])[i] || "";
@@ -1542,11 +1540,9 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                         {res.steps && res.steps.length > 0 && (
                                           <div style={{ marginTop: 8 }}>
                                             <b>요리 순서:</b>{" "}
-                                            {process.env.NODE_ENV === 'development' && (
-                                              <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>
-                                                (출처: {res.steps_source || res.source})
-                                              </span>
-                                            )}
+                                            <span style={{ color: darkMode ? "#888" : "#999", fontSize: 12 }}>
+                                              (출처: {res.steps_source || res.source})
+                                            </span>
                                             <ol style={{ marginLeft: 20, marginTop: 2 }}>
                                               {res.steps.map((s, j) => (
                                                 <li key={j} style={{ marginBottom: 2 }}>{s}</li>
