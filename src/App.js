@@ -2430,7 +2430,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                                 <span key={i} className={`recipe-ing-pill${isHighlighted ? ' highlighted' : ''}${isSeasoning ? ' seasoning' : ''}`}>
                                   {name}
                                   {amount && <span className="recipe-ing-pill-amount">{amount}</span>}
-                                  {srcLabel && <span className={`recipe-ing-pill-src${srcClass}`}>{srcLabel}</span>}
+                                  {srcLabel && process.env.NODE_ENV === 'development' && <span className={`recipe-ing-pill-src${srcClass}`}>{srcLabel}</span>}
                                 </span>
                               );
                             })}
