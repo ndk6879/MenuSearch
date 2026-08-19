@@ -29,3 +29,12 @@ menu_results.json
 
 __pycache__
 .vercel
+
+# Vercel env (contains credentials)
+.env.vercel
+
+# Supabase CLI temp files
+supabase/.temp/
+
+# Test/temp image frames
+test_frames/
