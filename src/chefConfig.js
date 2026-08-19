@@ -68,6 +68,15 @@ const chefConfig = {
     youtubeUrl: "https://www.youtube.com/@Kimmilan",
     instagramUrl: "https://www.instagram.com/milan__kim/",
   },
+  "유지만 yuziman": {
+    slug: "yuziman",
+    displayName: "유지만",
+    heroTitle: "유지만의 레시피\n재료로 바로 찾기",
+    heroSubtitle: "내 재료로 유지만의 요리를 찾아보세요!",
+    heroTitleEn: "Yuziman's Recipes\nFind by Ingredients",
+    heroSubtitleEn: "Find Yuziman's dishes with what you have!",
+    youtubeUrl: "https://www.youtube.com/@유지만",
+  },
 };
 
 export default chefConfig;

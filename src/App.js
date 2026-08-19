@@ -683,7 +683,7 @@ function extractYouTubeId(url) {
 const RecipeCard = React.memo(function RecipeCard({
   item, thumbnailSrc, isHidden, isSaved, isMyRecipe, isCreator, isDuplicate,
   selectedIngredientValues, selectedIngredients, language,
-  normalizeIng, style, onTagClick,
+  normalizeIng, style, onTagClick, onChefClick,
   onOpen, onToggleSave, onToggleHidden, onEdit, onDelete,
 }) {
   const allNormalized = [...new Set((item.ingredients || []).map(ing => normalizeIng(ing)))];
@@ -720,9 +720,9 @@ const RecipeCard = React.memo(function RecipeCard({
           const tags = item.tags || [];
           if (tags.length === 0) return null;
           return (
-            <div className="menu-tag-overlay">
+            <div className="menu-card-tags">
               {tags.map((tag, i) => (
-                <span key={i} className="menu-tag-badge" onClick={e => { e.stopPropagation(); onTagClick && onTagClick(tag); }}>{tag}</span>
+                <span key={i} className="menu-card-tag-badge" onClick={e => { e.stopPropagation(); onTagClick && onTagClick(tag); }}>{tag}</span>
               ))}
             </div>
           );
@@ -763,8 +763,14 @@ const RecipeCard = React.memo(function RecipeCard({
               alt={item.uploader}
               className="menu-chef-avatar"
               onError={(e) => { e.target.style.display = "none"; }}
+              onClick={e => { e.stopPropagation(); onChefClick && onChefClick(item.uploader); }}
+              style={{ cursor: onChefClick ? "pointer" : "default" }}
             />
-            <span className="menu-uploader">{item.uploader}</span>
+            <span
+              className="menu-uploader"
+              onClick={e => { e.stopPropagation(); onChefClick && onChefClick(item.uploader); }}
+              style={{ cursor: onChefClick ? "pointer" : "default" }}
+            >{item.uploader}</span>
             {matchCount > 0 && (
               <span className="menu-match-badge">{matchCount}/{mainIngs.length}</span>
             )}
@@ -952,30 +958,30 @@ function App() {
     )].sort((a, b) => a.localeCompare(b, 'ko'));
   };
 
-  const startGalleryGeneration = async (recipeUrl) => {
+  const startGalleryGeneration = async (recipeId, recipeUrl) => {
     const POLL_KEY = 'findish_gallery_pending';
     const startedAt = Date.now();
-    setGalleryGenerating(prev => ({ ...prev, [recipeUrl]: true }));
+    setGalleryGenerating(prev => ({ ...prev, [recipeId]: true }));
     // 현재 step_images 스냅샷 저장 (재생성 시 "이전 것과 달라졌나" 비교용)
     const prevImgKeys = JSON.stringify(
       Object.keys(recipeModal?.step_images || {}).filter(k => k !== 'dish').sort()
     );
     try {
       const pending = JSON.parse(localStorage.getItem(POLL_KEY) || '{}');
-      localStorage.setItem(POLL_KEY, JSON.stringify({ ...pending, [recipeUrl]: startedAt }));
+      localStorage.setItem(POLL_KEY, JSON.stringify({ ...pending, [recipeId]: startedAt }));
     } catch {}
     try {
       await fetch(`${API_BASE}/generate-gallery`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: recipeUrl }),
+        body: JSON.stringify({ recipe_id: recipeId, url: recipeUrl }),
       });
     } catch {}
     // 폴링: 첫 30초는 기다렸다가(처리 시간) 이후 15초마다 체크
     await new Promise(r => setTimeout(r, 30000));
     const pollInterval = setInterval(async () => {
       try {
-        const { data } = await supabase.from('recipes').select('step_images').eq('url', recipeUrl).single();
+        const { data } = await supabase.from('recipes').select('step_images').eq('id', recipeId).single();
         const imgs = data?.step_images || {};
         const newKeys = JSON.stringify(Object.keys(imgs).filter(k => k !== 'dish').sort());
         const hasNew = Object.keys(imgs).filter(k => k !== 'dish').length > 0 && newKeys !== prevImgKeys;
@@ -996,7 +1002,7 @@ function App() {
   const refreshRecipes = () => {
     supabase
       .from('recipes')
-      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images,slug')
+      .select('id,name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images,slug')
       .eq('language', 'kr')
       .then(({ data }) => {
         if (data) {
@@ -1018,7 +1024,7 @@ function App() {
 
     supabase
       .from('recipes')
-      .select('name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images,slug')
+      .select('id,name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images,slug')
       .eq('language', 'kr')
       .then(({ data }) => {
         clearTimeout(loadingTimeout);
@@ -1109,12 +1115,12 @@ function App() {
   // 북마크 Supabase 동기화
   useEffect(() => {
     if (!bookmarkUid) { setSavedRecipes([]); setBookmarkNotes({}); return; }
-    supabase.from('bookmarks').select('recipe_url,note').eq('user_id', bookmarkUid).eq('bookmarked', true)
+    supabase.from('bookmarks').select('recipe_id,recipe_url,note').eq('user_id', bookmarkUid).eq('bookmarked', true)
       .then(({ data }) => {
         if (data) {
-          setSavedRecipes(data.map(r => r.recipe_url));
+          setSavedRecipes(data.map(r => r.recipe_id || r.recipe_url));
           const notes = {};
-          data.forEach(r => { if (r.note) notes[r.recipe_url] = r.note; });
+          data.forEach(r => { if (r.note) notes[r.recipe_id || r.recipe_url] = r.note; });
           setBookmarkNotes(notes);
         }
       });
@@ -1135,15 +1141,14 @@ function App() {
   const currentRawData = useMemo(() =>
     (language === "en" ? menuData_en : recipeData)
       .filter(item => !CHEF_FILTER || item.uploader === CHEF_FILTER),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [language, recipeData]
+    [language, recipeData, CHEF_FILTER]
   );
 
   const sortedData = useMemo(() =>
     [...currentRawData]
       .sort((a, b) => new Date(b.upload_date) - new Date(a.upload_date))
       .map(item => {
-        const edit = recipeEdits[item.url];
+        const edit = recipeEdits[item.id];
         let ingredients = item.ingredients || [];
         if (edit && (edit.mainIngredients?.length > 0 || edit.seasonings?.length > 0)) {
           ingredients = [...(edit.mainIngredients || []), ...(edit.seasonings || [])];
@@ -1161,15 +1166,15 @@ function App() {
         (item.ingredients || []).forEach((ing, idx) => {
           if (sourcesRaw[idx]) ingSourcesMap[ing.trim()] = sourcesRaw[idx];
         });
-        const sortedIngredients = Array.isArray(ingredients) ? [...ingredients].sort() : [];
+        const orderedIngredients = Array.isArray(ingredients) ? [...ingredients] : [];
         return {
           ...item,
           name: edit?.name || item.name,
           hidden: edit?.hidden !== undefined ? edit.hidden : item.status === 'hidden',
-          thumbnail: thumbnailOverrides[item.url] || item.thumbnail_url || item.thumbnail || null,
-          ingredients: sortedIngredients,
-          ingredients_measured: sortedIngredients.map(ing => ingMeasuredMap[ing] || ''),
-          ingredients_sources: sortedIngredients.map(ing => ingSourcesMap[ing] || ''),
+          thumbnail: thumbnailOverrides[item.id] || item.thumbnail_url || item.thumbnail || null,
+          ingredients: orderedIngredients,
+          ingredients_measured: orderedIngredients.map(ing => ingMeasuredMap[ing] || ''),
+          ingredients_sources: orderedIngredients.map(ing => ingSourcesMap[ing] || ''),
         };
       }),
     [currentRawData, recipeEdits, thumbnailOverrides]
@@ -1241,17 +1246,17 @@ function App() {
     return next;
   });
 
-  const toggleSave = async (url) => {
+  const toggleSave = async (recipeId) => {
     if (!bookmarkUid) { setLoginModalOpen(true); return; }
-    const isSaved = savedRecipes.includes(url);
-    const next = isSaved ? savedRecipes.filter(u => u !== url) : [...savedRecipes, url];
+    const isSaved = savedRecipes.includes(recipeId);
+    const next = isSaved ? savedRecipes.filter(u => u !== recipeId) : [...savedRecipes, recipeId];
     setSavedRecipes(next);
     try {
       if (isSaved) {
-        await supabase.from('bookmarks').update({ bookmarked: false }).eq('user_id', bookmarkUid).eq('recipe_url', url);
+        await supabase.from('bookmarks').update({ bookmarked: false }).eq('user_id', bookmarkUid).eq('recipe_id', recipeId);
       } else {
         await supabase.from('bookmarks')
-          .upsert({ user_id: bookmarkUid, recipe_url: url, bookmarked: true }, { onConflict: 'user_id,recipe_url' });
+          .upsert({ user_id: bookmarkUid, recipe_id: recipeId, bookmarked: true }, { onConflict: 'user_id,recipe_id' });
       }
       showToast(isSaved ? '저장 해제되었습니다.' : '저장되었습니다.');
     } catch {
@@ -1260,10 +1265,10 @@ function App() {
     }
   };
 
-  const saveBookmarkNote = async (url, note) => {
+  const saveBookmarkNote = async (recipeId, note) => {
     if (!bookmarkUid) return;
-    setBookmarkNotes(prev => ({ ...prev, [url]: note }));
-    await supabase.from('bookmarks').update({ note: note || null }).eq('user_id', bookmarkUid).eq('recipe_url', url);
+    setBookmarkNotes(prev => ({ ...prev, [recipeId]: note }));
+    await supabase.from('bookmarks').update({ note: note || null }).eq('user_id', bookmarkUid).eq('recipe_id', recipeId);
   };
 
   const handleLoginSuccess = async (session) => {
@@ -1285,32 +1290,32 @@ function App() {
   };
 
 
-  const saveThumbnailOverride = (recipeUrl, thumbnailUrl) => {
-    const updated = { ...thumbnailOverrides, [recipeUrl]: thumbnailUrl };
+  const saveThumbnailOverride = (recipeId, thumbnailUrl) => {
+    const updated = { ...thumbnailOverrides, [recipeId]: thumbnailUrl };
     setThumbnailOverrides(updated);
     localStorage.setItem('findish_thumbnails', JSON.stringify(updated));
     fetch(`${API_BASE}/api/recipes`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'X-Creator-Uid': creatorUser?.uid || '' },
-      body: JSON.stringify({ url: recipeUrl, thumbnail_url: thumbnailUrl }),
+      body: JSON.stringify({ recipe_id: recipeId, thumbnail_url: thumbnailUrl }),
     }).catch(() => {});
   };
 
-  const clearThumbnailOverride = (recipeUrl) => {
+  const clearThumbnailOverride = (recipeId) => {
     const updated = { ...thumbnailOverrides };
-    delete updated[recipeUrl];
+    delete updated[recipeId];
     setThumbnailOverrides(updated);
     localStorage.setItem('findish_thumbnails', JSON.stringify(updated));
     fetch(`${API_BASE}/api/recipes`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'X-Creator-Uid': creatorUser?.uid || '' },
-      body: JSON.stringify({ url: recipeUrl, thumbnail_url: null }),
+      body: JSON.stringify({ recipe_id: recipeId, thumbnail_url: null }),
     }).catch(() => {});
   };
 
 
   const openEditMode = (recipe) => {
-    const saved = recipeEdits[recipe.url] || {};
+    const saved = recipeEdits[recipe.id] || {};
     const all = [...new Set(recipe.ingredients || [])];
     const mainList = all.filter(ing => !SEASONINGS.has(normalizeIng(ing)));
     const seasoningList = all.filter(ing => SEASONINGS.has(normalizeIng(ing)));
@@ -1334,8 +1339,8 @@ function App() {
     setModalEditMode(true);
   };
 
-  const saveEditDraft = (recipeUrl, draft, measuredAmountMap = {}) => {
-    const existing = recipeEdits[recipeUrl] || {};
+  const saveEditDraft = (recipeId, draft, measuredAmountMap = {}) => {
+    const existing = recipeEdits[recipeId] || {};
     const updates = {
       ...(existing.hidden !== undefined ? { hidden: existing.hidden } : {}),
       name: draft.name?.trim() || '',
@@ -1345,7 +1350,7 @@ function App() {
       tip: draft.tip.trim(),
       servings: draft.servings?.trim() || '',
     };
-    const updated = { ...recipeEdits, [recipeUrl]: updates };
+    const updated = { ...recipeEdits, [recipeId]: updates };
     setRecipeEdits(updated);
     localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
     setModalEditMode(false);
@@ -1361,22 +1366,22 @@ function App() {
       steps: updates.steps,
       tips: updates.tip ? [updates.tip] : [],
       servings: updates.servings || '',
-    }).eq('url', recipeUrl).then(({ error }) => {
+    }).eq('id', recipeId).then(({ error }) => {
       if (error) console.error('레시피 편집 저장 실패:', error.message);
     });
   };
 
-  const toggleHidden = (e, recipeUrl) => {
+  const toggleHidden = (e, recipeId) => {
     e.stopPropagation();
-    const existing = recipeEdits[recipeUrl] || {};
+    const existing = recipeEdits[recipeId] || {};
     const newHidden = !existing.hidden;
     const updates = { ...existing, hidden: newHidden };
-    const updated = { ...recipeEdits, [recipeUrl]: updates };
+    const updated = { ...recipeEdits, [recipeId]: updates };
     setRecipeEdits(updated);
     localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
     supabase.from('recipes').update({
       status: newHidden ? 'hidden' : 'published',
-    }).eq('url', recipeUrl).then(({ error }) => {
+    }).eq('id', recipeId).then(({ error }) => {
       if (error) console.error('공개/비공개 저장 실패:', error.message);
     });
   };
@@ -1900,7 +1905,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       .filter(r => selectedFoodType === "전체" ? true : (r.tags || []).includes(selectedFoodType))
       .filter(r => selectedCookStyle === "전체" ? true : (r.tags || []).includes(selectedCookStyle))
       .filter(r => selectedSituation === "전체" ? true : (r.tags || []).includes(selectedSituation))
-      .filter(r => !deletedKeys.has(r.url)),
+      .filter(r => !deletedKeys.has(r.id)),
     [liveFilteredData, searchResults, isCreator, selectedChef, selectedServings, selectedFoodType, selectedCookStyle, selectedSituation, deletedKeys]
   );
 
@@ -1925,12 +1930,12 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
   useEffect(() => {
     if (!recipeModal || galleryLightbox) return;
     const navList = activeTab === 'saved'
-      ? validRecipes.filter(item => savedRecipes.includes(item.url) && !deletedKeys.has(item.url))
+      ? validRecipes.filter(item => savedRecipes.includes(item.id) && !deletedKeys.has(item.id))
       : sortedResults;
     const handler = (e) => {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
       if (document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.tagName === 'INPUT') return;
-      const idx = navList.findIndex(r => r.url === recipeModal.url);
+      const idx = navList.findIndex(r => r.id === recipeModal.id);
       if (idx === -1) return;
       const next = e.key === 'ArrowLeft' ? navList[idx - 1] : navList[idx + 1];
       if (next) { setRecipeModal(next); setModalVideoPlaying(false); }
@@ -1956,7 +1961,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
     return new Set(Object.keys(counts).filter(u => counts[u] > 1));
   }, [validRecipes]);
 
-  const handleDeleteRecipe = (e, url, name) => {
+  const handleDeleteRecipe = (e, recipeId, url, name) => {
     e.stopPropagation();
     setConfirmDialog({
       message: `'${name}' 레시피를 삭제하시겠습니까?`,
@@ -1966,17 +1971,17 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           const res = await fetch(`${API_BASE}/delete-recipe`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ video_url: url, name }),
+            body: JSON.stringify({ recipe_id: recipeId, video_url: url, name }),
           });
           const data = await res.json();
           if (data.ok && data.deleted) {
             setDeletedKeys(prev => {
-              const next = new Set([...prev, url]);
+              const next = new Set([...prev, recipeId]);
               try { sessionStorage.setItem('findish_deleted_urls', JSON.stringify([...next])); } catch {}
               return next;
             });
-            setSearchResults(prev => prev.filter(r => r.url !== url));
-            if (recipeModal?.url === url && recipeModal?.name === name) setRecipeModal(null);
+            setSearchResults(prev => prev.filter(r => r.id !== recipeId));
+            if (recipeModal?.id === recipeId) setRecipeModal(null);
           }
         } catch {}
       },
@@ -1989,7 +1994,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       item,
       thumbnailSrc: item.thumbnail || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null),
       isHidden: !!item.hidden,
-      isSaved: savedSet.has(item.url),
+      isSaved: savedSet.has(item.id),
       isMyRecipe: !!(creatorUser && creatorUser.uploaderName === item.uploader),
       isCreator,
       selectedIngredientValues,
@@ -2003,35 +2008,39 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
         const POLL_KEY = 'findish_gallery_pending';
         try {
           const pending = JSON.parse(localStorage.getItem(POLL_KEY) || '{}');
-          if (pending[item.url]) {
-            setGalleryGenerating(prev => ({ ...prev, [item.url]: true }));
-            const pollUrl = item.url;
+          if (pending[item.id]) {
+            setGalleryGenerating(prev => ({ ...prev, [item.id]: true }));
+            const pollId = item.id;
             const pollInterval = setInterval(async () => {
               try {
-                const { data } = await supabase.from('recipes').select('step_images').eq('url', pollUrl).single();
+                const { data } = await supabase.from('recipes').select('step_images').eq('id', pollId).single();
                 const imgs = data?.step_images || {};
                 if (Object.keys(imgs).filter(k => k !== 'dish').length > 0) {
                   clearInterval(pollInterval);
                   setRecipeModal(prev => prev ? { ...prev, step_images: imgs } : prev);
-                  setGalleryGenerating(prev => { const n = { ...prev }; delete n[pollUrl]; return n; });
+                  setGalleryGenerating(prev => { const n = { ...prev }; delete n[pollId]; return n; });
                   const p2 = JSON.parse(localStorage.getItem(POLL_KEY) || '{}');
-                  delete p2[pollUrl]; localStorage.setItem(POLL_KEY, JSON.stringify(p2));
+                  delete p2[pollId]; localStorage.setItem(POLL_KEY, JSON.stringify(p2));
                 }
               } catch {}
             }, 15000);
           }
         } catch {}
       },
-      onToggleSave: (e) => { e.stopPropagation(); toggleSave(item.url); },
+      onToggleSave: (e) => { e.stopPropagation(); toggleSave(item.id); },
       isDuplicate: duplicateUrls.has((item.url || "").trim()),
-      onToggleHidden: (e) => toggleHidden(e, item.url),
+      onToggleHidden: (e) => toggleHidden(e, item.id),
       onEdit: (e) => { e.stopPropagation(); setRecipeModal(item); setModalVideoPlaying(false); openEditMode(item); },
-      onDelete: (e) => handleDeleteRecipe(e, item.url, item.name),
+      onDelete: (e) => handleDeleteRecipe(e, item.id, item.url, item.name),
       onTagClick: (tag) => {
         if (TAG_GROUPS.servings.tags.includes(tag)) setSelectedServings(tag);
         else if (TAG_GROUPS.foodType.tags.includes(tag)) setSelectedFoodType(tag);
         else if (TAG_GROUPS.cookStyle.tags.includes(tag)) setSelectedCookStyle(tag);
         else if (TAG_GROUPS.situation.tags.includes(tag)) setSelectedSituation(tag);
+      },
+      onChefClick: (uploader) => {
+        const chefSlug = chefConfig[uploader]?.slug;
+        if (chefSlug) navigate(`/${chefSlug}`);
       },
     };
   };
@@ -2161,9 +2170,9 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
       }} darkMode={darkMode} hideClose preventClose={() => noteEditingRef.current}>
         {recipeModal && (() => {
           const modalNavList = activeTab === 'saved'
-            ? validRecipes.filter(item => savedRecipes.includes(item.url) && !deletedKeys.has(item.url))
+            ? validRecipes.filter(item => savedRecipes.includes(item.id) && !deletedKeys.has(item.id))
             : sortedResults;
-          const modalIdx = modalNavList.findIndex(r => r.url === recipeModal.url);
+          const modalIdx = modalNavList.findIndex(r => r.id === recipeModal.id);
           return (
           <div className="recipe-modal">
             {modalIdx > 0 && (
@@ -2179,10 +2188,10 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                   {creatorUser.uploaderName === recipeModal.uploader && (
                     <>
                       <button
-                        className={`recipe-edit-toggle-btn${recipeEdits[recipeModal.url]?.hidden ? ' btn-hidden-state' : ''}`}
-                        onClick={(e) => toggleHidden(e, recipeModal.url)}
+                        className={`recipe-edit-toggle-btn${recipeEdits[recipeModal.id]?.hidden ? ' btn-hidden-state' : ''}`}
+                        onClick={(e) => toggleHidden(e, recipeModal.id)}
                       >
-                        {recipeEdits[recipeModal.url]?.hidden ? '비공개' : '공개'}
+                        {recipeEdits[recipeModal.id]?.hidden ? '비공개' : '공개'}
                       </button>
                       <button className="recipe-edit-toggle-btn" onClick={() => openEditMode(recipeModal)}>
                         편집
@@ -2193,12 +2202,12 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               )}
               {!modalEditMode && bookmarkUid && (
                 <button
-                  className={`recipe-modal-bookmark-btn${savedSet.has(recipeModal.url) ? ' saved' : ''}`}
-                  onClick={() => toggleSave(recipeModal.url)}
-                  title={savedSet.has(recipeModal.url) ? '저장 취소' : '저장하기'}
+                  className={`recipe-modal-bookmark-btn${savedSet.has(recipeModal.id) ? ' saved' : ''}`}
+                  onClick={() => toggleSave(recipeModal.id)}
+                  title={savedSet.has(recipeModal.id) ? '저장 취소' : '저장하기'}
                 >
-                  {savedSet.has(recipeModal.url) ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
-                  {savedSet.has(recipeModal.url) ? '저장됨' : '저장하기'}
+                  {savedSet.has(recipeModal.id) ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
+                  {savedSet.has(recipeModal.id) ? '저장됨' : '저장하기'}
                 </button>
               )}
               {!modalEditMode && recipeModal.slug && slug && (
@@ -2216,7 +2225,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               <button className="recipe-modal-close-btn" onClick={() => {
                 if (modalEditMode) {
                   if (!window.confirm('편집 중인 내용이 있습니다. 나가시겠습니까?')) return;
-                  if (recipeModal?.url) localStorage.removeItem(`findish_draft_${recipeModal.url}`);
+                  if (recipeModal?.id) localStorage.removeItem(`findish_draft_${recipeModal.id}`);
                 }
                 setRecipeModal(null); setModalVideoPlaying(false); setModalEditMode(false); setNoteEditingUrl(null);
                 if (recipeSlug && slug) navigate(`/${slug}`);
@@ -2233,7 +2242,14 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               />
               <div className="recipe-modal-meta-text">
                 {recipeModal.uploader && (
-                  <span className="recipe-modal-uploader">{recipeModal.uploader}</span>
+                  <span
+                    className="recipe-modal-uploader"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => {
+                      const chefSlug = chefConfig[recipeModal.uploader]?.slug;
+                      if (chefSlug) navigate(`/${chefSlug}`);
+                    }}
+                  >{recipeModal.uploader}</span>
                 )}
                 {recipeModal.upload_date && (
                   <span className="recipe-modal-date">{recipeModal.upload_date}</span>
@@ -2244,7 +2260,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
             {(() => {
               const aiServings = recipeModal.servings || '';
               const aiTags = recipeModal.tags || [];
-              const displayServings = (recipeEdits[recipeModal.url] || {}).servings || aiServings;
+              const displayServings = (recipeEdits[recipeModal.id] || {}).servings || aiServings;
               const extraTags = aiTags.filter(t => t !== aiServings && t !== displayServings);
               if (!displayServings && extraTags.length === 0) return null;
               return (
@@ -2291,7 +2307,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               );
             })()}
             {(() => {
-              const savedEdit = recipeEdits[recipeModal.url] || {};
+              const savedEdit = recipeEdits[recipeModal.id] || {};
               const displaySteps = savedEdit.steps || recipeModal.steps || [];
               const displayTip = savedEdit.tip || '';
 
@@ -2313,7 +2329,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               });
               (recipeModal.ingredients || []).forEach((ing, idx) => {
                 const ingName = ing.trim();
-                if (sourcesArr[idx] && sourcesArr[idx] !== 'groq') {
+                if (sourcesArr[idx]) {
                   sourcesMap[ingName] = sourcesArr[idx];
                 }
               });
@@ -2322,16 +2338,16 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                 <>
                   {modalEditMode ? (
                     <RecipeEditPanel
-                      key={recipeModal.url}
+                      key={recipeModal.id}
                       initialDraft={editDraftInit}
                       darkMode={darkMode}
                       t={t}
-                      thumbnailUrl={thumbnailOverrides[recipeModal.url] || recipeModal.thumbnail_url || ''}
+                      thumbnailUrl={thumbnailOverrides[recipeModal.id] || recipeModal.thumbnail_url || ''}
                       uploaderName={recipeModal.uploader}
-                      onSave={draft => saveEditDraft(recipeModal.url, draft, measuredAmountMap)}
+                      onSave={draft => saveEditDraft(recipeModal.id, draft, measuredAmountMap)}
                       onCancel={() => setModalEditMode(false)}
-                      onSaveThumbnail={url => saveThumbnailOverride(recipeModal.url, url)}
-                      onClearThumbnail={() => clearThumbnailOverride(recipeModal.url)}
+                      onSaveThumbnail={url => saveThumbnailOverride(recipeModal.id, url)}
+                      onClearThumbnail={() => clearThumbnailOverride(recipeModal.id)}
                     />
                   ) : (
                     <>
@@ -2407,10 +2423,14 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                               const amount = measuredAmountMap[ing.trim()] || parsedAmount;
                               const isHighlighted = selectedIngredientValues.has(ing.toLowerCase()) || selectedIngredientValues.has(name.toLowerCase());
                               const isSeasoning = i >= sortedMain.length;
+                              const src = sourcesMap[ing.trim()];
+                              const srcLabel = src === '고정댓글' ? '댓글' : src === '더보기란' ? '더보기' : src === '영상 분석' ? '영상' : src ? 'AI' : null;
+                              const srcClass = src === '영상 분석' ? ' video' : (src && src !== '고정댓글' && src !== '더보기란') ? ' ai' : '';
                               return (
                                 <span key={i} className={`recipe-ing-pill${isHighlighted ? ' highlighted' : ''}${isSeasoning ? ' seasoning' : ''}`}>
                                   {name}
                                   {amount && <span className="recipe-ing-pill-amount">{amount}</span>}
+                                  {srcLabel && <span className={`recipe-ing-pill-src${srcClass}`}>{srcLabel}</span>}
                                 </span>
                               );
                             })}
@@ -2439,20 +2459,24 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
 
                       {/* Gallery 섹션 — step_images가 있을 때만 표시 */}
                       {(() => {
+                        const dishFinalSrc = recipeModal.step_images?.dish_final || null;
                         const stepImgs = Object.entries(recipeModal.step_images || {})
-                          .filter(([k]) => k !== 'dish')
+                          .filter(([k]) => k !== 'dish' && k !== 'dish_final')
                           .sort(([a], [b]) => Number(a) - Number(b))
                           .map(([, src], i) => ({ src, index: i }));
+                        // dish_final 있으면 마지막에 추가, 없으면 마지막 step을 "완성"으로 표시
+                        const allImgs = dishFinalSrc
+                          ? [...stepImgs, { src: dishFinalSrc, index: stepImgs.length, isFinal: true }]
+                          : stepImgs.map((img, i) => ({ ...img, isFinal: i === stepImgs.length - 1 }));
                         if (stepImgs.length === 0) {
-                          const recipeUrl = recipeModal.url;
-                          const isGenerating = galleryGenerating[recipeUrl];
+                          const isGenerating = galleryGenerating[recipeModal.id];
                           return (
                             <div className="recipe-modal-section">
                               <h3 className="recipe-modal-section-title">GALLERY</h3>
                               <div style={{ padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <button
                                   disabled={isGenerating}
-                                  onClick={() => startGalleryGeneration(recipeUrl)}
+                                  onClick={() => startGalleryGeneration(recipeModal.id, recipeModal.url)}
                                   style={{
                                     padding: '8px 18px', borderRadius: 8, border: '1px solid #ccc',
                                     background: isGenerating ? '#eee' : '#f5f5f5',
@@ -2469,15 +2493,14 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                             </div>
                           );
                         }
-                        const recipeUrl2 = recipeModal.url;
-                        const isRegenning = galleryGenerating[recipeUrl2];
+                        const isRegenning = galleryGenerating[recipeModal.id];
                         return (
                           <div className="recipe-modal-section">
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                               <h3 className="recipe-modal-section-title" style={{ margin: 0 }}>GALLERY</h3>
                               {!isRegenning ? (
                                 <button
-                                  onClick={() => startGalleryGeneration(recipeUrl2)}
+                                  onClick={() => startGalleryGeneration(recipeModal.id, recipeModal.url)}
                                   title="갤러리 재생성"
                                   style={{
                                     padding: '3px 8px', borderRadius: 6, border: '1px solid #ddd',
@@ -2490,14 +2513,17 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                               )}
                             </div>
                             <div className="recipe-gallery-grid">
-                              {stepImgs.map(({ src, index }) => (
+                              {allImgs.map(({ src, index, isFinal }) => (
                                 <button
                                   key={index}
                                   className="recipe-gallery-item"
-                                  onClick={() => setGalleryLightbox({ items: stepImgs, current: index })}
+                                  onClick={() => setGalleryLightbox({ items: allImgs, current: index })}
                                 >
-                                  <img src={src} alt={`gallery ${index + 1}`} loading="lazy" />
-                                  <span className="recipe-gallery-step-num">{index + 1}</span>
+                                  <img src={src} alt={isFinal ? '완성' : `gallery ${index + 1}`} loading="lazy" />
+                                  {isFinal
+                                    ? <span className="recipe-gallery-step-num recipe-gallery-final">완성</span>
+                                    : <span className="recipe-gallery-step-num">{index + 1}</span>
+                                  }
                                 </button>
                               ))}
                             </div>
@@ -2508,52 +2534,52 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                     </>
                   )}
 
-                  {!modalEditMode && bookmarkUid && savedSet.has(recipeModal.url) && (
+                  {!modalEditMode && bookmarkUid && savedSet.has(recipeModal.id) && (
                     <div className={`bookmark-note-section-wrap${darkMode ? ' dark' : ''}`}>
                       <h3 className="recipe-modal-section-title">MY NOTE</h3>
                       <div
                         className={`bookmark-note-inline${darkMode ? ' dark' : ''}`}
-                        onClick={() => setNoteEditingUrl(recipeModal.url)}
+                        onClick={() => setNoteEditingUrl(recipeModal.id)}
                       >
-                        {noteEditingUrl === recipeModal.url ? (
+                        {noteEditingUrl === recipeModal.id ? (
                           <textarea
                             className={`bookmark-note-inline-input${darkMode ? ' dark' : ''}`}
                             autoFocus
-                            value={bookmarkNotes[recipeModal.url] || ''}
+                            value={bookmarkNotes[recipeModal.id] || ''}
                             maxLength={200}
                             placeholder="메모 추가..."
-                            onChange={e => setBookmarkNotes(prev => ({ ...prev, [recipeModal.url]: e.target.value }))}
+                            onChange={e => setBookmarkNotes(prev => ({ ...prev, [recipeModal.id]: e.target.value }))}
                             onFocus={() => { noteEditingRef.current = true; }}
                             onKeyDown={e => {
                               if (e.key === 'Escape') {
                                 e.preventDefault();
-                                saveBookmarkNote(recipeModal.url, e.target.value);
+                                saveBookmarkNote(recipeModal.id, e.target.value);
                                 setNoteEditingUrl(null);
                                 setTimeout(() => { noteEditingRef.current = false; }, 150);
                               }
                             }}
                             onBlur={e => {
-                              saveBookmarkNote(recipeModal.url, e.target.value);
+                              saveBookmarkNote(recipeModal.id, e.target.value);
                               setNoteEditingUrl(null);
                               setTimeout(() => { noteEditingRef.current = false; }, 150);
                             }}
                           />
                         ) : (
-                          <span className={`bookmark-note-inline-text${!bookmarkNotes[recipeModal.url] ? ' empty' : ''}${darkMode ? ' dark' : ''}`}>
-                            {bookmarkNotes[recipeModal.url] || '메모 추가...'}
+                          <span className={`bookmark-note-inline-text${!bookmarkNotes[recipeModal.id] ? ' empty' : ''}${darkMode ? ' dark' : ''}`}>
+                            {bookmarkNotes[recipeModal.id] || '메모 추가...'}
                           </span>
                         )}
                       </div>
-                      {noteEditingUrl === recipeModal.url && (
+                      {noteEditingUrl === recipeModal.id && (
                         <div className="bookmark-note-footer">
                           <span className="bookmark-note-charcount">
-                            {(bookmarkNotes[recipeModal.url] || '').length}/200
+                            {(bookmarkNotes[recipeModal.id] || '').length}/200
                           </span>
                           <button
                             className={`bookmark-note-done-btn${darkMode ? ' dark' : ''}`}
                             onMouseDown={e => {
                               e.preventDefault();
-                              saveBookmarkNote(recipeModal.url, bookmarkNotes[recipeModal.url] || '');
+                              saveBookmarkNote(recipeModal.id, bookmarkNotes[recipeModal.id] || '');
                               setNoteEditingUrl(null);
                               noteEditingRef.current = false;
                             }}
@@ -2628,11 +2654,11 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
           ) : (
             <ul className="menu-list grid-list">
               {validRecipes
-                .filter(item => savedRecipes.includes(item.url) && !deletedKeys.has(item.url))
+                .filter(item => savedRecipes.includes(item.id) && !deletedKeys.has(item.id))
                 .map((item) => (
-                  <div key={item.url} className="bookmark-card-wrap">
+                  <div key={item.id} className="bookmark-card-wrap">
                     <RecipeCard {...makeCardProps(item)} />
-                    {bookmarkNotes[item.url] && (
+                    {bookmarkNotes[item.id] && (
                       <div className={`bookmark-note-badge${darkMode ? ' dark' : ''}`}>📝</div>
                     )}
                   </div>
@@ -2826,6 +2852,30 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                       {TAG_GROUPS[key].tags.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   ))}
+                  {(selectedChef !== "all" || selectedServings !== "전체" || selectedFoodType !== "전체" || selectedCookStyle !== "전체" || selectedSituation !== "전체") && (
+                    <button
+                      onClick={() => {
+                        setSelectedChef("all");
+                        setSelectedServings("전체");
+                        setSelectedFoodType("전체");
+                        setSelectedCookStyle("전체");
+                        setSelectedSituation("전체");
+                      }}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        border: `1px solid ${darkMode ? "#555" : "#ccc"}`,
+                        background: darkMode ? "#333" : "#f5f5f5",
+                        color: darkMode ? "#ddd" : "#555",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        fontWeight: 500,
+                      }}
+                    >
+                      초기화
+                    </button>
+                  )}
                   <div className="sort-toggle">
                     <button
                       className={`sort-btn ${allMenuSort === "name" ? "active" : ""}`}
@@ -2849,7 +2899,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                   ))
                 ) : sortedResults.length > 0 ? (
                   sortedResults.map((item, i) => (
-                    <RecipeCard key={item.url} {...makeCardProps(item)} style={{ animationDelay: `${Math.min(i, 11) * 0.04}s` }} />
+                    <RecipeCard key={item.id || item.url} {...makeCardProps(item)} style={{ animationDelay: `${Math.min(i, 11) * 0.04}s` }} />
                   ))
                 ) : (
                   <p className="no-results">{t.noResults}</p>

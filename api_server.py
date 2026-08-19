@@ -11,6 +11,7 @@ import hashlib as _hashlib
 import threading
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 from youtube_automation import (
     analyze_one_video,
@@ -273,34 +274,20 @@ def analyze_and_save():
             json=recipe_row,
         )
 
-        # 이미지 추출/업로드는 백그라운드에서 비동기 처리 (자막 기반 공통 파이프라인)
+        # 저장된 레시피 ID 조회 후 갤러리 job 등록
         steps_for_img = r.get("steps", [])
         if steps_for_img:
-            sb_url = _supabase_url
-            sb_headers = _sb_headers()
-            video_url_for_img = r["video_url"]
-
-            def _bg_process_images():
-                try:
-                    import re as _re_img
-                    m = _re_img.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", video_url_for_img)
-                    if not m:
-                        return
-                    vid = m.group(1)
-                    timestamps = get_step_timestamps(vid, steps_for_img)
-                    img_dict = process_step_images(vid, timestamps, steps=steps_for_img)
-                    if img_dict:
-                        _http.patch(
-                            f'{sb_url}/rest/v1/recipes',
-                            headers={**sb_headers, 'Prefer': 'return=minimal'},
-                            params={'url': f'eq.{video_url_for_img}'},
-                            json={'step_images': img_dict},
-                        )
-                        print(f"✅ [bg] step_images 저장 완료: {video_url_for_img}")
-                except Exception as _e:
-                    print(f"❌ [bg] step_images 처리 실패: {_e}")
-
-            threading.Thread(target=_bg_process_images, daemon=True).start()
+            try:
+                id_res = _http.get(
+                    f'{_supabase_url}/rest/v1/recipes',
+                    headers=_sb_headers(),
+                    params={'url': f'eq.{r["video_url"]}', 'select': 'id'},
+                )
+                id_rows = id_res.json() if isinstance(id_res.json(), list) else []
+                if id_rows and id_rows[0].get('id'):
+                    _insert_gallery_job(id_rows[0]['id'])
+            except Exception as _e:
+                print(f"⚠️ [bg] gallery job 등록 실패: {_e}")
 
         return jsonify({
             "ok": True,
@@ -488,6 +475,15 @@ def existing_urls():
     return jsonify({"ok": True, "urls": urls}), 200
 
 
+def _extract_video_id(url: str) -> str:
+    m = _re.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", url or "")
+    return m.group(1) if m else ""
+
+
+def _normalize_name(name: str) -> str:
+    return _re.sub(r'\s+', '', name.strip().lower())
+
+
 # ✅ 개별 레시피 저장 (Supabase upsert)
 @app.post("/save-recipe")
 def save_recipe():
@@ -501,28 +497,43 @@ def save_recipe():
     if not video_url:
         return jsonify({"ok": False, "error": "video_url 누락"}), 400
 
-    # 중복 체크
-    dup_res = _http.get(
-        f'{_supabase_url}/rest/v1/recipes',
-        headers=_sb_headers(),
-        params={'url': f'eq.{video_url}', 'select': 'url,name'},
-    )
-    existing_rows = dup_res.json() if isinstance(dup_res.json(), list) else []
-    is_duplicate = len(existing_rows) > 0
+    video_id = _extract_video_id(video_url)
+
+    # 중복 체크: video_id로 기존 레시피 조회, 이름 비교 (video_id 컬럼 없으면 url로 fallback)
+    existing_rows = []
+    if video_id:
+        dup_res = _http.get(
+            f'{_supabase_url}/rest/v1/recipes',
+            headers=_sb_headers(),
+            params={'video_id': f'eq.{video_id}', 'select': 'id,url,name'},
+        )
+        dup_json = dup_res.json()
+        if isinstance(dup_json, list):
+            existing_rows = dup_json
+        elif isinstance(dup_json, dict) and dup_json.get('code') in ('42703', 'PGRST204'):
+            # video_id 컬럼 미존재 (마이그레이션 전) — url로 fallback
+            fallback = _http.get(
+                f'{_supabase_url}/rest/v1/recipes',
+                headers=_sb_headers(),
+                params={'url': f'eq.{video_url}', 'select': 'id,url,name'},
+            )
+            existing_rows = fallback.json() if isinstance(fallback.json(), list) else []
+
+    new_name_norm = _normalize_name(r.get("name", ""))
+    matching = [row for row in existing_rows if _normalize_name(row.get("name", "")) == new_name_norm]
+    is_duplicate = len(matching) > 0
+    existing_recipe_id = matching[0].get("id") if matching else None
 
     if is_duplicate and not overwrite:
         return jsonify({"ok": True, "saved": False, "reason": "duplicate",
-                        "existing": existing_rows[0] if existing_rows else None}), 200
+                        "existing": matching[0] if matching else None,
+                        "recipe_id": existing_recipe_id}), 200
 
     upload_date = r.get("upload_date", "")
     if upload_date:
-        upload_date = str(upload_date).replace(r'(\d{4})(\d{2})(\d{2})', r'\1-\2-\3')
         import re as _re2
         upload_date = _re2.sub(r'^(\d{4})(\d{2})(\d{2})$', r'\1-\2-\3', str(upload_date))
 
-    import re as _re_vid2
-    _vid2_m = _re_vid2.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", video_url or "")
-    _vid2 = _vid2_m.group(1) if _vid2_m else ""
     _uploader2 = r.get("uploader", "")
     recipe = {
         "name": r.get("name", ""),
@@ -535,125 +546,104 @@ def save_recipe():
         "tags": r.get("tags") or [],
         "source": r.get("source", ""),
         "url": video_url,
+        "video_id": video_id or None,
         "uploader": _uploader2,
         "upload_date": upload_date or None,
         "creator_id": _uploader2 or None,
         "status": "published",
         "language": "kr",
-        "slug": _generate_slug(r.get("name", ""), _uploader2, _vid2),
+        "slug": _generate_slug(r.get("name", ""), _uploader2, video_id),
     }
 
-    if is_duplicate and overwrite:
-        upsert_res = _http.patch(
-            f'{_supabase_url}/rest/v1/recipes',
-            headers={**_sb_headers(), 'Prefer': 'return=minimal'},
-            params={'url': f'eq.{video_url}'},
-            json=recipe,
-        )
-    else:
-        upsert_res = _http.post(
-            f'{_supabase_url}/rest/v1/recipes',
-            headers={**_sb_headers(), 'Prefer': 'resolution=merge-duplicates'},
-            json=recipe,
-        )
+    saved_recipe_id = existing_recipe_id
+
+    def _do_upsert(payload):
+        if is_duplicate and overwrite:
+            return _http.patch(
+                f'{_supabase_url}/rest/v1/recipes',
+                headers={**_sb_headers(), 'Prefer': 'return=representation'},
+                params={'id': f'eq.{existing_recipe_id}'},
+                json=payload,
+            )
+        else:
+            return _http.post(
+                f'{_supabase_url}/rest/v1/recipes',
+                headers={**_sb_headers(), 'Prefer': 'return=representation'},
+                json=payload,
+            )
+
+    upsert_res = _do_upsert(recipe)
+    # video_id 컬럼 미존재 시 해당 필드 제거 후 재시도 (마이그레이션 전 호환)
     if upsert_res.status_code >= 300:
-        return jsonify({"ok": False, "saved": False, "error": upsert_res.text}), 500
+        err_json = upsert_res.json() if upsert_res.text else {}
+        if isinstance(err_json, dict) and err_json.get('code') in ('42703', 'PGRST204') and 'video_id' in err_json.get('message', ''):
+            recipe_no_vid = {k: v for k, v in recipe.items() if k != 'video_id'}
+            upsert_res = _do_upsert(recipe_no_vid)
+        if upsert_res.status_code >= 300:
+            return jsonify({"ok": False, "saved": False, "error": upsert_res.text}), 500
 
-    # 이미지 추출/업로드 백그라운드 처리
+    saved_rows = upsert_res.json() if isinstance(upsert_res.json(), list) else []
+    if saved_rows:
+        saved_recipe_id = saved_rows[0].get("id", saved_recipe_id)
+
+    # 갤러리 job 등록 (step_images 데이터가 있을 때만)
     step_images_data = r.get("step_images", [])
-    if step_images_data:
-        sb_url = _supabase_url
-        sb_headers = _sb_headers()
-        video_url_for_img = video_url
-        steps_for_img = r.get("steps", [])
-
-        def _bg_process_images_save():
-            try:
-                import re as _re_img
-                m = _re_img.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", video_url_for_img)
-                if not m:
-                    return
-                vid = m.group(1)
-                img_dict = process_step_images(vid, step_images_data, steps=steps_for_img)
-                if img_dict:
-                    _http.patch(
-                        f'{sb_url}/rest/v1/recipes',
-                        headers={**sb_headers, 'Prefer': 'return=minimal'},
-                        params={'url': f'eq.{video_url_for_img}'},
-                        json={'step_images': img_dict},
-                    )
-                    print(f"✅ [bg] step_images 저장 완료: {video_url_for_img}")
-            except Exception as _e:
-                print(f"❌ [bg] step_images 처리 실패: {_e}")
-
-        threading.Thread(target=_bg_process_images_save, daemon=True).start()
+    if step_images_data and saved_recipe_id:
+        _insert_gallery_job(saved_recipe_id)
 
     _auto_update_channel_profile(r.get("uploader", ""), video_url)
-    return jsonify({"ok": True, "saved": True, "overwritten": is_duplicate}), 200
+    return jsonify({"ok": True, "saved": True, "overwritten": is_duplicate,
+                    "recipe_id": saved_recipe_id}), 200
 
 
 # ✅ 갤러리 없는 레시피에 갤러리 생성
 @app.post("/generate-gallery")
 def generate_gallery():
     data = request.get_json() or {}
+    recipe_id = data.get("recipe_id", "").strip()
+    # fallback: url로도 조회 가능 (레거시 지원)
     url = data.get("url", "").strip()
-    if not url:
-        return jsonify({"ok": False, "error": "url 누락"}), 400
+    if not recipe_id and not url:
+        return jsonify({"ok": False, "error": "recipe_id 또는 url 누락"}), 400
 
+    params = {'id': f'eq.{recipe_id}', 'select': 'id,url,video_id,steps'} if recipe_id else \
+             {'url': f'eq.{url}', 'select': 'id,url,video_id,steps'}
     res = _http.get(
         f'{_supabase_url}/rest/v1/recipes',
         headers=_sb_headers(),
-        params={'url': f'eq.{url}', 'select': 'url,steps'},
+        params=params,
     )
     rows = res.json() if isinstance(res.json(), list) else []
     if not rows:
         return jsonify({"ok": False, "error": "레시피를 찾을 수 없습니다"}), 404
 
-    steps = rows[0].get("steps", [])
-    import re as _re_gal
-    m = _re_gal.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", url)
-    if not m:
-        return jsonify({"ok": False, "error": "유효하지 않은 YouTube URL"}), 400
-    vid = m.group(1)
+    row = rows[0]
+    steps = row.get("steps", [])
+    vid = row.get("video_id") or _extract_video_id(row.get("url", ""))
+    recipe_id = row.get("id", recipe_id)
+    if not vid:
+        return jsonify({"ok": False, "error": "YouTube video_id를 추출할 수 없습니다"}), 400
 
-    sb_url = _supabase_url
-    sb_headers = _sb_headers()
-
-    def _bg_generate():
-        try:
-            timestamps = get_step_timestamps(vid, steps)
-            if not timestamps:
-                print(f"❌ [갤러리] 타임스탬프 추출 실패: {url}")
-                return
-            img_dict = process_step_images(vid, timestamps, steps=steps)
-            if img_dict:
-                _http.patch(
-                    f'{sb_url}/rest/v1/recipes',
-                    headers={**sb_headers, 'Prefer': 'return=minimal'},
-                    params={'url': f'eq.{url}'},
-                    json={'step_images': img_dict},
-                )
-                print(f"✅ [갤러리] 생성 완료: {url}")
-        except Exception as e:
-            print(f"❌ [갤러리] 생성 실패: {e}")
-
-    threading.Thread(target=_bg_generate, daemon=True).start()
-    return jsonify({"ok": True, "message": "갤러리 생성 시작됨"}), 200
+    _insert_gallery_job(recipe_id)
+    return jsonify({"ok": True, "message": "갤러리 생성 대기열에 추가됨"}), 200
 
 
 # ✅ 저장된 레시피 삭제 (Supabase)
 @app.post("/delete-recipe")
 def delete_recipe():
     data = request.get_json() or {}
+    recipe_id = data.get("recipe_id", "").strip()
+    # fallback: url로도 삭제 가능 (레거시 지원)
     video_url = data.get("video_url", "").strip()
-    if not video_url:
-        return jsonify({"ok": False, "error": "video_url이 비어 있습니다."}), 400
+    if not recipe_id and not video_url:
+        return jsonify({"ok": False, "error": "recipe_id 또는 video_url이 비어 있습니다."}), 400
 
     try:
+        params = {'id': f'eq.{recipe_id}'} if recipe_id else {'url': f'eq.{video_url}'}
         res = _http.delete(
             f'{_supabase_url}/rest/v1/recipes',
             headers=_sb_headers(),
-            params={'url': f'eq.{video_url}'},
+            params=params,
         )
         return jsonify({"ok": True, "deleted": res.status_code < 300}), 200
     except Exception as e:
@@ -757,6 +747,131 @@ def _sb_headers():
     }
 
 
+# ──────────────────────────────────────────────
+# 갤러리 Job Queue (동시성 제한 + 중단 복구)
+# ──────────────────────────────────────────────
+_gallery_executor = ThreadPoolExecutor(max_workers=2)
+_gallery_active: set = set()   # 현재 처리 중인 recipe_id
+_gallery_lock = threading.Lock()
+
+
+def _insert_gallery_job(recipe_id: str):
+    """gallery_jobs 테이블에 작업 추가. 이미 대기/처리 중이면 무시."""
+    try:
+        _http.post(
+            f'{_supabase_url}/rest/v1/gallery_jobs',
+            headers={**_sb_headers(), 'Prefer': 'resolution=ignore-duplicates,return=minimal'},
+            json={'recipe_id': recipe_id},
+        )
+    except Exception as e:
+        print(f"⚠️ [Gallery] job 등록 실패: {e}")
+
+
+def _process_gallery_job(recipe_id: str, job_id: str):
+    """갤러리 생성 후 상태 업데이트."""
+    try:
+        res = _http.get(
+            f'{_supabase_url}/rest/v1/recipes',
+            headers=_sb_headers(),
+            params={'id': f'eq.{recipe_id}', 'select': 'id,url,video_id,steps'},
+        )
+        rows = res.json() if isinstance(res.json(), list) else []
+        if not rows:
+            raise ValueError(f"recipe not found: {recipe_id}")
+
+        row = rows[0]
+        steps = row.get('steps', [])
+        vid = row.get('video_id') or _extract_video_id(row.get('url', ''))
+        if not vid:
+            raise ValueError("video_id 없음")
+
+        timestamps = get_step_timestamps(vid, steps)
+        if not timestamps:
+            raise ValueError("타임스탬프 추출 실패")
+
+        img_dict = process_step_images(vid, timestamps, steps=steps)
+        if img_dict:
+            _http.patch(
+                f'{_supabase_url}/rest/v1/recipes',
+                headers={**_sb_headers(), 'Prefer': 'return=minimal'},
+                params={'id': f'eq.{recipe_id}'},
+                json={'step_images': img_dict},
+            )
+
+        _http.patch(
+            f'{_supabase_url}/rest/v1/gallery_jobs',
+            headers={**_sb_headers(), 'Prefer': 'return=minimal'},
+            params={'id': f'eq.{job_id}'},
+            json={'status': 'done'},
+        )
+        print(f"✅ [Gallery] 완료: {recipe_id}")
+
+    except Exception as e:
+        print(f"❌ [Gallery] 실패: {recipe_id} - {e}")
+        _http.patch(
+            f'{_supabase_url}/rest/v1/gallery_jobs',
+            headers={**_sb_headers(), 'Prefer': 'return=minimal'},
+            params={'id': f'eq.{job_id}'},
+            json={'status': 'failed', 'error': str(e)[:500]},
+        )
+    finally:
+        with _gallery_lock:
+            _gallery_active.discard(recipe_id)
+
+
+def _gallery_poller():
+    """10초마다 queued/failed 작업을 꺼내 처리. Flask 시작 시 daemon thread로 실행."""
+    # 서버 재시작 시 stuck 'processing' 작업을 queued로 복구
+    try:
+        _http.patch(
+            f'{_supabase_url}/rest/v1/gallery_jobs',
+            headers={**_sb_headers(), 'Prefer': 'return=minimal'},
+            params={'status': 'eq.processing'},
+            json={'status': 'queued'},
+        )
+    except Exception:
+        pass
+
+    while True:
+        try:
+            res = _http.get(
+                f'{_supabase_url}/rest/v1/gallery_jobs',
+                headers=_sb_headers(),
+                params={
+                    'status': 'in.(queued,failed)',
+                    'attempts': 'lt.3',
+                    'order': 'created_at.asc',
+                    'limit': '5',
+                },
+            )
+            jobs = res.json() if isinstance(res.json(), list) else []
+
+            for job in jobs:
+                recipe_id = job['recipe_id']
+                job_id = job['id']
+
+                with _gallery_lock:
+                    if recipe_id in _gallery_active:
+                        continue
+                    _gallery_active.add(recipe_id)
+
+                _http.patch(
+                    f'{_supabase_url}/rest/v1/gallery_jobs',
+                    headers={**_sb_headers(), 'Prefer': 'return=minimal'},
+                    params={'id': f'eq.{job_id}'},
+                    json={'status': 'processing', 'attempts': job.get('attempts', 0) + 1},
+                )
+                _gallery_executor.submit(_process_gallery_job, recipe_id, job_id)
+
+        except Exception as e:
+            print(f"⚠️ [Gallery Poller] 오류: {e}")
+
+        time.sleep(10)
+
+
+threading.Thread(target=_gallery_poller, daemon=True).start()
+
+
 def _generate_slug(name: str, uploader: str, video_id: str) -> str:
     """레시피 이름을 Gemini로 영어 슬러그 번역. 실패 시 video_id[:8] fallback."""
     import re as _re_slug
@@ -811,12 +926,16 @@ def get_bookmarks():
         res = _http.get(
             f'{_supabase_url}/rest/v1/bookmarks',
             headers={**_sb_headers(), 'Prefer': 'return=representation'},
-            params={'user_id': f'eq.{uid}', 'select': 'recipe_url'},
+            params={'user_id': f'eq.{uid}', 'select': 'recipe_id,recipe_url'},
         )
         rows = res.json()
         if isinstance(rows, dict) and rows.get('code'):
             return jsonify({'ok': False, 'error': rows.get('message')}), 500
-        return jsonify({'ok': True, 'bookmarks': [r['recipe_url'] for r in rows]})
+        return jsonify({
+            'ok': True,
+            'bookmarks': [r['recipe_id'] for r in rows if r.get('recipe_id')],
+            'bookmarks_legacy': [r['recipe_url'] for r in rows if r.get('recipe_url') and not r.get('recipe_id')],
+        })
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
 
@@ -824,14 +943,20 @@ def get_bookmarks():
 def add_bookmark():
     data = request.get_json() or {}
     uid = data.get('uid', '').strip()
+    recipe_id = data.get('recipe_id', '').strip()
     url = data.get('url', '').strip()
-    if not uid or not url:
-        return jsonify({'ok': False, 'error': 'uid 또는 url 누락'}), 400
+    if not uid or (not recipe_id and not url):
+        return jsonify({'ok': False, 'error': 'uid 또는 recipe_id 누락'}), 400
     try:
-        res = _http.post(
+        payload = {'user_id': uid, 'bookmarked': True}
+        if recipe_id:
+            payload['recipe_id'] = recipe_id
+        if url:
+            payload['recipe_url'] = url
+        _http.post(
             f'{_supabase_url}/rest/v1/bookmarks',
             headers={**_sb_headers(), 'Prefer': 'resolution=ignore-duplicates'},
-            json={'user_id': uid, 'recipe_url': url},
+            json=payload,
         )
         return jsonify({'ok': True})
     except Exception as e:
@@ -841,15 +966,23 @@ def add_bookmark():
 def delete_bookmark():
     data = request.get_json() or {}
     uid = data.get('uid', '').strip()
+    recipe_id = data.get('recipe_id', '').strip()
     url = data.get('url', '').strip()
-    if not uid or not url:
-        return jsonify({'ok': False, 'error': 'uid 또는 url 누락'}), 400
+    if not uid or (not recipe_id and not url):
+        return jsonify({'ok': False, 'error': 'uid 또는 recipe_id 누락'}), 400
     try:
-        _http.delete(
-            f'{_supabase_url}/rest/v1/bookmarks',
-            headers=_sb_headers(),
-            params={'user_id': f'eq.{uid}', 'recipe_url': f'eq.{url}'},
-        )
+        if recipe_id:
+            _http.delete(
+                f'{_supabase_url}/rest/v1/bookmarks',
+                headers=_sb_headers(),
+                params={'user_id': f'eq.{uid}', 'recipe_id': f'eq.{recipe_id}'},
+            )
+        else:
+            _http.delete(
+                f'{_supabase_url}/rest/v1/bookmarks',
+                headers=_sb_headers(),
+                params={'user_id': f'eq.{uid}', 'recipe_url': f'eq.{url}'},
+            )
         return jsonify({'ok': True})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
@@ -874,9 +1007,11 @@ def patch_recipe():
         return jsonify({'ok': False, 'error': '권한 없음'}), 403
 
     data = request.get_json() or {}
+    recipe_id = data.get('recipe_id', '').strip()
+    # fallback: url 기반 (레거시 지원)
     url = data.get('url', '').strip()
-    if not url:
-        return jsonify({'ok': False, 'error': 'url 누락'}), 400
+    if not recipe_id and not url:
+        return jsonify({'ok': False, 'error': 'recipe_id 또는 url 누락'}), 400
 
     allowed = {'name', 'ingredients', 'ingredients_measured', 'steps', 'status', 'thumbnail_url'}
     valid_statuses = {'published', 'hidden'}
@@ -887,10 +1022,11 @@ def patch_recipe():
         return jsonify({'ok': False, 'error': '업데이트할 필드 없음'}), 400
 
     try:
+        params = {'id': f'eq.{recipe_id}'} if recipe_id else {'url': f'eq.{url}'}
         res = _http.patch(
             f'{_supabase_url}/rest/v1/recipes',
             headers={**_sb_headers(), 'Prefer': 'return=minimal'},
-            params={'url': f'eq.{url}'},
+            params=params,
             json=updates,
         )
         return jsonify({'ok': res.status_code < 300})

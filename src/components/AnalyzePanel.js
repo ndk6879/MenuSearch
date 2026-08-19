@@ -320,10 +320,22 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
               if (saveData.ok && saveData.saved) {
                 savedCount++;
                 setExistingUrls((prev) => new Set([...prev, result.video_url]));
+                if (saveData.recipe_id) {
+                  setAnalysisResults((prev) => ({
+                    ...prev,
+                    [video.video_id]: { ...(prev[video.video_id] || result), recipe_id: saveData.recipe_id },
+                  }));
+                }
               } else if (saveData.reason === "duplicate") {
                 isDuplicate = true;
                 if (saveData.existing) {
                   setChannelDuplicateData((prev) => ({ ...prev, [video.video_id]: saveData.existing }));
+                }
+                if (saveData.recipe_id) {
+                  setAnalysisResults((prev) => ({
+                    ...prev,
+                    [video.video_id]: { ...(prev[video.video_id] || result), recipe_id: saveData.recipe_id },
+                  }));
                 }
               }
             } catch {
@@ -374,6 +386,9 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
       if (data.ok && data.saved) {
         setSaveStatus((prev) => ({ ...prev, [videoId]: data.overwritten ? "overwritten" : "saved" }));
         setExistingUrls((prev) => new Set([...prev, r.video_url]));
+        if (data.recipe_id) {
+          setAnalysisResults((prev) => ({ ...prev, [videoId]: { ...r, recipe_id: data.recipe_id } }));
+        }
         onSaveSuccess?.();
       } else if (data.reason === "duplicate") {
         setSaveStatus((prev) => ({ ...prev, [videoId]: "duplicate" }));
@@ -396,7 +411,7 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ video_url: r.video_url }),
+          body: JSON.stringify({ recipe_id: r.recipe_id, video_url: r.video_url }),
         },
         10000
       );
@@ -447,9 +462,11 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
             if (saveData.ok && saveData.saved) {
               setSaveStatus((prev) => ({ ...prev, [video.video_id]: "saved" }));
               setExistingUrls((prev) => new Set([...prev, firstResult.video_url]));
+              if (saveData.recipe_id) setAnalysisResults((prev) => ({ ...prev, [video.video_id]: { ...firstResult, recipe_id: saveData.recipe_id } }));
             } else if (saveData.reason === "duplicate") {
               setSaveStatus((prev) => ({ ...prev, [video.video_id]: "duplicate" }));
               if (saveData.existing) setChannelDuplicateData((prev) => ({ ...prev, [video.video_id]: saveData.existing }));
+              if (saveData.recipe_id) setAnalysisResults((prev) => ({ ...prev, [video.video_id]: { ...firstResult, recipe_id: saveData.recipe_id } }));
             }
           } catch {}
         } else {
@@ -861,6 +878,18 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                 {tag}
                               </span>
                             ))}
+                          </div>
+                        )}
+
+                        {/* Validator 결과 */}
+                        {recipe.validation_result && (
+                          <div style={{ fontSize: 11, marginTop: 6, marginBottom: 4, padding: "3px 8px", borderRadius: 6, background: recipe.validation_result.flagged?.length > 0 ? (darkMode ? "#2a1f00" : "#fffbe6") : (darkMode ? "#0d1f0d" : "#f0faf0"), color: recipe.validation_result.flagged?.length > 0 ? "#b07800" : "#2e7d32", border: `1px solid ${recipe.validation_result.flagged?.length > 0 ? "#fcd9a0" : "#a5d6a7"}` }}>
+                            {recipe.validation_result.summary}
+                            {recipe.validation_result.fixed?.length > 0 && (
+                              <span style={{ marginLeft: 6, opacity: 0.8 }}>
+                                ({recipe.validation_result.fixed.map(f => `${f.ingredient}: ${f.original}→${f.fixed}`).join(", ")})
+                              </span>
+                            )}
                           </div>
                         )}
 
@@ -1478,6 +1507,17 @@ export default function AnalyzePanel({ apiBase = "http://localhost:8000", darkMo
                                                 {tag}
                                               </span>
                                             ))}
+                                          </div>
+                                        )}
+                                        {/* Validator 결과 */}
+                                        {res.validation_result && (
+                                          <div style={{ fontSize: 11, marginBottom: 6, padding: "3px 8px", borderRadius: 6, background: res.validation_result.flagged?.length > 0 ? (darkMode ? "#2a1f00" : "#fffbe6") : (darkMode ? "#0d1f0d" : "#f0faf0"), color: res.validation_result.flagged?.length > 0 ? "#b07800" : "#2e7d32", border: `1px solid ${res.validation_result.flagged?.length > 0 ? "#fcd9a0" : "#a5d6a7"}` }}>
+                                            {res.validation_result.summary}
+                                            {res.validation_result.fixed?.length > 0 && (
+                                              <span style={{ marginLeft: 6, opacity: 0.8 }}>
+                                                ({res.validation_result.fixed.map(f => `${f.ingredient}: ${f.original}→${f.fixed}`).join(", ")})
+                                              </span>
+                                            )}
                                           </div>
                                         )}
                                         <div style={{ marginTop: 0 }}>

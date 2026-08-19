@@ -527,6 +527,41 @@ body {
 }
 .menu-tag-badge:hover { background: rgba(0, 0, 0, 0.75); }
 
+/* 카드 태그 - 썸네일 하단 오버레이 */
+.menu-card-tags {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.menu-card-tag-badge {
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.menu-card-tag-badge:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+.dark .menu-card-tag-badge {
+  background: rgba(0,0,0,0.5);
+  color: #eee;
+}
+
+.dark .menu-card-tag-badge:hover {
+  background: rgba(255,255,255,0.2);
+}
+
 .menu-chef-dot {
   color: #ccc;
   font-size: 0.75rem;
@@ -1028,6 +1063,21 @@ body {
   font-weight: 400;
 }
 
+.recipe-ing-pill-src {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #fff;
+  background: #4a9eff;
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-left: 3px;
+  opacity: 0.85;
+  vertical-align: middle;
+}
+
+.recipe-ing-pill-src.ai { background: #9b59b6; }
+.recipe-ing-pill-src.video { background: #e67e22; }
+
 .recipe-ing-source-badge {
   font-size: 0.62rem;
   font-weight: 500;
@@ -1164,6 +1214,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.recipe-gallery-final {
+  border-radius: 10px;
+  width: auto;
+  padding: 0 6px;
+  background: rgba(255, 140, 0, 0.82);
 }
 
 /* Gallery lightbox */
