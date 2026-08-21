@@ -214,96 +214,104 @@ def analyze_and_save():
             "save_path": SAVE_PATH
         }), 400
 
-    r = (out.get("results") or [None])[0]  # name / ingredients / steps / source / uploader / upload_date / video_url
-    if not r:
+    results = out.get("results") or []
+    if not results:
         return jsonify({"ok": False, "saved": False, "error": "결과 없음", "save_path": SAVE_PATH}), 400
 
-    # 1️⃣ 스킵 규칙 (프로모션/분석불가는 저장 안 함)
-    if (r.get("name") in ["분석 불가", "Only 제품 설명 OR 홍보"]) or \
-       ("Only 제품 설명 OR 홍보" in (r.get("ingredients") or [])):
-        return jsonify({
-            "ok": True,
-            "saved": False,
-            "reason": "promo_or_unparsable",
-            "result": r,
-            "save_path": SAVE_PATH
-        }), 200
+    import re as _re3, re as _re_vid
 
-    # 2️⃣ Supabase 중복 체크
-    dup_res = _http.get(
-        f'{_supabase_url}/rest/v1/recipes',
-        headers=_sb_headers(),
-        params={'url': f'eq.{r["video_url"]}', 'select': 'url'},
-    )
-    if isinstance(dup_res.json(), list) and len(dup_res.json()) > 0:
-        return jsonify({
-            "ok": True,
-            "saved": False,
-            "reason": "duplicate",
-            "result": r,
-            "save_path": SAVE_PATH
-        }), 200
+    saved_names = []
+    skipped = []
 
-    # 3️⃣ Supabase upsert
-    try:
-        import re as _re3
-        upload_date = _re3.sub(r'^(\d{4})(\d{2})(\d{2})$', r'\1-\2-\3', str(r.get("upload_date", "")))
-        import re as _re_vid
-        _vid = (_re_vid.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", r["video_url"] or "") or type('', (), {'group': lambda *a: None})()).group(1)
-        recipe_row = {
-            "name": r["name"],
-            "ingredients": _clean_ingredients(r["ingredients"]),
-            "ingredients_measured": r.get("ingredients_measured") or [],
-            "ingredients_sources": r.get("ingredients_sources") or [],
-            "steps": r.get("steps", []),
-            "tips": r.get("tips") or [],
-            "servings": r.get("servings") or "",
-            "tags": r.get("tags") or [],
-            "source": r["source"],
-            "url": r["video_url"],
-            "uploader": r["uploader"],
-            "upload_date": upload_date or None,
-            "creator_id": r["uploader"] or None,
-            "status": "published",
-            "language": "kr",
-            "slug": _generate_slug(r["name"], r["uploader"], _vid or ""),
-        }
-        _http.post(
+    for i, r in enumerate(results):
+        if not r:
+            continue
+
+        # 1️⃣ 스킵 규칙 (프로모션/분석불가)
+        if (r.get("name") in ["분석 불가", "Only 제품 설명 OR 홍보"]) or \
+           ("Only 제품 설명 OR 홍보" in (r.get("ingredients") or [])):
+            skipped.append({"name": r.get("name"), "reason": "promo_or_unparsable"})
+            continue
+
+        # 다중 레시피: 2번째부터 URL에 #r{n} suffix로 구분
+        recipe_url = r["video_url"] if i == 0 else f"{r['video_url']}#r{i + 1}"
+
+        # 2️⃣ Supabase 중복 체크
+        dup_res = _http.get(
             f'{_supabase_url}/rest/v1/recipes',
-            headers={**_sb_headers(), 'Prefer': 'resolution=merge-duplicates'},
-            json=recipe_row,
+            headers=_sb_headers(),
+            params={'url': f'eq.{recipe_url}', 'select': 'url'},
         )
+        if isinstance(dup_res.json(), list) and len(dup_res.json()) > 0:
+            skipped.append({"name": r.get("name"), "reason": "duplicate"})
+            continue
 
-        # 저장된 레시피 ID 조회 후 갤러리 job 등록
-        steps_for_img = r.get("steps", [])
-        if steps_for_img:
-            try:
-                id_res = _http.get(
-                    f'{_supabase_url}/rest/v1/recipes',
-                    headers=_sb_headers(),
-                    params={'url': f'eq.{r["video_url"]}', 'select': 'id'},
-                )
-                id_rows = id_res.json() if isinstance(id_res.json(), list) else []
-                if id_rows and id_rows[0].get('id'):
-                    _insert_gallery_job(id_rows[0]['id'])
-            except Exception as _e:
-                print(f"⚠️ [bg] gallery job 등록 실패: {_e}")
+        # 3️⃣ Supabase upsert
+        try:
+            upload_date = _re3.sub(r'^(\d{4})(\d{2})(\d{2})$', r'\1-\2-\3', str(r.get("upload_date", "")))
+            _vid = (_re_vid.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", r["video_url"] or "") or type('', (), {'group': lambda *a: None})()).group(1)
+            slug_suffix = "" if i == 0 else f"-{i + 1}"
+            recipe_row = {
+                "name": r["name"],
+                "ingredients": _clean_ingredients(r["ingredients"]),
+                "ingredients_measured": r.get("ingredients_measured") or [],
+                "ingredients_sources": r.get("ingredients_sources") or [],
+                "steps": r.get("steps", []),
+                "tips": r.get("tips") or [],
+                "servings": r.get("servings") or "",
+                "tags": r.get("tags") or [],
+                "source": r["source"],
+                "url": recipe_url,
+                "uploader": r["uploader"],
+                "upload_date": upload_date or None,
+                "creator_id": r["uploader"] or None,
+                "status": "published",
+                "language": "kr",
+                "slug": _generate_slug(r["name"], r["uploader"], _vid or "") + slug_suffix,
+            }
+            _http.post(
+                f'{_supabase_url}/rest/v1/recipes',
+                headers={**_sb_headers(), 'Prefer': 'resolution=merge-duplicates'},
+                json=recipe_row,
+            )
+            saved_names.append(r["name"])
 
-        return jsonify({
-            "ok": True,
-            "saved": True,
-            "result": r,
-            "save_path": SAVE_PATH
-        }), 200
+            # 갤러리 job 등록
+            if r.get("steps"):
+                try:
+                    id_res = _http.get(
+                        f'{_supabase_url}/rest/v1/recipes',
+                        headers=_sb_headers(),
+                        params={'url': f'eq.{recipe_url}', 'select': 'id'},
+                    )
+                    id_rows = id_res.json() if isinstance(id_res.json(), list) else []
+                    if id_rows and id_rows[0].get('id'):
+                        _insert_gallery_job(id_rows[0]['id'])
+                except Exception as _e:
+                    print(f"⚠️ [bg] gallery job 등록 실패: {_e}")
 
-    except Exception as e:
+        except Exception as e:
+            skipped.append({"name": r.get("name"), "reason": f"write_failed: {e}"})
+
+    if not saved_names and skipped:
+        first_reason = skipped[0]["reason"] if skipped else "unknown"
         return jsonify({
             "ok": True,
             "saved": False,
-            "reason": f"write_failed: {e}",
-            "result": r,
+            "reason": first_reason,
+            "result": results[0],
             "save_path": SAVE_PATH
-        }), 500
+        }), 200
+
+    return jsonify({
+        "ok": True,
+        "saved": True,
+        "name": ", ".join(saved_names),
+        "saved_count": len(saved_names),
+        "skipped": skipped,
+        "result": results[0],
+        "save_path": SAVE_PATH
+    }), 200
 
 
 # ✅ 채널 영상 목록 가져오기
@@ -626,6 +634,38 @@ def generate_gallery():
 
     _insert_gallery_job(recipe_id)
     return jsonify({"ok": True, "message": "갤러리 생성 대기열에 추가됨"}), 200
+
+
+# ✅ 어드민 레시피 편집 (service role key 사용)
+ADMIN_UID = 'c2163866-5b15-4e2a-a2db-61b15771646e'
+
+@app.post("/admin-update-recipe")
+def admin_update_recipe():
+    data = request.get_json() or {}
+    requester_uid = data.get("uid", "").strip()
+    if requester_uid != ADMIN_UID:
+        return jsonify({"ok": False, "error": "권한 없음"}), 403
+
+    recipe_id = data.get("recipe_id", "").strip()
+    payload = data.get("payload", {})
+    if not recipe_id or not payload:
+        return jsonify({"ok": False, "error": "recipe_id 또는 payload 누락"}), 400
+
+    allowed_fields = {"name", "ingredients", "ingredients_measured", "steps", "tips", "servings", "status"}
+    patch = {k: v for k, v in payload.items() if k in allowed_fields}
+    if not patch:
+        return jsonify({"ok": False, "error": "수정할 필드 없음"}), 400
+
+    try:
+        res = _http.patch(
+            f'{_supabase_url}/rest/v1/recipes',
+            headers=_sb_headers(),
+            params={"id": f"eq.{recipe_id}"},
+            json=patch,
+        )
+        return jsonify({"ok": res.status_code < 300}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ✅ 저장된 레시피 삭제 (Supabase)

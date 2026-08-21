@@ -81,6 +81,22 @@ _select_best_final_dish_frame() → 최적 1장
 
 ---
 
+## Standalone Gallery Worker (2026-08-21)
+
+Flask 내부 poller thread가 job을 `processing`으로 잡고 완료 못 하는 문제가 반복됨.
+→ **`run_gallery_worker.py`** 단독 실행이 더 안정적.
+
+```bash
+# stuck job 먼저 리셋
+# Supabase에서 status=processing → queued, attempts=0 으로 PATCH
+
+# 특정 채널 job만 처리하려면 다른 채널 job 먼저 삭제
+# THEN 실행
+python3 -u run_gallery_worker.py
+```
+
+---
+
 ## Gallery Job Queue (2026-08-19)
 
 갤러리 생성을 DB 기반 잡 큐로 관리. 동시성 제한 + 중단 복구 목적.

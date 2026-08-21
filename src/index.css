@@ -3053,6 +3053,12 @@ button.header-logo {
 .modal-content.modal-dark .recipe-edit-toggle-btn--delete {
   color: #fc8181 !important;
 }
+.recipe-edit-toggle-btn.btn-delete-state {
+  color: #e53e3e !important;
+}
+.modal-content.modal-dark .recipe-edit-toggle-btn.btn-delete-state {
+  color: #fc8181 !important;
+}
 .recipe-edit-toggle-btn.btn-hidden-state {
   background: #fee2e2 !important;
   color: #b91c1c !important;
@@ -3627,6 +3633,21 @@ button.header-logo {
 }
 
 /* 중복 배지 */
+.menu-card-new-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  background: rgba(249, 115, 22, 0.68);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 500;
+  padding: 2px 5px;
+  border-radius: 8px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
 .menu-duplicate-badge {
   position: absolute;
   top: 8px;

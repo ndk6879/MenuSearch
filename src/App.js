@@ -710,6 +710,9 @@ const RecipeCard = React.memo(function RecipeCard({
         {thumbnailSrc && (
           <img src={thumbnailSrc} alt={item.name} className={`menu-thumbnail${isHidden ? ' thumbnail-hidden' : ''}`} loading="lazy" decoding="async" />
         )}
+        {item.created_at && (Date.now() - new Date(item.created_at).getTime() < 36 * 60 * 60 * 1000) && (
+          <span className="menu-card-new-badge">NEW</span>
+        )}
         {isHidden && (
           <div className="hidden-overlay">
             <span className="hidden-overlay-icon">🔒</span>
@@ -863,6 +866,8 @@ const isValidRecipe = (item) =>
   item.name !== "분석 불가" &&
   !(item.ingredients || []).includes("Only 제품 설명 OR 홍보");
 
+const ADMIN_UID = 'c2163866-5b15-4e2a-a2db-61b15771646e';
+
 const SEASONINGS = new Set([
   "소금","후추","설탕","밀가루","기름","면수","샐러리 소금","백후추","핑크 페퍼콘","슈가파우더","아이싱 슈가",
   "올리브 오일","식용유","참기름","들기름","고추기름","오리 기름","트러플","트러플 오일","화이트 트러플 오일","오일",
@@ -1002,7 +1007,7 @@ function App() {
   const refreshRecipes = () => {
     supabase
       .from('recipes')
-      .select('id,name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images,slug')
+      .select('id,name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images,slug,created_at')
       .eq('language', 'kr')
       .then(({ data }) => {
         if (data) {
@@ -1024,7 +1029,7 @@ function App() {
 
     supabase
       .from('recipes')
-      .select('id,name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images,slug')
+      .select('id,name,url,uploader,upload_date,ingredients,ingredients_measured,ingredients_sources,steps,tips,servings,tags,source,status,thumbnail_url,language,step_images,slug,created_at')
       .eq('language', 'kr')
       .then(({ data }) => {
         clearTimeout(loadingTimeout);
@@ -1181,11 +1186,12 @@ function App() {
   );
 
   const isCreator = !!creatorUser;
+  const isAdmin = socialUser?.uid === ADMIN_UID;
   const validRecipes = useMemo(() =>
     sortedData.filter(item =>
-      isValidRecipe(item) && (!item.hidden || isCreator)
+      isValidRecipe(item) && (!item.hidden || isCreator || isAdmin)
     ),
-    [sortedData, isCreator]
+    [sortedData, isCreator, isAdmin]
   );
 
   const POPULAR_TAG_BLOCKLIST = new Set([
@@ -1315,60 +1321,59 @@ function App() {
 
 
   const openEditMode = (recipe) => {
-    const saved = recipeEdits[recipe.id] || {};
     const all = [...new Set(recipe.ingredients || [])];
     const mainList = all.filter(ing => !SEASONINGS.has(normalizeIng(ing)));
     const seasoningList = all.filter(ing => SEASONINGS.has(normalizeIng(ing)));
-    const rawSteps = saved.steps ? saved.steps : (recipe.steps || []);
-    // 앞 번호("1. ") 제거 + 내부 \n을 공백으로 정규화
+    const rawSteps = recipe.steps || [];
     const cleanedSteps = rawSteps.map(s =>
       s.replace(/^\d+[.)]\s*/, '').replace(/\n/g, ' ').trim()
     ).filter(Boolean);
-    const combinedIngredients = [
-      ...(saved.mainIngredients || mainList),
-      ...(saved.seasonings || seasoningList),
-    ];
     setEditDraftInit({
-      name: saved.name || recipe.name || '',
-      mainIngredients: combinedIngredients.join('\n'),
+      name: recipe.name || '',
+      mainIngredients: [...mainList, ...seasoningList].join('\n'),
       seasonings: '',
       steps: cleanedSteps.join('\n'),
-      tip: saved.tip || '',
-      servings: saved.servings || '',
+      tip: (recipe.tips || []).join('\n'),
+      servings: recipe.servings || '',
     });
     setModalEditMode(true);
   };
 
   const saveEditDraft = (recipeId, draft, measuredAmountMap = {}) => {
-    const existing = recipeEdits[recipeId] || {};
-    const updates = {
-      ...(existing.hidden !== undefined ? { hidden: existing.hidden } : {}),
-      name: draft.name?.trim() || '',
-      mainIngredients: draft.mainIngredients.split('\n').map(s => s.trim()).filter(Boolean),
-      seasonings: [],
-      steps: draft.steps.split('\n').map(s => s.trim()).filter(Boolean),
-      tip: draft.tip.trim(),
-      servings: draft.servings?.trim() || '',
-    };
-    const updated = { ...recipeEdits, [recipeId]: updates };
-    setRecipeEdits(updated);
-    localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
-    setModalEditMode(false);
-    const newIngredients = [...(updates.mainIngredients || []), ...(updates.seasonings || [])];
+    const newIngredients = draft.mainIngredients.split('\n').map(s => s.trim()).filter(Boolean);
+    const newSteps = draft.steps.split('\n').map(s => s.trim()).filter(Boolean);
+    const newTips = draft.tip.trim() ? [draft.tip.trim()] : [];
     const newMeasured = newIngredients.map(ing => {
       const amount = measuredAmountMap[ing];
       return amount ? `${ing} ${amount}` : '';
     });
-    supabase.from('recipes').update({
-      name: updates.name,
+    const payload = {
+      name: draft.name?.trim() || '',
       ingredients: newIngredients,
       ingredients_measured: newMeasured,
-      steps: updates.steps,
-      tips: updates.tip ? [updates.tip] : [],
-      servings: updates.servings || '',
-    }).eq('id', recipeId).then(({ error }) => {
-      if (error) console.error('레시피 편집 저장 실패:', error.message);
-    });
+      steps: newSteps,
+      tips: newTips,
+      servings: draft.servings?.trim() || '',
+    };
+    setModalEditMode(false);
+    setRecipeModal(prev => prev ? { ...prev, ...payload } : prev);
+    setRecipeData(prev => prev.map(r => r.id === recipeId ? { ...r, ...payload } : r));
+
+    if (isAdmin) {
+      fetch(`${API_BASE}/admin-update-recipe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: socialUser.uid, recipe_id: recipeId, payload }),
+      }).then(r => r.json()).then(d => {
+        if (!d.ok) console.error('어드민 편집 저장 실패:', d.error);
+        else showToast('저장됐어요!');
+      }).catch(e => console.error('어드민 편집 요청 실패:', e));
+    } else {
+      supabase.from('recipes').update(payload).eq('id', recipeId).then(({ error }) => {
+        if (error) console.error('레시피 편집 저장 실패:', error.message);
+        else showToast('저장됐어요!');
+      });
+    }
   };
 
   const toggleHidden = (e, recipeId) => {
@@ -1380,10 +1385,24 @@ function App() {
     setRecipeEdits(updated);
     localStorage.setItem('findish_recipe_edits', JSON.stringify(updated));
     supabase.from('recipes').update({
-      status: newHidden ? 'hidden' : 'published',
+      status: newHidden ? 'hidden' : 'active',
     }).eq('id', recipeId).then(({ error }) => {
       if (error) console.error('공개/비공개 저장 실패:', error.message);
     });
+  };
+
+  const adminToggleHidden = (e, recipe) => {
+    e.stopPropagation();
+    const newStatus = recipe.status === 'hidden' ? 'active' : 'hidden';
+    fetch(`${API_BASE}/admin-update-recipe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: socialUser.uid, recipe_id: recipe.id, payload: { status: newStatus } }),
+    }).then(r => r.json()).then(d => {
+      if (!d.ok) { console.error('어드민 공개/비공개 실패:', d.error); return; }
+      setRecipeModal(prev => prev ? { ...prev, status: newStatus } : prev);
+      setRecipeData(prev => prev.map(r => r.id === recipe.id ? { ...r, status: newStatus } : r));
+    }).catch(e => console.error('어드민 공개/비공개 요청 실패:', e));
   };
 
   // ── 동의어 맵: 같은 재료의 다른 표기 → 검색/표시 통일 ──
@@ -2183,6 +2202,25 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
             )}
             <div className="recipe-modal-header">
               <h2 className="recipe-modal-title">{recipeModal.name}</h2>
+              {!modalEditMode && isAdmin && (
+                <>
+                  <button
+                    className={`recipe-edit-toggle-btn${recipeModal.status === 'hidden' ? ' btn-hidden-state' : ''}`}
+                    onClick={(e) => adminToggleHidden(e, recipeModal)}
+                  >
+                    {recipeModal.status === 'hidden' ? '비공개' : '공개'}
+                  </button>
+                  <button className="recipe-edit-toggle-btn" onClick={() => openEditMode(recipeModal)}>
+                    편집
+                  </button>
+                  <button
+                    className="recipe-edit-toggle-btn btn-delete-state"
+                    onClick={(e) => handleDeleteRecipe(e, recipeModal.id, recipeModal.url, recipeModal.name)}
+                  >
+                    삭제
+                  </button>
+                </>
+              )}
               {creatorUser && !modalEditMode && (
                 <>
                   {creatorUser.uploaderName === recipeModal.uploader && (
@@ -2208,18 +2246,6 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                 >
                   {savedSet.has(recipeModal.id) ? <FaBookmark size={14} /> : <FaRegBookmark size={14} />}
                   {savedSet.has(recipeModal.id) ? '저장됨' : '저장하기'}
-                </button>
-              )}
-              {!modalEditMode && recipeModal.slug && slug && (
-                <button
-                  className="recipe-modal-share-btn"
-                  title="링크 복사"
-                  onClick={() => {
-                    const url = `${window.location.origin}/${slug}/${recipeModal.slug}`;
-                    navigator.clipboard.writeText(url).then(() => showToast('링크가 복사됐어요!'));
-                  }}
-                >
-                  🔗
                 </button>
               )}
               <button className="recipe-modal-close-btn" onClick={() => {
@@ -2307,13 +2333,12 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
               );
             })()}
             {(() => {
-              const savedEdit = recipeEdits[recipeModal.id] || {};
-              const displaySteps = savedEdit.steps || recipeModal.steps || [];
-              const displayTip = savedEdit.tip || '';
+              const displaySteps = recipeModal.steps || [];
+              const displayTip = '';
 
               const all = [...new Set(recipeModal.ingredients || [])];
-              const mainList = savedEdit.mainIngredients || all.filter(ing => !SEASONINGS.has(normalizeIng(ing)));
-              const seasoningList = savedEdit.seasonings || all.filter(ing => SEASONINGS.has(normalizeIng(ing)));
+              const mainList = all.filter(ing => !SEASONINGS.has(normalizeIng(ing)));
+              const seasoningList = all.filter(ing => SEASONINGS.has(normalizeIng(ing)));
               const sortedMain = [
                 ...mainList.filter(ing => selectedIngredientValues.has(ing.toLowerCase())),
                 ...mainList.filter(ing => !selectedIngredientValues.has(ing.toLowerCase())),
@@ -2415,7 +2440,7 @@ const [allMenuSort, setAllMenuSort] = useState("date"); // "name" | "date"
                       {(sortedMain.length > 0 || seasoningList.length > 0) && (
                         <div className="recipe-modal-section">
                           <h3 className="recipe-modal-section-title">
-                            RECIPE{savedEdit.servings ? ` (${savedEdit.servings})` : (recipeModal.servings ? ` (${recipeModal.servings})` : '')}
+                            RECIPE{recipeModal.servings ? ` (${recipeModal.servings})` : ''}
                           </h3>
                           <div className={`recipe-ing-pills${darkMode ? ' dark' : ''}`}>
                             {[...sortedMain, ...seasoningList].map((ing, i) => {

@@ -447,6 +447,71 @@ def analyze_video_with_gemini(video_id: str):
         return None
 
 
+def parse_ingredients_with_gemini(raw_ingredients: list) -> list:
+    """
+    Gemini 영상 분석 결과 재료 목록에서 이름과 용량을 분리.
+    반환: [{"name": "채 썬 감자", "quantity": "150g"}, {"name": "간장", "quantity": None}, ...]
+    """
+    if not raw_ingredients:
+        return []
+
+    ing_list = "\n".join(f"- {ing}" for ing in raw_ingredients)
+    prompt = f"""아래 목록의 각 항목은 **재료명과 용량이 함께 적힌 텍스트**입니다. 재료명과 용량을 분리해주세요. 용량이 없는 항목은 재료명만 있습니다.
+
+재료 목록:
+{ing_list}
+
+규칙:
+- 재료명 끝에 숫자+단위(g, ml, kg, L, 개, 쪽, 큰술, 작은술, 컵, 장, 마리, 줄기 등)가 붙어있으면 반드시 분리하세요.
+  예: "통항정살 350g" → name: "통항정살", quantity: "350g"
+  예: "소고기 자투리 500g" → name: "소고기 자투리", quantity: "500g"
+  예: "채 썬 감자 150g" → name: "채 썬 감자", quantity: "150g"
+  예: "닭장각 4개" → name: "닭장각", quantity: "4개"
+- 영어로 된 단위가 있으면 한국어로 변환하세요 (예: spoon/tbsp → 큰술, tsp → 작은술, cup → 컵 등).
+- 용량 표현은 원본 그대로 유지하세요 (단위 변환 금지).
+- 용량이 없으면 quantity는 null로 반환하세요.
+- 재료 순서 그대로 JSON 배열로 반환하세요.
+
+출력 예시:
+[{{"name": "통항정살", "quantity": "350g"}}, {{"name": "닭장각", "quantity": "4개"}}, {{"name": "간장", "quantity": null}}]"""
+
+    raw = _call_gemini_text(prompt, max_tokens=400)
+    if not raw:
+        safe_print("⚠️ [재료 파싱] Gemini 호출 실패 → 원본 사용")
+        return [{"name": ing.strip(), "quantity": None} for ing in raw_ingredients]
+
+    try:
+        raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
+        bracket_s = raw.find('[')
+        bracket_e = raw.rfind(']')
+        if bracket_s != -1 and bracket_e != -1:
+            parsed = json.loads(raw[bracket_s:bracket_e + 1])
+            if isinstance(parsed, list) and len(parsed) == len(raw_ingredients):
+                _UNIT_RE = re.compile(
+                    r'^(.+?)\s+(\d+(?:[./~]\d+)?\s*'
+                    r'(?:g|kg|ml|L|개|쪽|큰술|작은술|컵|장|마리|줄기|꼬집|spoons?|tbsp|tsp))\s*$'
+                )
+                result = []
+                for item in parsed:
+                    name = (item.get("name") or "").strip()
+                    qty = item.get("quantity")
+                    if not qty or qty == "null":
+                        qty = None
+                    # Gemini가 분리 못한 경우 regex fallback
+                    if qty is None and name:
+                        m = _UNIT_RE.match(name)
+                        if m:
+                            name, qty = m.group(1).strip(), m.group(2).strip()
+                    result.append({"name": name, "quantity": qty})
+                safe_print(f"✅ [재료 파싱] {len(result)}개 재료 이름/용량 분리 완료")
+                return result
+        safe_print("⚠️ [재료 파싱] 파싱 실패 → 원본 사용")
+    except Exception as e:
+        safe_print(f"❌ [재료 파싱] 오류: {e} → 원본 사용")
+
+    return [{"name": ing.strip(), "quantity": None} for ing in raw_ingredients]
+
+
 def resolve_quantities_from_video(video_id: str, ingredients: list) -> dict:
     """
     텍스트/기존 분석으로 용량을 못 찾은 재료들에 대해 Gemini에게 영상을 보고 개수/용량을 직접 확인 요청.
@@ -466,13 +531,15 @@ def resolve_quantities_from_video(video_id: str, ingredients: list) -> dict:
 규칙:
 - 영상(화면, 음성, 자막, 화면 텍스트)에서 **직접 확인된** 경우만 답하세요.
 - 개수로 셀 수 있는 재료는 개수로 답하세요 (예: "2개", "3쪽", "1마리").
-- 계량 용기(큰술, 컵, g 등)로 명확히 보이면 그 단위로 답하세요.
+- 계량 용기로 명확히 보이면 그 단위로 답하세요.
+- 크리에이터가 사용한 용량 표현을 그대로 사용하세요.
+- 영어로 된 단위가 있으면 한국어로 변환하세요 (예: spoon/tbsp → 큰술, tsp → 작은술, cup → 컵 등).
 - 확인이 안 되면 null로 반환하세요. 추측하지 마세요.
 - 반드시 위 목록의 재료명을 그대로 key로 사용하세요.
 - JSON 객체만 반환하세요. 설명 없이.
 
 출력 예시:
-{{"양파": "1개", "계란": "3개", "버터": null, "소금": null}}"""
+{{"양파": "1개", "계란": "3개", "간장": "2큰술", "버터": null, "소금": null}}"""
 
     try:
         safe_print(f"🔍 [용량 보완] Gemini에 {len(ingredients)}개 재료 용량 확인 요청: {ingredients}")
@@ -869,7 +936,9 @@ def _is_final_dish(img_source: str) -> bool:
             return False
         client = genai_new.Client(api_key=GEMINI_API_KEY)
         prompt = (
-            "이 이미지가 지금 만들고 있는 요리의 완성된 모습을 보여주기에 적절하면 YES, 아니면 NO."
+            "이 이미지가 지금 만들고 있는 요리의 완성된 모습을 보여주기에 적절하면 YES, 아니면 NO.\n"
+            "완성된 요리는 전체 요리가 잘 보여야 함.\n"
+            "광고·홍보·밀키트 소개 또는 이번 요리와 무관한 다른 음식이 등장하는 장면은 안됨."
         )
         parts = [prompt, genai_types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg")]
         import concurrent.futures as _cf
@@ -902,9 +971,10 @@ def _select_best_final_dish_frame(candidate_paths: list):
         prompt = (
             f"아래 {len(images)}장 중 완성된 요리 사진으로 가장 적합한 1장을 고르세요.\n\n"
             "선택 기준 (우선순위 순):\n"
-            "1. 조리가 완료된 음식의 전체 모습, 플레이팅, 먹기 직전 상태\n"
+            "1. 조리가 완료된 음식의 전체 모습이 잘 보이는 것, 플레이팅, 먹기 직전 상태\n"
             "2. 접시/그릇에 담긴 완성 형태 우선\n"
-            "제외: 재료 손질·볶는 중·끓이는 중 등 조리 과정 중인 장면\n\n"
+            "제외: 재료 손질·볶는 중·끓이는 중 등 조리 과정 중인 장면, "
+            "광고·홍보·밀키트 소개 또는 이번 요리와 무관한 다른 음식이 등장하는 장면\n\n"
             "기준에 맞는 프레임이 없으면 NONE.\n"
             "프레임 번호만 답하세요. 예: 3 또는 NONE"
         )
@@ -1251,12 +1321,15 @@ def extract_step_frames(video_id: str, step_images: list, output_dir: str = None
                     if retry_candidates:
                         retry_step_text = steps[step_idx] if steps and step_idx < len(steps) else None
                         best_r = _select_best_frame_with_gemini(retry_candidates, step_text=retry_step_text)
-                        shutil.copy2(best_r, path)
+                        if best_r:
+                            shutil.copy2(best_r, path)
+                            h = imagehash.dhash(_PILImg2.open(path))
+                            safe_print(f"✅ [이미지] step {step_idx} 중복 재추출 완료")
+                        else:
+                            safe_print(f"⚠️ [이미지] step {step_idx} 중복 재추출 실패 (NONE)")
                         for p in retry_candidates:
                             if os.path.exists(p):
                                 os.remove(p)
-                        h = imagehash.dhash(_PILImg2.open(path))
-                        safe_print(f"✅ [이미지] step {step_idx} 중복 재추출 완료")
             hashes[step_idx] = h
     except ImportError:
         safe_print("⚠️ [이미지] imagehash 미설치, 중복 제거 건너뜀 (pip install imagehash)")
@@ -1598,9 +1671,6 @@ def ask_groq_from_text(raw_text, source_name="", target="both"):
     target: "both" | "ingredients" | "steps"
     Whisper 단계에서 부족한 항목만 보완할 때 target을 지정해서 호출.
     """
-    if not _groq_client:
-        safe_print("❌ GROQ_API_KEY 없음 → 텍스트 분석 불가")
-        return None
 
     prefix = {
         "고정댓글": "이 텍스트는 유튜브 요리 영상의 고정 댓글입니다.",
@@ -1684,7 +1754,7 @@ def extract_confirmed_quantities_from_text(raw_text: str, source_name: str, ingr
     description/pinned comment 등 텍스트에서 알려진 재료들의 명시적 용량을 추출.
     반환: {재료명: {"quantity": "2큰술", "source": source_name}}
     """
-    if not _groq_client or not ingredients or not raw_text:
+    if not ingredients or not raw_text:
         return {}
 
     ing_list = "\n".join(f"- {ing}" for ing in ingredients)
@@ -1734,68 +1804,72 @@ def extract_confirmed_quantities_from_text(raw_text: str, source_name: str, ingr
 # -----------------------------
 # Groq 용량 추정 (확정된 재료 리스트 기반)
 # -----------------------------
-def estimate_quantities_with_groq(dish_name: str, ingredients: list, servings: str = "", confirmed: dict = None) -> list:
+def estimate_quantities_with_gemini(dish_name: str, ingredients: list, servings: str = "", confirmed: dict = None) -> list:
     """
-    Gemini가 확정한 재료 리스트를 받아 Groq으로 권장 용량만 추정.
-    confirmed: {재료명: {"quantity": "2큰술", "source": "고정댓글"}} — 크리에이터가 명시한 용량 앵커
-    반환: [{"text": "파스타 100g", "source": "groq"}, ...] 형식의 리스트
+    confirmed 재료는 Gemini 없이 직접 조합, 나머지만 Gemini로 용량 추정.
+    반환: [{"text": "파스타 100g", "source": "영상 분석"}, ...] 형식의 리스트
     """
-    if not _groq_client or not ingredients:
+    if not ingredients:
         return []
 
     confirmed = confirmed or {}
-    servings_hint = f"\n분량 기준: {servings}" if servings else ""
+    result_map = {}
 
-    def ing_line(ing):
+    # confirmed 재료 → Gemini 없이 직접 조합
+    for ing in ingredients:
         if ing in confirmed:
-            return f"- {ing} [확인된 양: {confirmed[ing]['quantity']}]"
-        return f"- {ing}"
+            result_map[ing] = {
+                "text": f"{ing} {confirmed[ing]['quantity']}",
+                "source": confirmed[ing]["source"],
+            }
 
-    ing_list = "\n".join(ing_line(ing) for ing in ingredients)
-    prompt = f"""요리 이름: {dish_name}{servings_hint}
-아래는 이 요리에 실제 사용된 재료 목록입니다. 각 재료의 권장 용량을 반환하세요.
+    # 나머지 재료만 Gemini로 추정
+    unconfirmed = [ing for ing in ingredients if ing not in confirmed]
+    if unconfirmed:
+        servings_hint = f"\n분량 기준: {servings}" if servings else ""
+        ing_list = "\n".join(f"- {ing}" for ing in unconfirmed)
+        prompt = f"""요리 이름: {dish_name}{servings_hint}
+아래 재료들의 권장 용량을 추정하세요.
 
 재료 목록:
 {ing_list}
 
 규칙:
-- "[확인된 양: X]"로 표시된 재료는 크리에이터가 직접 명시한 양입니다. 그 값을 그대로 사용하세요.
-- 나머지 재료는 "[확인된 양: X]" 재료와의 비율을 고려해 추정하세요. 임의로 늘리지 마세요.
-- 건파스타(스파게티/링귀니/펜네 등) 기준: 1인분 = 80~100g. 분량 표기에 맞게 조정하세요.
-- 반드시 위 재료 목록에 있는 것만 처리하세요. 새 재료를 추가하지 마세요.
-- 허용 단위만 사용: 큰술 / 작은술 / 컵 / g / 개 / 쪽 / 줄기 / 꼬집 / 약간
+- 허용 단위만 사용: 큰술 / 작은술 / 컵 / g / ml / 개 / 쪽 / 줄기 / 꼬집 / 약간 / 적당량
 - 범위 표현 가능: "2~3큰술", "3~4쪽"
-- 소금/후추/오일처럼 취향에 따라 달라지는 재료는 "약간" 또는 "적당량" 사용
-- 출력 형식: {{"재료명": "재료명 용량"}} JSON 객체로 반환 (순서 무관, 재료명을 key로)
+- 건파스타 기준: 1인분 = 80~100g
+- 반드시 위 재료 목록에 있는 것만 처리하세요. 새 재료를 추가하지 마세요.
+- 출력 형식: {{"재료명": "용량"}} — 값은 용량만 (재료명 반복 금지)
 
 출력 예시:
-{{"바지락": "바지락 1kg", "양파": "양파 1개", "올리브 오일": "올리브 오일 3~4큰술", "소금": "소금 약간"}}
+{{"파스타": "100g", "양파": "1/2개", "소금": "약간"}}
 """
-    raw = _call_gemini_text(prompt, max_tokens=600)
-    if not raw:
-        safe_print(f"❌ [용량추정] Gemini 호출 실패")
-        return []
-    try:
-        raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
-        brace_start = raw.find('{')
-        brace_end = raw.rfind('}')
-        if brace_start != -1 and brace_end != -1:
-            parsed = json.loads(raw[brace_start:brace_end + 1])
-            if isinstance(parsed, dict):
-                safe_print(f"✅ [용량추정] Gemini {len(parsed)}개 재료 완료")
-                result = []
-                for ing in ingredients:
-                    qty_text = parsed.get(ing, f"{ing} 약간")
-                    if ing in confirmed:
-                        result.append({"text": qty_text, "source": confirmed[ing]["source"]})
-                    else:
-                        result.append({"text": qty_text, "source": "gemini"})
-                return result
-        safe_print(f"⚠️ [용량추정] 파싱 실패")
-        return []
-    except Exception as e:
-        safe_print(f"❌ [용량추정] 파싱 오류: {e}")
-        return []
+        raw = _call_gemini_text(prompt, max_tokens=400)
+        if raw:
+            try:
+                raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
+                brace_start = raw.find('{')
+                brace_end = raw.rfind('}')
+                if brace_start != -1 and brace_end != -1:
+                    parsed = json.loads(raw[brace_start:brace_end + 1])
+                    if isinstance(parsed, dict):
+                        safe_print(f"✅ [용량추정] Gemini {len(parsed)}개 미확정 재료 완료")
+                        for ing in unconfirmed:
+                            qty = parsed.get(ing)
+                            qty_text = f"{ing} {qty}" if qty else f"{ing} 약간"
+                            result_map[ing] = {"text": qty_text, "source": "gemini"}
+            except Exception as e:
+                safe_print(f"❌ [용량추정] 파싱 오류: {e}")
+        if not raw:
+            safe_print("❌ [용량추정] Gemini 호출 실패")
+
+        # Gemini 실패한 재료 fallback
+        for ing in unconfirmed:
+            if ing not in result_map:
+                result_map[ing] = {"text": f"{ing} 약간", "source": "gemini"}
+
+    safe_print(f"✅ [용량추정] 완료: confirmed {len(confirmed)}개 직접 조합, 추정 {len(unconfirmed)}개")
+    return [result_map[ing] for ing in ingredients if ing in result_map]
 
 
 # -----------------------------
@@ -2214,17 +2288,14 @@ def analyze_one_video(url: str) -> dict:
                 svgs = p.get("servings", "") if isinstance(p.get("servings"), str) else ""
                 confirmed_multi = {}
                 if ings:
-                    # Gemini 이름에 개수 포함된 경우 파싱
-                    _CU = re.compile(r"^(.+?)\s+(\d+(?:[./]\d+)?)\s*(개|쪽|장|마리|알|줄기|뭉치|포기|통|봉|팩|캔|병|근|모|판)\s*$")
+                    # Gemini 이름에 용량 포함된 경우 분리 (Gemini text call)
+                    parsed_ings = parse_ingredients_with_gemini(ings)
                     clean_ings = []
-                    for raw_ing in ings:
-                        m2 = _CU.match(raw_ing.strip())
-                        if m2:
-                            name, num, unit = m2.group(1).strip(), m2.group(2), m2.group(3)
-                            clean_ings.append(name)
-                            confirmed_multi[name] = {"quantity": f"{num}{unit}", "source": "영상 분석"}
-                        else:
-                            clean_ings.append(raw_ing.strip())
+                    for item in parsed_ings:
+                        name, qty = item["name"], item["quantity"]
+                        clean_ings.append(name)
+                        if qty:
+                            confirmed_multi[name] = {"quantity": qty, "source": "영상 분석"}
                     ings = clean_ings
                     # 텍스트에서 용량 추출
                     for src_name in ["고정댓글", "더보기란"]:
@@ -2240,7 +2311,7 @@ def analyze_one_video(url: str) -> dict:
                         for ing, qty in resolved.items():
                             if ing not in confirmed_multi:
                                 confirmed_multi[ing] = {"quantity": qty, "source": "영상 분석"}
-                qty_result = estimate_quantities_with_groq(p["메뉴"], ings, servings=svgs, confirmed=confirmed_multi) if ings else []
+                qty_result = estimate_quantities_with_gemini(p["메뉴"], ings, servings=svgs, confirmed=confirmed_multi) if ings else []
                 measured = [item["text"] for item in qty_result]
                 sources = [item["source"] for item in qty_result]
                 val_result = None
@@ -2353,19 +2424,16 @@ def analyze_one_video(url: str) -> dict:
             ingredients_measured = []
             ingredients_sources = []
 
-            # Gemini가 개수 포함해 반환한 재료 파싱 ("계란 3개" → name="계란", qty="3개")
-            _COUNT_UNITS = re.compile(r"^(.+?)\s+(\d+(?:[./]\d+)?)\s*(개|쪽|장|마리|알|줄기|뭉치|포기|통|봉|팩|캔|병|근|모|판)\s*$")
+            # Gemini 이름에 용량 포함된 경우 분리 (Gemini text call)
+            parsed_ings = parse_ingredients_with_gemini(raw_ingredients)
             final_ingredients = []
             gemini_confirmed = {}
-            for raw_ing in raw_ingredients:
-                m = _COUNT_UNITS.match(raw_ing.strip())
-                if m:
-                    name, num, unit = m.group(1).strip(), m.group(2), m.group(3)
-                    final_ingredients.append(name)
-                    gemini_confirmed[name] = {"quantity": f"{num}{unit}", "source": "영상 분석"}
-                    safe_print(f"📦 [개수 파싱] '{raw_ing}' → 재료: '{name}', 개수: '{num}{unit}'")
-                else:
-                    final_ingredients.append(raw_ing.strip())
+            for item in parsed_ings:
+                name, qty = item["name"], item["quantity"]
+                final_ingredients.append(name)
+                if qty:
+                    gemini_confirmed[name] = {"quantity": qty, "source": "영상 분석"}
+                    safe_print(f"📦 [재료 파싱] '{name}' → 용량: '{qty}'")
 
             if final_ingredients and best_name:
                 # 텍스트 소스에서 크리에이터가 명시한 용량 먼저 추출
@@ -2388,7 +2456,7 @@ def analyze_one_video(url: str) -> dict:
                             confirmed[ing] = {"quantity": qty, "source": "영상 분석"}
 
                 safe_print(f"📏 [용량추정] Groq으로 {len(final_ingredients)}개 재료 용량 추정 중... (확인된 양: {len(confirmed)}개, 영상: {len(gemini_confirmed)}개, 보완: {len(gemini_resolved) if unresolved else 0}개)")
-                qty_result = estimate_quantities_with_groq(best_name, final_ingredients, servings=servings_str, confirmed=confirmed)
+                qty_result = estimate_quantities_with_gemini(best_name, final_ingredients, servings=servings_str, confirmed=confirmed)
                 ingredients_measured = [item["text"] for item in qty_result]
                 ingredients_sources = [item["source"] for item in qty_result]
 
